@@ -1,0 +1,28 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.dll
+*.pdb
+
+## Node
+node_modules/
+dist/
+src/autonexus-web/node_modules/
+src/autonexus-web/dist/
+
+## IDE
+.vs/
+.vscode/
+.idea/
+*.swp
+
+## Environment
+.env
+*.env.local
+
+## OS
+.DS_Store
+Thumbs.db
