@@ -12,6 +12,7 @@ public class Vehicle : EntityBase
     public int ModelYear { get; private set; }
     public string? Plate { get; private set; }
     public string? Chassis { get; private set; }
+    public string? Renavam { get; private set; }
     public int Mileage { get; private set; }
     public string? Color { get; private set; }
     public FuelType? Fuel { get; private set; }

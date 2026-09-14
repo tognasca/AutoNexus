@@ -83,6 +83,7 @@ public class VehicleService : IVehicleService
             v.ModelYear,
             v.Plate,
             v.Chassis,
+            v.Renavam,
             v.Mileage,
             v.Color,
             v.Fuel,
@@ -121,6 +122,7 @@ public class VehicleService : IVehicleService
         typeof(Vehicle).GetProperty(nameof(Vehicle.Version))?.SetValue(vehicle, dto.Version?.Trim());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Plate))?.SetValue(vehicle, dto.Plate?.Trim().ToUpper());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Chassis))?.SetValue(vehicle, dto.Chassis?.Trim().ToUpper());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Renavam))?.SetValue(vehicle, dto.Renavam?.Trim().ToUpper());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Mileage))?.SetValue(vehicle, dto.Mileage);
         typeof(Vehicle).GetProperty(nameof(Vehicle.Color))?.SetValue(vehicle, dto.Color?.Trim());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Fuel))?.SetValue(vehicle, dto.Fuel);
@@ -149,6 +151,7 @@ public class VehicleService : IVehicleService
         typeof(Vehicle).GetProperty(nameof(Vehicle.ModelYear))?.SetValue(vehicle, dto.ModelYear);
         typeof(Vehicle).GetProperty(nameof(Vehicle.Plate))?.SetValue(vehicle, dto.Plate?.Trim().ToUpper());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Chassis))?.SetValue(vehicle, dto.Chassis?.Trim().ToUpper());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Renavam))?.SetValue(vehicle, dto.Renavam?.Trim().ToUpper()); 
         typeof(Vehicle).GetProperty(nameof(Vehicle.Mileage))?.SetValue(vehicle, dto.Mileage);
         typeof(Vehicle).GetProperty(nameof(Vehicle.Color))?.SetValue(vehicle, dto.Color?.Trim());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Fuel))?.SetValue(vehicle, dto.Fuel);

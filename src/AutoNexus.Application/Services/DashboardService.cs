@@ -1,5 +1,11 @@
-﻿using AutoNexus.Application.DTOs;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
+using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
 
@@ -8,60 +14,109 @@ namespace AutoNexus.Application.Services;
 public class DashboardService : IDashboardService
 {
     private readonly IVehicleRepository _vehicleRepository;
-    private readonly ITradeRepository _tradeRepository;
 
-    public DashboardService(IVehicleRepository vehicleRepository, ITradeRepository tradeRepository)
+    public DashboardService(
+        IVehicleRepository vehicleRepository)
     {
         _vehicleRepository = vehicleRepository;
-        _tradeRepository = tradeRepository;
     }
 
-    public async Task<DashboardSummaryDto> GetSummaryAsync(CancellationToken cancellationToken = default)
+    public async Task<DashboardSummaryDto> GetSummaryAsync(
+        CancellationToken cancellationToken = default)
     {
-        var (vehicles, _) = await _vehicleRepository.GetPagedAsync(1, 1000, cancellationToken: cancellationToken);
-        var vehicleList = vehicles.ToList();
+        try
+        {
+            var (vehicles, _) = await _vehicleRepository.GetPagedAsync(
+                page: 1,
+                pageSize: 10000,
+                cancellationToken: cancellationToken);
 
-        var trades = await _tradeRepository.GetAllAsync(cancellationToken);
-        var tradeList = trades.ToList();
+            var vehicleList = vehicles?.ToList() ?? new List<Vehicle>();
 
-        var activeStock = vehicleList.Where(v => v.Status != VehicleStatus.Vendido).ToList();
+            var vehiclesForSale = vehicleList
+                .Count(v => v.Status == VehicleStatus.AVenda);
 
-        var forSaleCount = vehicleList.Count(v => v.Status == VehicleStatus.AVenda);
-        var inTradeCount = vehicleList.Count(v => v.Status == VehicleStatus.EmTroca);
-        var soldCount = vehicleList.Count(v => v.Status == VehicleStatus.Vendido);
+            var vehiclesInTrade = vehicleList
+                .Count(v => v.Status == VehicleStatus.EmTroca);
 
-        var totalStockCost = activeStock.Sum(v => v.GetTotalCost());
-        var totalStockListedValue = activeStock.Sum(v => v.ListedValue ?? v.PurchaseValue);
+            var vehiclesSold = vehicleList
+                .Count(v => v.Status == VehicleStatus.Vendido);
 
-        var totalStockFipeValue = activeStock.Sum(v =>
-            v.FipeHistories.OrderByDescending(f => f.ConsultationDate).FirstOrDefault()?.FipeValue ?? 0m
-        );
+            var stockVehicles = vehicleList
+                .Where(v => v.Status != VehicleStatus.Vendido)
+                .ToList();
 
-        var estimatedMargin = totalStockListedValue - totalStockCost;
+            var totalStockCost = stockVehicles.Sum(v =>
+                v.PurchaseValue + (v.Costs != null ? v.Costs.Sum(c => c.Value) : 0m));
 
-        var kpis = new DashboardKpiDto(
-            forSaleCount,
-            inTradeCount,
-            soldCount,
-            totalStockCost,
-            totalStockListedValue,
-            totalStockFipeValue,
-            estimatedMargin
-        );
+            var totalStockListedValue = stockVehicles.Sum(v => v.ListedValue ?? 0m);
 
-        var recentActivities = vehicleList
-            .Take(10)
-            .Select(v => new RecentActivityDto(
-                v.Id,
-                $"{v.Brand} {v.Model}",
-                v.Status == VehicleStatus.Vendido ? "Venda Concluída" : "Cadastro no Estoque",
-                v.ListedValue ?? v.PurchaseValue,
-                v.UpdatedAt ?? v.CreatedAt,
-                v.Status.ToString()
-            ))
-            .OrderByDescending(a => a.Date)
-            .ToList();
+            var totalStockFipeValue = stockVehicles.Sum(GetLatestFipeValue);
 
-        return new DashboardSummaryDto(kpis, recentActivities);
+            var estimatedPotentialMargin = totalStockListedValue - totalStockCost;
+
+            var kpis = new DashboardKpiDto(
+                VehiclesForSale: vehiclesForSale,
+                VehiclesInTrade: vehiclesInTrade,
+                VehiclesSold: vehiclesSold,
+                TotalStockCost: totalStockCost,
+                TotalStockListedValue: totalStockListedValue,
+                TotalStockFipeValue: totalStockFipeValue,
+                EstimatedPotentialMargin: estimatedPotentialMargin
+            );
+
+            var recentActivities = new List<RecentActivityDto>();
+
+            foreach (var vehicle in vehicleList)
+            {
+                if (vehicle.FipeHistories == null) continue;
+
+                foreach (var history in vehicle.FipeHistories)
+                {
+                    recentActivities.Add(new RecentActivityDto(
+                        VehicleId: vehicle.Id,
+                        VehicleName: $"{vehicle.Brand} {vehicle.Model}".Trim(),
+                        OperationType: "Consulta FIPE",
+                        Value: history.FipeValue,
+                        Date: history.ConsultationDate,
+                        Status: vehicle.Status.ToString()
+                    ));
+                }
+            }
+
+            var orderedActivities = recentActivities
+                .OrderByDescending(a => a.Date)
+                .Take(10)
+                .ToList();
+
+            return new DashboardSummaryDto(
+                Kpis: kpis,
+                RecentActivities: orderedActivities
+            );
+        }
+        catch (Exception ex)
+        {
+            // _logger.LogError(ex, "Erro ao calcular resumo do Dashboard.");
+            throw;
+        }
+    }
+
+    private static decimal GetLatestFipeValue(Vehicle vehicle)
+    {
+        try
+        {
+            if (vehicle.FipeHistories == null || !vehicle.FipeHistories.Any())
+                return 0m;
+
+            var latest = vehicle.FipeHistories
+                .OrderByDescending(h => h.ConsultationDate)
+                .FirstOrDefault();
+
+            return latest?.FipeValue ?? 0m;
+        }
+        catch
+        {
+            return 0m;
+        }
     }
 }

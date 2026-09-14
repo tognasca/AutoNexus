@@ -455,6 +455,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("Renavam")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<decimal?>("SaleValue")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");

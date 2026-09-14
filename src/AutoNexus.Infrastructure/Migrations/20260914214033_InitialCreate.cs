@@ -109,6 +109,7 @@ namespace AutoNexus.Infrastructure.Migrations
                     ModelYear = table.Column<int>(type: "integer", nullable: false),
                     Plate = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: true),
                     Chassis = table.Column<string>(type: "character varying(30)", maxLength: 30, nullable: true),
+                    Renavam = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: true),
                     Mileage = table.Column<int>(type: "integer", nullable: false),
                     Color = table.Column<string>(type: "character varying(50)", maxLength: 50, nullable: true),
                     Fuel = table.Column<int>(type: "integer", nullable: true),
@@ -130,6 +131,31 @@ namespace AutoNexus.Infrastructure.Migrations
                         principalTable: "vehicle_types",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Restrict);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "BuyerAccessLinks",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    VehicleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    Token = table.Column<string>(type: "text", nullable: false),
+                    ExpiresAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    IsRevoked = table.Column<bool>(type: "boolean", nullable: false),
+                    CreatedByUserId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BuyerName = table.Column<string>(type: "text", nullable: true),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_BuyerAccessLinks", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_BuyerAccessLinks_vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "vehicles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -158,6 +184,32 @@ namespace AutoNexus.Infrastructure.Migrations
                         onDelete: ReferentialAction.Restrict);
                     table.ForeignKey(
                         name: "FK_costs_vehicles_VehicleId",
+                        column: x => x.VehicleId,
+                        principalTable: "vehicles",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ElectronicAcceptances",
+                columns: table => new
+                {
+                    Id = table.Column<Guid>(type: "uuid", nullable: false),
+                    VehicleId = table.Column<Guid>(type: "uuid", nullable: false),
+                    BuyerAccessLinkId = table.Column<Guid>(type: "uuid", nullable: true),
+                    BuyerName = table.Column<string>(type: "text", nullable: false),
+                    BuyerDocument = table.Column<string>(type: "text", nullable: false),
+                    IpAddress = table.Column<string>(type: "text", nullable: false),
+                    AcceptedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    TermVersion = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ElectronicAcceptances", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ElectronicAcceptances_vehicles_VehicleId",
                         column: x => x.VehicleId,
                         principalTable: "vehicles",
                         principalColumn: "Id",
@@ -298,6 +350,11 @@ namespace AutoNexus.Infrastructure.Migrations
                 column: "Resource");
 
             migrationBuilder.CreateIndex(
+                name: "IX_BuyerAccessLinks_VehicleId",
+                table: "BuyerAccessLinks",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_costs_CostCategoryId",
                 table: "costs",
                 column: "CostCategoryId");
@@ -305,6 +362,11 @@ namespace AutoNexus.Infrastructure.Migrations
             migrationBuilder.CreateIndex(
                 name: "IX_costs_VehicleId",
                 table: "costs",
+                column: "VehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ElectronicAcceptances_VehicleId",
+                table: "ElectronicAcceptances",
                 column: "VehicleId");
 
             migrationBuilder.CreateIndex(
@@ -376,7 +438,13 @@ namespace AutoNexus.Infrastructure.Migrations
                 name: "audit_logs");
 
             migrationBuilder.DropTable(
+                name: "BuyerAccessLinks");
+
+            migrationBuilder.DropTable(
                 name: "costs");
+
+            migrationBuilder.DropTable(
+                name: "ElectronicAcceptances");
 
             migrationBuilder.DropTable(
                 name: "fipe_histories");

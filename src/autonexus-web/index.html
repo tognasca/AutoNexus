@@ -1,21 +1,23 @@
-﻿<!doctype html>
+﻿<!DOCTYPE html>
 <html lang="pt-BR">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/pwa-icon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0e17" />
-    <meta name="description" content="AutoNexus - Plataforma Profissional de Gestão de Veículos" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <link rel="manifest" href="/manifest.json" />
     
-    <!-- Configurações PWA iOS (iPhone/iPad) -->
+    <!-- PWA Meta Tags -->
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="description" content="AutoNexus - Sistema de Gestão de Veículos" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="AutoNexus" />
-    <link rel="apple-touch-icon" href="/pwa-icon.svg" />
-
-    <title>AutoNexus - Gestão de Veículos</title>
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    
+    <title>AutoNexus</title>
   </head>
-  <body class="bg-[#0a0e17] text-slate-100 select-none">
+  <body class="bg-slate-900 text-slate-100 antialiased selection:bg-blue-600 selection:text-white">
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>

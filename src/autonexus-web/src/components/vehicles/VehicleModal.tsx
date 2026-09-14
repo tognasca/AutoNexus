@@ -25,6 +25,7 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
     modelYear: new Date().getFullYear(),
     plate: '',
     chassis: '',
+    Renavam: '',
     mileage: 0,
     color: '',
     fuel: FuelType.Flex,
