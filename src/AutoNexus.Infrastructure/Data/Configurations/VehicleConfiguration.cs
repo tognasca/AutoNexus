@@ -18,6 +18,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(x => x.ModelYear).IsRequired();
         builder.Property(x => x.Plate).HasMaxLength(10);
         builder.Property(x => x.Chassis).HasMaxLength(30);
+        builder.Property(x => x.Renavam).HasMaxLength(20);
         builder.Property(x => x.Mileage).IsRequired();
         builder.Property(x => x.Color).HasMaxLength(50);
         builder.Property(x => x.Fuel).HasConversion<int>();

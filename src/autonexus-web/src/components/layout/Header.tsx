@@ -1,5 +1,6 @@
 ﻿import { useAuth } from '../../contexts/AuthContext';
 import { LogOut } from 'lucide-react';
+import { InstallAppButton } from '../pwa/InstallAppButton';
 
 export function Header() {
   const { user, logout } = useAuth();
@@ -20,6 +21,9 @@ export function Header() {
       </div>
 
       <div className="flex items-center gap-4">
+        {/* Botão de Instalação do PWA (aparece no celular e Chrome quando instalável) */}
+        <InstallAppButton />
+
         {user && (
           <div className="flex items-center gap-3">
             <div className="text-right hidden sm:block">

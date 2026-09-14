@@ -74,6 +74,7 @@ export interface CreateVehicleInput {
   modelYear: number;
   plate?: string;
   chassis?: string;
+  Renavam?: string;
   mileage: number;
   color?: string;
   fuel?: FuelType;

@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AutoNexus.Infrastructure.Migrations
 {
     [DbContext(typeof(AutoNexusDbContext))]
-    [Migration("20260912181421_InitialCreate")]
+    [Migration("20260914214033_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -68,6 +68,44 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("Resource");
 
                     b.ToTable("audit_logs", (string)null);
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.BuyerAccessLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BuyerName")
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("CreatedByUserId")
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsRevoked")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("BuyerAccessLinks");
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Cost", b =>
@@ -172,6 +210,50 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("document_categories", (string)null);
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.ElectronicAcceptance", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("BuyerAccessLinkId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("BuyerDocument")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BuyerName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("IpAddress")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("TermVersion")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("VehicleId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleId");
+
+                    b.ToTable("ElectronicAcceptances");
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.FipeHistory", b =>
@@ -376,6 +458,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<string>("Renavam")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
                     b.Property<decimal?>("SaleValue")
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
@@ -547,6 +633,17 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("vehicle_types", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.BuyerAccessLink", b =>
+                {
+                    b.HasOne("AutoNexus.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Vehicle");
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.Cost", b =>
                 {
                     b.HasOne("AutoNexus.Domain.Entities.CostCategory", "CostCategory")
@@ -562,6 +659,17 @@ namespace AutoNexus.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("CostCategory");
+
+                    b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.ElectronicAcceptance", b =>
+                {
+                    b.HasOne("AutoNexus.Domain.Entities.Vehicle", "Vehicle")
+                        .WithMany()
+                        .HasForeignKey("VehicleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.Navigation("Vehicle");
                 });
