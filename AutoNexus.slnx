@@ -1,0 +1,12 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/AutoNexus.Api/AutoNexus.Api.csproj" />
+    <Project Path="src/AutoNexus.Application/AutoNexus.Application.csproj" />
+    <Project Path="src/AutoNexus.Domain/AutoNexus.Domain.csproj" />
+    <Project Path="src/AutoNexus.Infrastructure/AutoNexus.Infrastructure.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/AutoNexus.Application.Tests/AutoNexus.Application.Tests.csproj" />
+    <Project Path="tests/AutoNexus.Domain.Tests/AutoNexus.Domain.Tests.csproj" />
+  </Folder>
+</Solution>
