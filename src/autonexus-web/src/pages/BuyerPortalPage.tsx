@@ -1,5 +1,5 @@
 ﻿import { useState, useEffect } from 'react';
-import { portalService, type PortalVehicle, type AcceptanceResult } from '../services/portalService';
+import { portalService, type PortalVehicle } from '../services/portalService';
 import { formatCurrency, formatDateTime, formatCpfCnpj } from '../utils/formatters';
 import { Car, Download, CheckCircle2, ShieldCheck, FileText, Loader2, AlertCircle } from 'lucide-react';
 

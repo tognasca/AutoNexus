@@ -67,6 +67,54 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.BankConfig", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("ApiKey")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApiSecret")
+                        .HasColumnType("text");
+
+                    b.Property<string>("ApiUrl")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("BankCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("DefaultMonthlyRate")
+                        .HasColumnType("numeric");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean");
+
+                    b.Property<bool>("IsSandbox")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("MerchantId")
+                        .HasColumnType("text");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("BankConfigs");
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.BuyerAccessLink", b =>
                 {
                     b.Property<Guid>("Id")
@@ -463,6 +511,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasPrecision(18, 2)
                         .HasColumnType("numeric(18,2)");
 
+                    b.Property<DateTime?>("SoldAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid?>("SoldByUserId")
+                        .HasColumnType("uuid");
+
                     b.Property<int>("Status")
                         .HasColumnType("integer");
 
@@ -486,6 +540,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("Model");
 
                     b.HasIndex("Plate");
+
+                    b.HasIndex("SoldByUserId");
 
                     b.HasIndex("Status");
 
@@ -703,11 +759,17 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>
                 {
+                    b.HasOne("AutoNexus.Domain.Entities.User", "SoldByUser")
+                        .WithMany()
+                        .HasForeignKey("SoldByUserId");
+
                     b.HasOne("AutoNexus.Domain.Entities.VehicleType", "VehicleType")
                         .WithMany("Vehicles")
                         .HasForeignKey("VehicleTypeId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("SoldByUser");
 
                     b.Navigation("VehicleType");
                 });

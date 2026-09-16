@@ -65,7 +65,6 @@ export const documentService = {
   },
 
   downloadZipUrl: (vehicleId: string) => {
-    const token = localStorage.getItem('autonexus_token');
     return `${API_BASE_URL}/vehicles/${vehicleId}/documents/download-zip`;
   },
 

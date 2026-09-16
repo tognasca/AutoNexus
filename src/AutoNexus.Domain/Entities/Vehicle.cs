@@ -23,6 +23,11 @@ public class Vehicle : EntityBase
     public decimal? SaleValue { get; private set; }
     public string? Notes { get; private set; }
 
+    // Propriedades da Venda
+    public Guid? SoldByUserId { get; private set; }
+    public User? SoldByUser { get; private set; }
+    public DateTime? SoldAt { get; private set; }
+
     // Propriedades de Navegação
     public VehicleType VehicleType { get; private set; } = null!;
     public ICollection<VehiclePhoto> Photos { get; private set; } = new List<VehiclePhoto>();
@@ -90,6 +95,14 @@ public class Vehicle : EntityBase
         UpdatedAt = DateTime.UtcNow;
     }
 
+    // Método para registrar a venda com o Vendedor
+    public void MarkAsSold(decimal saleValue, Guid soldByUserId, DateTime? soldAt = null)
+    {
+        Status = VehicleStatus.Vendido;
+        SaleValue = saleValue;
+        SoldByUserId = soldByUserId;
+        SoldAt = soldAt ?? DateTime.UtcNow;
+    }
     public decimal GetTotalCost()
     {
         return PurchaseValue + Costs.Sum(c => c.Value);

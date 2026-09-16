@@ -151,7 +151,7 @@ public class VehicleService : IVehicleService
         typeof(Vehicle).GetProperty(nameof(Vehicle.ModelYear))?.SetValue(vehicle, dto.ModelYear);
         typeof(Vehicle).GetProperty(nameof(Vehicle.Plate))?.SetValue(vehicle, dto.Plate?.Trim().ToUpper());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Chassis))?.SetValue(vehicle, dto.Chassis?.Trim().ToUpper());
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Renavam))?.SetValue(vehicle, dto.Renavam?.Trim().ToUpper()); 
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Renavam))?.SetValue(vehicle, dto.Renavam?.Trim().ToUpper());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Mileage))?.SetValue(vehicle, dto.Mileage);
         typeof(Vehicle).GetProperty(nameof(Vehicle.Color))?.SetValue(vehicle, dto.Color?.Trim());
         typeof(Vehicle).GetProperty(nameof(Vehicle.Fuel))?.SetValue(vehicle, dto.Fuel);
@@ -179,6 +179,17 @@ public class VehicleService : IVehicleService
             ?? throw new KeyNotFoundException("Veículo não encontrado.");
 
         _vehicleRepository.Delete(vehicle);
+        await _unitOfWork.CommitAsync(cancellationToken);
+    }
+
+    public async Task SellVehicleAsync(Guid vehicleId, SellVehicleDto dto, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await _vehicleRepository.GetByIdAsync(vehicleId, false, cancellationToken)
+             ?? throw new KeyNotFoundException("Veículo não encontrado.");
+
+        vehicle.MarkAsSold(dto.SaleValue, dto.SoldByUserId, dto.SoldAt);
+
+         _vehicleRepository.Update(vehicle);
         await _unitOfWork.CommitAsync(cancellationToken);
     }
 }

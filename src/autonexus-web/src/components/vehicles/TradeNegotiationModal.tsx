@@ -21,8 +21,8 @@ export function TradeNegotiationModal({ isOpen, vehicle, vehicleTypes, onClose, 
 
   const [recBrand, setRecBrand] = useState('');
   const [recModel, setRecModel] = useState('');
-  const [recVersion, setRecVersion] = useState('');
-  const [recYearFab, setRecYearFab] = useState(new Date().getFullYear());
+  const [recVersion] = useState('');
+  const [recYearFab] = useState(new Date().getFullYear());
   const [recYearMod, setRecYearMod] = useState(new Date().getFullYear());
   const [recTypeId, setRecTypeId] = useState(vehicleTypes[0]?.id || '');
   const [recPurchaseVal, setRecPurchaseVal] = useState(0);
@@ -30,11 +30,11 @@ export function TradeNegotiationModal({ isOpen, vehicle, vehicleTypes, onClose, 
   const [delivFipe, setDelivFipe] = useState(vehicle?.purchaseValue || 0);
   const [recFipe, setRecFipe] = useState(0);
   const [delivNegotiated, setDelivNegotiated] = useState(vehicle?.listedValue || vehicle?.purchaseValue || 0);
-  const [recNegotiated, setRecNegotiated] = useState(0);
+  const [recNegotiated] = useState(0);
   const [estimatedResaleCost, setEstimatedResaleCost] = useState(0);
   const [differenceVal, setDifferenceVal] = useState(0);
   const [differencePaidByUs, setDifferencePaidByUs] = useState(false);
-  const [notes, setNotes] = useState('');
+  const [notes] = useState('');
 
   if (!isOpen || !vehicle) return null;
 

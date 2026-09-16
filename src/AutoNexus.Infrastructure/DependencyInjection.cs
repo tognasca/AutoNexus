@@ -1,6 +1,7 @@
 ﻿using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
+using AutoNexus.Infrastructure.Integrations.Adapters;
 using AutoNexus.Infrastructure.Repositories;
 using AutoNexus.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
@@ -27,11 +28,11 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IBuyerLinkRepository, BuyerLinkRepository>();
         services.AddScoped<IAcceptanceRepository, AcceptanceRepository>();
-
+        services.AddScoped<IBankConfigRepository, BankConfigRepository>(); // Registrado aqui
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
+        services.AddScoped<IBankAdapter, SantanderBankAdapter>();
         services.AddScoped<IStorageService, LocalStorageService>();
-
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
 
         return services;

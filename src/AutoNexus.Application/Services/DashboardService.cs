@@ -97,7 +97,7 @@ public class DashboardService : IDashboardService
         catch (Exception ex)
         {
             // _logger.LogError(ex, "Erro ao calcular resumo do Dashboard.");
-            throw;
+            throw new ApplicationException("Erro ao calcular resumo do Dashboard.", ex);
         }
     }
 

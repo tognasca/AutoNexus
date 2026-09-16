@@ -67,6 +67,20 @@ public static class DbInitializer
             await context.Users.AddAsync(adminUser);
         }
 
+
+        if (!await context.Set<BankConfig>().AnyAsync())
+        {
+            var defaultBanks = new List<BankConfig>
+    {
+        new("santander", "Santander Financiamentos", 1.49m, "https://api.santander.com.br/sandbox", "SANDBOX_KEY_SANTANDER", "SANDBOX_SECRET", "STORE_123", true),
+        new("itau", "Itaú Veículos", 1.55m, "https://api.itau.com.br/sandbox", "SANDBOX_KEY_ITAU", "SANDBOX_SECRET", "STORE_123", true),
+        new("bv", "Banco BV", 1.79m, "https://api.bv.com.br/sandbox", "SANDBOX_KEY_BV", "SANDBOX_SECRET", "STORE_123", true),
+        new("bradesco", "Bradesco Financiamentos", 1.62m, "https://api.bradesco.com.br/sandbox", "SANDBOX_KEY_BRADESCO", "SANDBOX_SECRET", "STORE_123", true)
+    };
+
+            await context.Set<BankConfig>().AddRangeAsync(defaultBanks);
+            await context.SaveChangesAsync();
+        }
         await context.SaveChangesAsync();
     }
 }

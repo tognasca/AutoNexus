@@ -35,7 +35,7 @@ export function VehicleFipeModal({ isOpen, vehicle, onClose, onFipeUpdated }: Ve
   const [manualValue, setManualValue] = useState<number>(0);
   const [manualMonth, setManualMonth] = useState<number>(new Date().getMonth() + 1);
   const [manualYear, setManualYear] = useState<number>(new Date().getFullYear());
-  const [manualNotes, setManualNotes] = useState('');
+  const [manualNotes] = useState('');
 
   const loadData = async () => {
     if (!vehicle) return;

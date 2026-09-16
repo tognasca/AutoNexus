@@ -6,6 +6,10 @@ import { VehiclesPage } from './pages/VehiclesPage';
 import { TradesPage } from './pages/TradesPage';
 import { BuyerPortalPage } from './pages/BuyerPortalPage';
 import { Loader2 } from 'lucide-react';
+import { SimulatorPage } from './pages/SimulatorPage';
+import { DrePage } from './pages/reports/DrePage';
+import { BankConfigPage } from './pages/admin/BankConfigPage';
+import { UsersPage } from './pages/admin/UsersPage';
 
 function AppContent() {
   const { isAuthenticated, loading } = useAuth();
@@ -35,8 +39,17 @@ function AppContent() {
         return <DashboardPage currentView={currentView} onNavigate={setCurrentView} />;
       case 'trades':
         return <TradesPage currentView={currentView} onNavigate={setCurrentView} />;
+      case 'simulator':
+        return <SimulatorPage currentView={currentView} onNavigate={setCurrentView} />;
+      case 'reports':
+        return <DrePage currentView={currentView} onNavigate={setCurrentView} />; // <-- Rota do DRE
+      case 'bank-configs':
+        return <BankConfigPage currentView={currentView} onNavigate={setCurrentView} />;
+      case 'users':
+        return <UsersPage currentView={currentView} onNavigate={setCurrentView} />;
       default:
         return <VehiclesPage currentView={currentView} onNavigate={setCurrentView} />;
+
     }
   };
 

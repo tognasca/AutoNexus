@@ -1,5 +1,6 @@
 ﻿using AutoNexus.Application.Interfaces;
 using AutoNexus.Application.Services;
+using AutoNexus.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace AutoNexus.Application;
@@ -17,6 +18,11 @@ public static class DependencyInjection
         services.AddScoped<IDocumentService, DocumentService>();
         services.AddScoped<IPortalService, PortalService>();
         services.AddScoped<IDashboardService, DashboardService>();
+        services.AddScoped<IReportService, ReportService>();
+        services.AddScoped<IContractService, ContractService>();
+        services.AddHttpClient("BankCreditClient");
+        services.AddScoped<IBankCreditService, CreditService>(); 
+        services.AddScoped<IBankConfigService, BankConfigService>();
         return services;
     }
 }

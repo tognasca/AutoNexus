@@ -72,6 +72,15 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
     await vehicleService.create(data);
   };
 
+  const handleDeleteVehicle = async (vehicle: VehicleSummary) => {
+    try {
+      await vehicleService.delete(vehicle.id);
+      await loadData();
+    } catch (err) {
+      alert('Erro ao excluir o veículo do estoque.');
+    }
+  };
+
   return (
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
@@ -127,6 +136,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
               onManageDocuments={(veh) => { setSelectedVehicleForDocs(veh); setIsDocsModalOpen(true); }}
               onSellVehicle={(veh) => { setSelectedVehicleForSale(veh); setIsSaleModalOpen(true); }}
               onTradeVehicle={(veh) => { setSelectedVehicleForTrade(veh); setIsTradeModalOpen(true); }}
+              onDeleteVehicle={handleDeleteVehicle}
             />
           ))}
         </div>
@@ -184,6 +194,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         onClose={() => setIsTradeModalOpen(false)}
         onTradeCompleted={loadData}
       />
+
     </MainLayout>
   );
 }

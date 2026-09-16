@@ -20,7 +20,7 @@ public class AutoNexusDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<BuyerAccessLink> BuyerAccessLinks => Set<BuyerAccessLink>();
     public DbSet<ElectronicAcceptance> ElectronicAcceptances => Set<ElectronicAcceptance>();
-
+        public DbSet<BankConfig> BankConfigs => Set<BankConfig>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
