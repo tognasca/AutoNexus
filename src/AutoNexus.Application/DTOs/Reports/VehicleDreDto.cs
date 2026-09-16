@@ -15,5 +15,7 @@ public record VehicleDreDto(
     decimal ProfitOrMargin,
     decimal MarginPercentage,
     int DaysInStock,
-    IEnumerable<CostDetailDto> Costs
+    IEnumerable<CostDetailDto> Costs,
+    string? SoldByName = null,
+    DateTime? SoldAt = null
 );

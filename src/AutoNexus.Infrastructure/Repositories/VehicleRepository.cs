@@ -18,42 +18,41 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<Vehicle?> GetByIdAsync(Guid id, bool includeDetails = false, CancellationToken cancellationToken = default)
     {
-        var query = _context.Vehicles.AsQueryable();
+        IQueryable<Vehicle> query = _context.Set<Vehicle>();
 
         if (includeDetails)
         {
             query = query
                 .Include(v => v.VehicleType)
                 .Include(v => v.Photos)
-                .Include(v => v.Documents).ThenInclude(d => d.DocumentCategory)
-                .Include(v => v.Costs).ThenInclude(c => c.CostCategory)
-                .Include(v => v.FipeHistories);
-        }
-        else
-        {
-            query = query.Include(v => v.VehicleType);
+                .Include(v => v.Costs)
+                    .ThenInclude(c => c.CostCategory)
+                .Include(v => v.FipeHistories)
+                .Include(v => v.SoldByUser); // <-- INCLUÍDO NAVEGAÇÃO DO VENDEDOR
         }
 
         return await query.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 
     public async Task<(IEnumerable<Vehicle> Items, int TotalCount)> GetPagedAsync(
-        int page,
-        int pageSize,
-        Guid? vehicleTypeId = null,
-        VehicleStatus? status = null,
-        string? search = null,
-        decimal? minPrice = null,
-        decimal? maxPrice = null,
-        int? minYear = null,
-        int? maxYear = null,
-        CancellationToken cancellationToken = default)
+     int page,
+     int pageSize,
+     Guid? vehicleTypeId = null,
+     VehicleStatus? status = null,
+     string? search = null,
+     decimal? minPrice = null,
+     decimal? maxPrice = null,
+     int? minYear = null,
+     int? maxYear = null,
+     CancellationToken cancellationToken = default)
     {
-        var query = _context.Vehicles
+        IQueryable<Vehicle> query = _context.Set<Vehicle>()
             .Include(v => v.VehicleType)
-            .Include(v => v.Photos.Where(p => p.IsMain))
-            .AsNoTracking()
-            .AsQueryable();
+            .Include(v => v.Photos)
+            .Include(v => v.Costs)
+                .ThenInclude(c => c.CostCategory)
+            .Include(v => v.FipeHistories)
+            .Include(v => v.SoldByUser); // <-- INCLUÍDO NAVEGAÇÃO DO VENDEDOR
 
         if (vehicleTypeId.HasValue)
             query = query.Where(v => v.VehicleTypeId == vehicleTypeId.Value);
@@ -83,7 +82,6 @@ public class VehicleRepository : IVehicleRepository
             query = query.Where(v => v.ModelYear <= maxYear.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
-
         var items = await query
             .OrderByDescending(v => v.CreatedAt)
             .Skip((page - 1) * pageSize)

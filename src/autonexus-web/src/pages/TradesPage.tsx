@@ -28,7 +28,7 @@ export function TradesPage({ currentView, onNavigate }: { currentView?: string; 
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <ArrowLeftRight className="text-amber-400" size={24} />
             Histórico de Trocas
           </h1>

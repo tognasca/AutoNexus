@@ -7,7 +7,7 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/bank-configs")]
-[Authorize]
+[Authorize(Roles = "Admin,1")] // <-- Apenas Administrador pode alterar configurações das financeiras
 public class BankConfigController : ControllerBase
 {
     private readonly IBankConfigService _bankConfigService;

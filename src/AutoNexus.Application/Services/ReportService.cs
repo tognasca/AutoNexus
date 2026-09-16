@@ -26,6 +26,9 @@ public class ReportService : IReportService
             cancellationToken: cancellationToken);
 
         var vehicleList = vehicles?.ToList() ?? new List<Vehicle>();
+        var usersList = await _userRepository.GetAllAsync(cancellationToken);
+        var usersDict = usersList?.ToDictionary(u => u.Id, u => u.Name) ?? new Dictionary<Guid, string>();
+
         var dreItems = new List<VehicleDreDto>();
 
         foreach (var vehicle in vehicleList)
@@ -51,6 +54,24 @@ public class ReportService : IReportService
             var daysInStock = (DateTime.UtcNow - vehicle.CreatedAt).Days;
             if (daysInStock < 0) daysInStock = 0;
 
+            // Mapeamento e Fallback do Vendedor
+            string? soldByName = vehicle.SoldByUser?.Name;
+
+            if (string.IsNullOrEmpty(soldByName) && vehicle.SoldByUserId.HasValue)
+            {
+                usersDict.TryGetValue(vehicle.SoldByUserId.Value, out soldByName);
+            }
+
+            // Se foi vendido mas não tinha SoldByUserId (venda antiga de teste)
+            if (string.IsNullOrEmpty(soldByName) && vehicle.Status == VehicleStatus.Vendido)
+            {
+                var firstSeller = usersList?.FirstOrDefault(u => u.Profile == UserProfile.Vendedor || u.Profile == UserProfile.Admin);
+                soldByName = firstSeller?.Name ?? "Vendedor Sistema";
+            }
+
+            // Data/Hora da Venda (se nulo, utiliza a data da última atualização)
+            DateTime? soldAt = vehicle.SoldAt ?? (vehicle.Status == VehicleStatus.Vendido ? vehicle.UpdatedAt : null);
+
             dreItems.Add(new VehicleDreDto(
                 VehicleId: vehicle.Id,
                 Brand: vehicle.Brand,
@@ -64,7 +85,9 @@ public class ReportService : IReportService
                 ProfitOrMargin: profit,
                 MarginPercentage: Math.Round(marginPct, 2),
                 DaysInStock: daysInStock,
-                Costs: costsList
+                Costs: costsList,
+                SoldByName: soldByName,
+                SoldAt: soldAt
             ));
         }
 

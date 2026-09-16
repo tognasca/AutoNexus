@@ -129,12 +129,12 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
 
   return (
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
-      <div className="space-y-6 p-4 sm:p-6 max-w-6xl mx-auto">
+      <div className="space-y-6 p-4 sm:p-6 w-full">
         
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-nexus-border pb-4">
           <div>
-            <h1 className="text-xl font-bold text-white flex items-center gap-2">
+             <h1 className="text-xl font-bold text-white flex items-center gap-2">
               <Building2 className="w-6 h-6 text-amber-400" />
               Gestão de Financeiras e Taxas de Crédito
             </h1>
