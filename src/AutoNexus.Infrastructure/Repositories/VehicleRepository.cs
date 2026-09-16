@@ -1,4 +1,5 @@
-﻿using AutoNexus.Domain.Entities;
+﻿using AutoNexus.Application.DTOs.Reports;
+using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
@@ -131,4 +132,5 @@ public class VehicleRepository : IVehicleRepository
     {
         await _context.FipeHistories.AddAsync(history, cancellationToken);
     }
+
 }

@@ -1,147 +1,125 @@
-﻿import { useState } from 'react';
-import { tradeService, type CompleteSaleInput } from '../../services/tradeService';
-import type { VehicleSummary } from '../../types/vehicle';
+﻿import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatCurrency } from '../../utils/formatters';
-import { X, CheckCircle2, DollarSign, Loader2, User, CreditCard } from 'lucide-react';
+import { request } from '../../services/api';
+import { User, CheckCircle2, X } from 'lucide-react';
 
-interface VehicleSaleModalProps {
-  isOpen: boolean;
-  vehicle: VehicleSummary | null;
-  onClose: () => void;
-  onSaleCompleted: () => void;
+interface SellerOption {
+  id: string;
+  name: string;
 }
 
-export function VehicleSaleModal({ isOpen, vehicle, onClose, onSaleCompleted }: VehicleSaleModalProps) {
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+export function VehicleSaleModal({ vehicle, isOpen, onClose, onSaleCompleted }: any) {
+  const { user } = useAuth(); // Usuário logado
+  const [saleValue, setSaleValue] = useState<number>(vehicle?.listedValue || vehicle?.purchaseValue || 0);
+  const [selectedSellerId, setSelectedSellerId] = useState<string>(user?.id || '');
+  const [sellers, setSellers] = useState<SellerOption[]>([]);
+  const [loading, setLoading] = useState(false);
 
-  const [form, setForm] = useState<CompleteSaleInput>({
-    saleValue: vehicle?.listedValue || vehicle?.purchaseValue || 0,
-    buyerName: '',
-    paymentMethod: 'À Vista / Pix',
-    notes: '',
-  });
+  // Carrega a lista de vendedores da loja
+  useEffect(() => {
+    const fetchSellers = async () => {
+      try {
+        const data = await request<SellerOption[]>('/users');
+        setSellers(data || []);
+      } catch {
+        // Fallback para o próprio usuário logado
+        if (user) setSellers([{ id: user.userId, name: user.name }]);
+      }
+    };
+    if (isOpen) fetchSellers();
+  }, [isOpen, user]);
 
-  if (!isOpen || !vehicle) return null;
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleConfirmSale = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (form.saleValue <= 0) {
-      setError('Informe um valor de venda válido.');
+    if (!selectedSellerId) {
+      alert('Selecione o Vendedor responsável pela venda.');
       return;
     }
 
+    setLoading(true);
     try {
-      setSubmitting(true);
-      setError(null);
-      await tradeService.completeSale(vehicle.id, form);
+      await request(`/vehicles/${vehicle.id}/sell`, {
+        method: 'POST',
+        body: JSON.stringify({
+          saleValue: Number(saleValue),
+          soldByUserId: selectedSellerId, // <-- Grava o Vendedor no banco!
+          soldAt: new Date().toISOString()
+        })
+      });
+
       onSaleCompleted();
       onClose();
-    } catch (err: any) {
-      setError(err.message || 'Erro ao finalizar venda.');
+    } catch (err) {
+      alert('Erro ao confirmar venda do veículo.');
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
+  if (!isOpen || !vehicle) return null;
+
   return (
-    <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
-        <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
-          <div className="flex items-center gap-2">
-            <CheckCircle2 size={20} className="text-emerald-400" />
-            <h2 className="text-lg font-bold text-white">Finalizar Venda</h2>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
-            <X size={20} />
+    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md text-slate-100 shadow-2xl p-6 space-y-4">
+        
+        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
+          <h3 className="font-bold text-base text-emerald-400 flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5" /> Confirmar Venda do Veículo
+          </h3>
+          <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded text-slate-400">
+            <X className="w-5 h-5" />
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
-          {error && (
-            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
-              {error}
-            </div>
-          )}
-
-          <div className="p-3 bg-slate-900/60 border border-nexus-border rounded-xl">
-            <p className="text-xs font-semibold text-nexus-accent uppercase tracking-wider">{vehicle.brand}</p>
-            <p className="text-base font-bold text-white">{vehicle.model} {vehicle.version}</p>
-            <p className="text-xs text-slate-400 mt-0.5">Placa: {vehicle.plate || 'N/A'}</p>
+        <form onSubmit={handleConfirmSale} className="space-y-4 text-xs">
+          <div>
+            <p className="text-slate-400">Veículo:</p>
+            <p className="text-sm font-bold text-white">{vehicle.brand} {vehicle.model} - {vehicle.plate}</p>
           </div>
 
+          {/* Seleção do Vendedor Responsável */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Valor de Venda (R$) *</label>
-            <CurrencyInput
-              value={form.saleValue}
-              onChange={(val) => setForm({ ...form, saleValue: val })}
-              placeholder="R$ 0,00"
-              className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
+            <label className="text-slate-400 block mb-1 flex items-center gap-1">
+              <User className="w-3.5 h-3.5 text-blue-400" /> Vendedor Responsável *
+            </label>
+            <select
+              value={selectedSellerId}
+              onChange={e => setSelectedSellerId(e.target.value)}
+              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
               required
-            />
+            >
+              <option value="">-- Selecione o Vendedor --</option>
+              {sellers.map(s => (
+                <option key={s.id} value={s.id}>{s.name}</option>
+              ))}
+            </select>
           </div>
 
+          {/* Valor Real de Venda */}
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nome do Comprador</label>
-            <div className="relative">
-              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <input
-                type="text"
-                value={form.buyerName}
-                onChange={(e) => setForm({ ...form, buyerName: e.target.value })}
-                placeholder="Ex: João da Silva"
-                className="w-full pl-10 pr-4 py-2.5 bg-nexus-dark border border-nexus-border rounded-lg text-sm text-white focus:outline-none focus:border-nexus-accent"
-              />
-            </div>
+            <label className="text-slate-400 block mb-1">Valor Final da Venda (R$) *</label>
+            <CurrencyInput value={saleValue} onChange={setSaleValue} />
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Forma de Pagamento</label>
-            <div className="relative">
-              <CreditCard className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={18} />
-              <select
-                value={form.paymentMethod}
-                onChange={(e) => setForm({ ...form, paymentMethod: e.target.value })}
-                className="w-full pl-10 pr-4 py-2.5 bg-nexus-dark border border-nexus-border rounded-lg text-sm text-white focus:outline-none focus:border-nexus-accent"
-              >
-                <option value="À Vista / Pix">À Vista / Pix</option>
-                <option value="Financiamento Bancário">Financiamento Bancário</option>
-                <option value="Cartão de Crédito">Cartão de Crédito</option>
-                <option value="Transferência Bancária">Transferência Bancária</option>
-              </select>
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Observações</label>
-            <textarea
-              rows={2}
-              value={form.notes}
-              onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Notas adicionais sobre a venda..."
-              className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
-            />
-          </div>
-
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-nexus-border">
+          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 text-sm font-semibold text-slate-400 hover:text-white transition-colors"
+              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              disabled={submitting}
-              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+              disabled={loading}
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl disabled:opacity-50"
             >
-              {submitting ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
-              Confirmar Venda
+              {loading ? 'Confirmando...' : 'Confirmar Venda'}
             </button>
           </div>
         </form>
+
       </div>
     </div>
   );

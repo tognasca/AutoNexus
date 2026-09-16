@@ -49,6 +49,13 @@ public class AuthService : IAuthService
         var user = await _userRepository.GetByIdAsync(userId, cancellationToken);
         if (user == null) return null;
 
-        return new UserDto(user.Id, user.Name, user.Email, user.Profile, user.IsActive);
+        var ProfileName = user.Profile switch
+        {
+            Domain.Enums.UserProfile.Admin => "Administrador",
+            Domain.Enums.UserProfile.Vendedor => "Vendedor",
+            _ => "Cliente"
+        };
+
+        return new UserDto(user.Id, user.Name, user.Email, user.Profile, ProfileName, user.IsActive, user.CreatedAt);
     }
 }

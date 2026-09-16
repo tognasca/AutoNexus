@@ -1,4 +1,4 @@
-﻿import { LayoutDashboard, Car, ArrowLeftRight } from 'lucide-react';
+﻿import { LayoutDashboard, Car, ArrowLeftRight, Calculator, BarChart3, Building2, Users } from 'lucide-react';
 
 interface SidebarProps {
   currentView?: string;
@@ -21,11 +21,10 @@ export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps)
       <nav className="flex flex-col gap-1.5">
         <button
           onClick={() => onNavigate?.('dashboard')}
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
-            currentView === 'dashboard'
-              ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
-              : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
-          }`}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'dashboard'
+            ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+            : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
         >
           <LayoutDashboard size={18} />
           Dashboard
@@ -33,11 +32,10 @@ export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps)
 
         <button
           onClick={() => onNavigate?.('vehicles')}
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
-            currentView === 'vehicles'
-              ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
-              : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
-          }`}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'vehicles'
+            ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+            : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
         >
           <Car size={18} />
           Estoque
@@ -45,14 +43,57 @@ export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps)
 
         <button
           onClick={() => onNavigate?.('trades')}
-          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
-            currentView === 'trades'
-              ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
-              : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
-          }`}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'trades'
+            ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+            : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
         >
           <ArrowLeftRight size={18} />
           Trocas & Histórico
+        </button>
+
+        <button
+          onClick={() => onNavigate?.('simulator')}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'simulator'
+            ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+            : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+        >
+          <Calculator size={18} />
+          Simulador
+        </button>
+
+        <button
+          onClick={() => onNavigate?.('reports')}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'reports'
+            ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+            : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+        >
+          <BarChart3 size={18} />
+          Relatório DRE
+        </button>
+
+        <button
+          onClick={() => onNavigate?.('bank-configs')}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'bank-configs'
+            ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+            : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+        >
+          <Building2 size={18} />
+          Financeiras
+        </button>
+
+        <button
+          onClick={() => onNavigate?.('users')}
+          className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${currentView === 'users'
+              ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+              : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+        >
+          <Users size={18} />
+          Usuários
         </button>
       </nav>
     </aside>
