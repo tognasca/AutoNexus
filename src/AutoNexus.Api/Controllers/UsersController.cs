@@ -10,7 +10,7 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/users")]
-[Authorize]
+[Authorize(Roles = "Admin,1")] // <-- Apenas Administrador pode listar e cadastrar usuários
 public class UsersController : ControllerBase
 {
     private readonly IUserRepository _userRepository;
@@ -31,7 +31,7 @@ public class UsersController : ControllerBase
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {
         var users = await _userRepository.GetAllAsync(cancellationToken);
-        var dtos = users.Select(u => new UserDto(
+        var dtos = users?.Select(u => new UserDto(
             Id: u.Id,
             Name: u.Name,
             Email: u.Email,

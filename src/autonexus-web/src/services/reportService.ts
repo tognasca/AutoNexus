@@ -21,6 +21,8 @@ export interface VehicleDre {
   marginPercentage: number;
   daysInStock: number;
   costs: CostDetail[];
+  soldByName?: string;
+  soldAt?: string;
 }
 
 export interface DreSummary {
@@ -35,8 +37,7 @@ export interface DreSummary {
 }
 
 export const reportService = {
-  getDreReport: async () => {
-    const response = await request<DreSummary>(`/reports/dre`);
-    return response;      
+  getDreReport: async (): Promise<DreSummary> => {
+    return await request<DreSummary>('/reports/dre');
   }
 };

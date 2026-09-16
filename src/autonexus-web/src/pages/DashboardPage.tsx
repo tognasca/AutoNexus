@@ -28,7 +28,7 @@ export function DashboardPage({ currentView, onNavigate }: { currentView?: strin
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       <div className="flex items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white flex items-center gap-2">
+           <h1 className="text-xl font-bold text-white flex items-center gap-2">
             <LayoutDashboard className="text-nexus-accent" size={24} />
             Dashboard Operacional
           </h1>

@@ -1,7 +1,7 @@
 namespace AutoNexus.Application.DTOs.Reports;
 
 public record DreSummaryDto(
-    decimal TotalRevenue,
+   decimal TotalRevenue,
     decimal TotalPurchaseCosts,
     decimal TotalDirectExpenses,
     decimal TotalCostBase,

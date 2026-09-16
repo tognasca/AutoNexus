@@ -85,7 +85,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-          <h1 className="text-xl md:text-2xl font-bold text-white">Estoque de Veículos</h1>
+           <h1 className="text-xl font-bold text-white flex items-center gap-2">Estoque de Veículos</h1>
           <p className="text-xs md:text-sm text-slate-400">Gerencie todos os veículos cadastrados no sistema.</p>
         </div>
 

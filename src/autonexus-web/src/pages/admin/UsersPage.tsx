@@ -83,7 +83,7 @@ export function UsersPage({ currentView, onNavigate }: UsersPageProps) {
 
   return (
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
-      <div className="space-y-6 p-4 sm:p-6 max-w-6xl mx-auto">
+      <div className="space-y-6 p-4 sm:p-6 w-full">
         
         {/* Cabeçalho */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-nexus-border pb-4">
