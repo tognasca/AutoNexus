@@ -38,6 +38,8 @@ export interface VehicleSummary {
   mileage: number;
   color?: string;
   status: VehicleStatus;
+  transmission: TransmissionType;
+  fuel?: FuelType;
   purchaseValue: number;
   listedValue?: number;
   saleValue?: number;
@@ -65,6 +67,27 @@ export interface VehicleFilter {
   maxYear?: number;
 }
 
+export interface UpdateVehicleInput {
+  id: string;
+  vehicleTypeId: string;
+  brand: string;
+  model: string;
+  version?: string;
+  manufacturingYear: number;
+  modelYear: number;
+  plate?: string;
+  chassis?: string;
+  Renavam?: string;
+  mileage: number;
+  color?: string;
+  fuel?: FuelType;
+  transmission?: TransmissionType;
+  PurchaseValue: number;
+  ListedValue?: number;
+  status: VehicleStatus;
+  notes?: string;
+}
+
 export interface CreateVehicleInput {
   vehicleTypeId: string;
   brand: string;
@@ -79,7 +102,7 @@ export interface CreateVehicleInput {
   color?: string;
   fuel?: FuelType;
   transmission?: TransmissionType;
-  purchaseValue: number;
-  listedValue?: number;
+  PurchaseValue: number;
+  ListedValue?: number;
   notes?: string;
 }

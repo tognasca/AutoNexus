@@ -6,7 +6,7 @@ export const UserProfileEnum = {
 
 export const canAccessView = (profile?: number, view?: string): boolean => {
   if (!profile || !view) return false;
-
+  if (view === 'catalog') return true;
   // Administrador (1): Acesso total a todas as visões do sistema
   if (profile === UserProfileEnum.Admin) {
     return true;
@@ -20,7 +20,7 @@ export const canAccessView = (profile?: number, view?: string): boolean => {
       'trades',
       'simulator',
       'reports',
-      'commissions',
+      'catalog'
     ];
     return sellerAllowedViews.includes(view);
   }

@@ -1,10 +1,10 @@
-
+using System.Diagnostics;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.DTOs.Common;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
-using AutoNexus.Application.DTOs;
 
 namespace AutoNexus.Application.Services;
 
@@ -26,6 +26,7 @@ public class VehicleService : IVehicleService
 
     public async Task<PagedResultDto<VehicleSummaryDto>> GetAllPagedAsync(VehicleFilterDto filter, CancellationToken cancellationToken = default)
     {
+        Debugger.Break();
         var (items, total) = await _vehicleRepository.GetPagedAsync(
             filter.Page,
             filter.PageSize,
@@ -38,37 +39,33 @@ public class VehicleService : IVehicleService
             filter.MaxYear,
             cancellationToken);
 
-        var dtos = items.Select(v => new VehicleSummaryDto(
-            v.Id,
-            v.VehicleTypeId,
-            v.VehicleType?.Name ?? string.Empty,
-            v.Brand,
-            v.Model,
-            v.Version,
-            v.ManufacturingYear,
-            v.ModelYear,
-            v.Plate,
-            v.Mileage,
-            v.Color,
-            v.Status,
-            v.PurchaseValue,
-            v.ListedValue,
-            v.SaleValue,
-            v.Photos.FirstOrDefault(p => p.IsMain)?.StoragePath,
-            v.CreatedAt
-        ));
-
-        return new PagedResultDto<VehicleSummaryDto>
+        var dtos = items.Select(v => new VehicleSummaryDto
         {
-            Items = dtos,
-            TotalCount = total,
-            Page = filter.Page,
-            PageSize = filter.PageSize
-        };
+            Id = v.Id,
+            VehicleTypeId = v.VehicleTypeId,
+            VehicleTypeName = v.VehicleType?.Name ?? string.Empty,
+            Brand = v.Brand,
+            Model = v.Model,
+            Version = v.Version,
+            ManufacturingYear = v.ManufacturingYear,
+            ModelYear = v.ModelYear,
+            Plate = v.Plate,
+            Mileage = v.Mileage,
+            Color = v.Color,
+            Status = v.Status,
+            PurchaseValue = v.PurchaseValue,
+            ListedValue = v.ListedValue,
+            SaleValue = v.SaleValue,
+            MainPhotoUrl = v.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? v.Photos?.FirstOrDefault()?.StoragePath,
+            CreatedAt = v.CreatedAt
+        }).ToList();
+
+        return new PagedResultDto<VehicleSummaryDto>(dtos, total, filter.Page, filter.PageSize);
     }
 
     public async Task<VehicleDetailDto?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
     {
+        Debugger.Break();
         var v = await _vehicleRepository.GetByIdAsync(id, includeDetails: true, cancellationToken);
         if (v == null) return null;
 
@@ -101,47 +98,16 @@ public class VehicleService : IVehicleService
         );
     }
 
-    public async Task<Guid> CreateAsync(CreateVehicleDto dto, CancellationToken cancellationToken = default)
-    {
-        var vehicleType = await _lookupRepository.GetVehicleTypeByIdAsync(dto.VehicleTypeId, cancellationToken)
-            ?? throw new ArgumentException("Tipo de veículo inválido.");
-
-        var vehicle = new Vehicle(
-            dto.VehicleTypeId,
-            dto.Brand,
-            dto.Model,
-            dto.ManufacturingYear,
-            dto.ModelYear,
-            dto.PurchaseValue
-        );
-
-        if (dto.ListedValue.HasValue)
-            vehicle.UpdateListedValue(dto.ListedValue.Value);
-
-        // Campos complementares
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Version))?.SetValue(vehicle, dto.Version?.Trim());
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Plate))?.SetValue(vehicle, dto.Plate?.Trim().ToUpper());
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Chassis))?.SetValue(vehicle, dto.Chassis?.Trim().ToUpper());
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Renavam))?.SetValue(vehicle, dto.Renavam?.Trim().ToUpper());
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Mileage))?.SetValue(vehicle, dto.Mileage);
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Color))?.SetValue(vehicle, dto.Color?.Trim());
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Fuel))?.SetValue(vehicle, dto.Fuel);
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Transmission))?.SetValue(vehicle, dto.Transmission);
-        typeof(Vehicle).GetProperty(nameof(Vehicle.Notes))?.SetValue(vehicle, dto.Notes?.Trim());
-
-        await _vehicleRepository.AddAsync(vehicle, cancellationToken);
-        await _unitOfWork.CommitAsync(cancellationToken);
-
-        return vehicle.Id;
-    }
-
     public async Task UpdateAsync(Guid id, UpdateVehicleDto dto, CancellationToken cancellationToken = default)
     {
         var vehicle = await _vehicleRepository.GetByIdAsync(id, false, cancellationToken)
             ?? throw new KeyNotFoundException("Veículo não encontrado.");
 
-        if (dto.ListedValue.HasValue)
-            vehicle.UpdateListedValue(dto.ListedValue.Value);
+        // Atualiza o Valor de Compra de forma isolada
+        vehicle.UpdatePurchaseValue(dto.PurchaseValue);
+
+        // Atualiza o Preço Anunciado de forma isolada
+        vehicle.UpdateListedValue(dto.ListedValue);
 
         typeof(Vehicle).GetProperty(nameof(Vehicle.VehicleTypeId))?.SetValue(vehicle, dto.VehicleTypeId);
         typeof(Vehicle).GetProperty(nameof(Vehicle.Brand))?.SetValue(vehicle, dto.Brand.Trim());
@@ -163,7 +129,40 @@ public class VehicleService : IVehicleService
         await _unitOfWork.CommitAsync(cancellationToken);
     }
 
-    public async Task ChangeStatusAsync(Guid id, VehicleStatus newStatus, CancellationToken cancellationToken = default)
+    public async Task<Guid> CreateAsync(CreateVehicleDto dto, CancellationToken cancellationToken = default)
+    {
+        Debugger.Break();
+        var vehicleType = await _lookupRepository.GetVehicleTypeByIdAsync(dto.VehicleTypeId, cancellationToken)
+            ?? throw new ArgumentException("Tipo de veículo inválido.");
+
+        var vehicle = new Vehicle(
+            dto.VehicleTypeId,
+            dto.Brand,
+            dto.Model,
+            dto.ManufacturingYear,
+            dto.ModelYear,
+            dto.PurchaseValue
+        );
+
+        if (dto.ListedValue.HasValue)
+            vehicle.UpdateListedValue(dto.ListedValue.Value);
+
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Version))?.SetValue(vehicle, dto.Version?.Trim());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Plate))?.SetValue(vehicle, dto.Plate?.Trim().ToUpper());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Chassis))?.SetValue(vehicle, dto.Chassis?.Trim().ToUpper());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Renavam))?.SetValue(vehicle, dto.Renavam?.Trim().ToUpper());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Mileage))?.SetValue(vehicle, dto.Mileage);
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Color))?.SetValue(vehicle, dto.Color?.Trim());
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Fuel))?.SetValue(vehicle, dto.Fuel);
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Transmission))?.SetValue(vehicle, dto.Transmission);
+        typeof(Vehicle).GetProperty(nameof(Vehicle.Notes))?.SetValue(vehicle, dto.Notes?.Trim());
+
+        await _vehicleRepository.AddAsync(vehicle, cancellationToken);
+        await _unitOfWork.CommitAsync(cancellationToken);
+
+        return vehicle.Id;
+    }
+   public async Task ChangeStatusAsync(Guid id, VehicleStatus newStatus, CancellationToken cancellationToken = default)
     {
         var vehicle = await _vehicleRepository.GetByIdAsync(id, false, cancellationToken)
             ?? throw new KeyNotFoundException("Veículo não encontrado.");
@@ -189,7 +188,62 @@ public class VehicleService : IVehicleService
 
         vehicle.MarkAsSold(dto.SaleValue, dto.SoldByUserId, dto.SoldAt);
 
-         _vehicleRepository.Update(vehicle);
+        _vehicleRepository.Update(vehicle);
         await _unitOfWork.CommitAsync(cancellationToken);
+    }
+
+    public async Task AddPhotoAsync(VehiclePhoto photo, CancellationToken cancellationToken = default)
+    {
+        await _vehicleRepository.AddPhotoAsync(photo, cancellationToken);
+    }
+
+    public async Task<IEnumerable<VehicleSummaryDto>> GetByListAsync(CancellationToken cancellationToken = default)
+    {
+        Debugger.Break();
+        var vehicles = await _vehicleRepository.ListAsync(cancellationToken);
+        return vehicles.Select(v => new VehicleSummaryDto
+        {
+            Id = v.Id,
+            Brand = v.Brand,
+            Model = v.Model,
+            ManufacturingYear = v.ManufacturingYear,
+            ModelYear = v.ModelYear,
+            ListedValue = v.ListedValue,
+            Color = v.Color,
+            Status = v.Status,
+            MainPhotoUrl = v.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? v.Photos?.FirstOrDefault()?.StoragePath,
+            CreatedAt = v.CreatedAt,
+            Mileage = v.Mileage,
+            Plate = v.Plate,
+            VehicleTypeId = v.VehicleTypeId,
+            PurchaseValue = v.PurchaseValue,
+            SaleValue = v.SaleValue,
+            VehicleTypeName = v.VehicleType?.Name ?? string.Empty,
+            Version = v.Version
+        });
+    }
+    public async Task<List<VehicleSummaryDto>> GetAllVehiclesAsync(CancellationToken cancellationToken = default)
+    {
+        Debugger.Break();
+        var vehicles = await _vehicleRepository.GetAllAsync(cancellationToken);
+        return [.. vehicles.Select(v => new VehicleSummaryDto(
+            v.Id,
+            v.VehicleTypeId,
+            v.VehicleType?.Name ?? string.Empty,
+            v.Brand,
+            v.Model,
+            v.Version,
+            v.ManufacturingYear,
+            v.ModelYear,
+            v.Plate,
+            v.Mileage,
+            v.Color,
+            v.Status,
+            v.PurchaseValue,
+            v.ListedValue,
+            v.SaleValue,
+            v.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? v.Photos?.FirstOrDefault()?.StoragePath,
+            v.CreatedAt
+        ))];
     }
 }

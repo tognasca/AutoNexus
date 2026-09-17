@@ -1,14 +1,15 @@
 ﻿import { useAuth } from '../../contexts/AuthContext';
 import { canAccessView } from '../../utils/permissions';
-import { 
-  LayoutDashboard, 
-  Car, 
-  ArrowLeftRight, 
-  Calculator, 
-  BarChart3, 
-  Building2, 
-  Users, 
-  Award 
+import {
+  LayoutDashboard,
+  Car,
+  ArrowLeftRight,
+  Calculator,
+  BarChart3,
+  Building2,
+  Users,
+  Award,
+  FolderOpen
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -143,6 +144,20 @@ export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps)
           >
             <Users size={18} />
             Usuários & Perfis
+          </button>
+        )}
+
+        {canAccessView(profile, 'company-documents') && (
+          <button
+            onClick={() => onNavigate?.('company-documents')}
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
+              currentView === 'company-documents'
+                ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+          >
+            <FolderOpen size={18} />
+            Docs Empresa (Admin)
           </button>
         )}
       </nav>

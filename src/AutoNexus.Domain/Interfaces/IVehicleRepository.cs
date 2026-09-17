@@ -6,9 +6,12 @@ namespace AutoNexus.Domain.Interfaces;
 public interface IVehicleRepository
 {
     Task<Vehicle?> GetByIdAsync(Guid id, bool includeDetails = false, CancellationToken cancellationToken = default);
-    Task<(IEnumerable<Vehicle> Items, int TotalCount)> GetPagedAsync(
-        int page,
-        int pageSize,
+    Task<IEnumerable<Vehicle>> GetByListAsync(CancellationToken cancellationToken = default);
+    Task<List<Vehicle>> GetAllAsync(CancellationToken cancellationToken = default);
+    Task<List<Vehicle>> ListAsync(CancellationToken cancellationToken = default);
+    Task<(List<Vehicle> Items, int TotalCount)> GetPagedAsync(
+        int page = 1,
+        int pageSize = 10,
         Guid? vehicleTypeId = null,
         VehicleStatus? status = null,
         string? search = null,
@@ -18,15 +21,14 @@ public interface IVehicleRepository
         int? maxYear = null,
         CancellationToken cancellationToken = default);
     Task AddAsync(Vehicle vehicle, CancellationToken cancellationToken = default);
+    Task UpdateAsync(Vehicle vehicle, CancellationToken cancellationToken = default);
     void Update(Vehicle vehicle);
+    Task DeleteAsync(Guid id, CancellationToken cancellationToken = default);
     void Delete(Vehicle vehicle);
-
-    // Métodos explícitos para entidades filhas (Evita DbUpdateConcurrencyException)
-    Task AddPhotoAsync(VehiclePhoto photo, CancellationToken cancellationToken = default);
     void DeletePhoto(VehiclePhoto photo);
-
     Task AddCostAsync(Cost cost, CancellationToken cancellationToken = default);
     void DeleteCost(Cost cost);
-
-    Task AddFipeHistoryAsync(FipeHistory history, CancellationToken cancellationToken = default);
+     Task AddPhotoAsync(VehiclePhoto photo, CancellationToken cancellationToken = default);
+    
+    Task AddFipeHistoryAsync(FipeHistory fipeHistory, CancellationToken cancellationToken = default);
 }

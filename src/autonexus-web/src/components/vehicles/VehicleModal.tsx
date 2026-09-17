@@ -2,7 +2,8 @@
 import type { LookupItem } from '../../types/lookup';
 import { FuelType, TransmissionType, type CreateVehicleInput } from '../../types/vehicle';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { X } from 'lucide-react';
+import { X, Sparkles } from 'lucide-react';
+import { catalogService } from '../../services/catalogService';
 
 interface VehicleModalProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ interface VehicleModalProps {
 
 export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreate }: VehicleModalProps) {
   const [loading, setLoading] = useState(false);
+  const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const [form, setForm] = useState<CreateVehicleInput>({
@@ -30,12 +32,39 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
     color: '',
     fuel: FuelType.Flex,
     transmission: TransmissionType.Automatico,
-    purchaseValue: 0,
-    listedValue: 0,
+    PurchaseValue: 0,
+    ListedValue: 0,
     notes: '',
   });
 
   if (!isOpen) return null;
+
+  const handleGenerateAiDescription = async () => {
+    if (!form.brand || !form.model) {
+      setError('Preencha ao menos Marca e Modelo antes de gerar a descrição com IA.');
+      return;
+    }
+
+    try {
+      setIsGeneratingAi(true);
+      setError(null);
+      const text = await catalogService.generateAiDescription({
+        brand: form.brand,
+        model: form.model,
+        year: form.modelYear,
+        price: form.ListedValue || form.PurchaseValue,
+        mileage: form.mileage,
+        color: form.color,
+        fuelType: String(form.fuel),
+        transmission: String(form.transmission),
+      });
+      setForm(prev => ({ ...prev, notes: text }));
+    } catch (err: any) {
+      alert("Não foi possível gerar a descrição automática.");
+    } finally {
+      setIsGeneratingAi(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +72,7 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
     setLoading(true);
 
     try {
-      if (!form.brand || !form.model || !form.vehicleTypeId || form.purchaseValue <= 0) {
+      if (!form.brand || !form.model || !form.vehicleTypeId || form.PurchaseValue <= 0) {
         throw new Error('Preencha os campos obrigatórios (Tipo, Marca, Modelo e Valor de Compra).');
       }
 
@@ -199,8 +228,8 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Valor de Compra (R$) *</label>
               <CurrencyInput
-                value={form.purchaseValue}
-                onChange={(val) => setForm({ ...form, purchaseValue: val })}
+                value={form.PurchaseValue}
+                onChange={(val) => setForm({ ...form, PurchaseValue: val })}
                 placeholder="R$ 0,00"
                 className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
                 required
@@ -210,8 +239,8 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Valor Anunciado (R$)</label>
               <CurrencyInput
-                value={form.listedValue || 0}
-                onChange={(val) => setForm({ ...form, listedValue: val })}
+                value={form.ListedValue || 0}
+                onChange={(val) => setForm({ ...form, ListedValue: val })}
                 placeholder="R$ 0,00"
                 className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
               />
@@ -219,12 +248,25 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
           </div>
 
           <div>
-            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Observações</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-xs font-semibold text-slate-400 uppercase">
+                Observações / Descrição do Anúncio
+              </label>
+              <button
+                type="button"
+                onClick={handleGenerateAiDescription}
+                disabled={isGeneratingAi}
+                className="inline-flex items-center gap-1.5 text-xs font-medium text-amber-400 hover:text-amber-300 transition-colors disabled:opacity-50"
+              >
+                <Sparkles size={14} />
+                {isGeneratingAi ? 'Gerando com IA...' : '✨ Gerar Descrição com IA'}
+              </button>
+            </div>
             <textarea
-              rows={3}
+              rows={4}
               value={form.notes}
               onChange={(e) => setForm({ ...form, notes: e.target.value })}
-              placeholder="Detalhes adicionais sobre o estado do veículo..."
+              placeholder="Detalhes adicionais sobre o estado do veículo ou descrição gerada por IA..."
               className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
             />
           </div>

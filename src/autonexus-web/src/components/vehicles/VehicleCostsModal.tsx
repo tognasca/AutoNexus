@@ -121,7 +121,7 @@ export function VehicleCostsModal({ isOpen, vehicle, onClose, onCostsUpdated }: 
         <div className="p-6 border-b border-nexus-border bg-slate-900/40 grid grid-cols-1 sm:grid-cols-3 gap-4">
           <div className="bg-nexus-dark border border-nexus-border rounded-xl p-4">
             <span className="text-[10px] uppercase font-semibold text-slate-500 block mb-1">Aquisição</span>
-            <span className="text-xl font-bold text-white">{formatCurrency(summary?.purchaseValue)}</span>
+            <span className="text-xl font-bold text-white">{formatCurrency(summary?.PurchaseValue)}</span>
           </div>
 
           <div className="bg-nexus-dark border border-nexus-border rounded-xl p-4">

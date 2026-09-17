@@ -15,7 +15,7 @@ export interface CostItem {
 
 export interface VehicleCostSummary {
   vehicleId: string;
-  purchaseValue: number;
+  PurchaseValue: number;
   totalAdditionalCosts: number;
   totalVehicleCost: number;
   costs: CostItem[];

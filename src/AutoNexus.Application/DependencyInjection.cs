@@ -21,8 +21,11 @@ public static class DependencyInjection
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IContractService, ContractService>();
         services.AddHttpClient("BankCreditClient");
-        services.AddScoped<IBankCreditService, CreditService>(); 
+        services.AddScoped<IBankCreditService, CreditService>();
         services.AddScoped<IBankConfigService, BankConfigService>();
+        services.AddScoped<ICompanyDocumentService, CompanyDocumentService>();
+        services.AddScoped<IAiDescriptionService, AiDescriptionService>();
+        services.AddScoped<IFeedExportService, FeedExportService>();
         return services;
     }
 }

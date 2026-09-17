@@ -73,15 +73,56 @@ public class Vehicle : EntityBase
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void UpdateListedValue(decimal value)
+    public void UpdatePurchaseValue(decimal purchaseValue)
     {
-        if (value < 0)
-            throw new ArgumentException("Valor anunciado não pode ser negativo.");
+        if (purchaseValue <= 0)
+            throw new ArgumentException("O valor de compra deve ser maior que zero.");
+
+        PurchaseValue = purchaseValue;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void UpdateListedValue(decimal? value)
+    {
+        if (value.HasValue && value.Value < 0)
+            throw new ArgumentException("O valor anunciado não pode ser negativo.");
 
         ListedValue = value;
         UpdatedAt = DateTime.UtcNow;
     }
 
+    public void UpdateDetails(
+        Guid vehicleTypeId,
+        string brand,
+        string model,
+        string? version,
+        int manufacturingYear,
+        int modelYear,
+        string? plate,
+        string? chassis,
+        string? renavam,
+        int mileage,
+        string? color,
+        FuelType fuel,
+        TransmissionType transmission,
+        string? notes)
+    {
+        VehicleTypeId = vehicleTypeId;
+        Brand = brand.Trim();
+        Model = model.Trim();
+        Version = version?.Trim();
+        ManufacturingYear = manufacturingYear;
+        ModelYear = modelYear;
+        Plate = plate?.Trim().ToUpper();
+        Chassis = chassis?.Trim().ToUpper();
+        Renavam = renavam?.Trim().ToUpper();
+        Mileage = mileage;
+        Color = color?.Trim();
+        Fuel = fuel;
+        Transmission = transmission;
+        Notes = notes?.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
     public void CompleteSale(decimal saleValue)
     {
         if (Status == VehicleStatus.Vendido)
