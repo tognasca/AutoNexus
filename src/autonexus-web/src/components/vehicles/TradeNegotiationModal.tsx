@@ -27,9 +27,9 @@ export function TradeNegotiationModal({ isOpen, vehicle, vehicleTypes, onClose, 
   const [recTypeId, setRecTypeId] = useState(vehicleTypes[0]?.id || '');
   const [recPurchaseVal, setRecPurchaseVal] = useState(0);
 
-  const [delivFipe, setDelivFipe] = useState(vehicle?.purchaseValue || 0);
+  const [delivFipe, setDelivFipe] = useState(vehicle?.PurchaseValue || 0);
   const [recFipe, setRecFipe] = useState(0);
-  const [delivNegotiated, setDelivNegotiated] = useState(vehicle?.listedValue || vehicle?.purchaseValue || 0);
+  const [delivNegotiated, setDelivNegotiated] = useState(vehicle?.ListedValue || vehicle?.PurchaseValue || 0);
   const [recNegotiated] = useState(0);
   const [estimatedResaleCost, setEstimatedResaleCost] = useState(0);
   const [differenceVal, setDifferenceVal] = useState(0);
@@ -64,8 +64,8 @@ export function TradeNegotiationModal({ isOpen, vehicle, vehicleTypes, onClose, 
           mileage: 0,
           fuel: FuelType.Flex,
           transmission: TransmissionType.Automatico,
-          purchaseValue: recPurchaseVal,
-          listedValue: recNegotiated,
+          PurchaseValue: recPurchaseVal,
+          ListedValue: recNegotiated,
         },
         receivedVehicleFipe: recFipe,
         deliveredVehicleFipe: delivFipe,

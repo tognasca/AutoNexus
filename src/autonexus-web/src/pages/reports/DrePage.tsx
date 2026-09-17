@@ -186,7 +186,7 @@ export function DrePage({ currentView, onNavigate }: DrePageProps) {
                             )}
                           </td>
 
-                          <td className="py-3.5 px-4 text-slate-300">{formatCurrency(v.purchaseValue)}</td>
+                          <td className="py-3.5 px-4 text-slate-300">{formatCurrency(v.PurchaseValue)}</td>
                           <td className="py-3.5 px-4 font-medium text-amber-400">{formatCurrency(v.totalDirectCosts)}</td>
                           <td className="py-3.5 px-4 text-slate-300 font-medium">{formatCurrency(v.totalCostBase)}</td>
                           <td className="py-3.5 px-4 font-bold text-blue-400">{formatCurrency(v.targetOrSaleValue)}</td>

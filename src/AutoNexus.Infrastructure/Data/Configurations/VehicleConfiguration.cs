@@ -24,8 +24,14 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(x => x.Fuel).HasConversion<int>();
         builder.Property(x => x.Transmission).HasConversion<int>();
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
-        builder.Property(x => x.PurchaseValue).HasPrecision(18, 2).IsRequired();
-        builder.Property(x => x.ListedValue).HasPrecision(18, 2);
+        // Mapeamento explícito das colunas decimais para garantir compatibilidade no PostgreSQL
+        builder.Property(v => v.PurchaseValue)
+            .HasColumnName("purchase_value")
+            .HasColumnType("numeric(18,2)")
+            .IsRequired();
+        builder.Property(v => v.ListedValue)
+            .HasColumnName("listed_value")
+            .HasColumnType("numeric(18,2)");
         builder.Property(x => x.SaleValue).HasPrecision(18, 2);
         builder.Property(x => x.Notes).HasMaxLength(2000);
         builder.Property(x => x.CreatedAt).IsRequired();

@@ -3,6 +3,7 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { VehicleCard } from '../components/vehicles/VehicleCard';
 import { VehicleFilters } from '../components/vehicles/VehicleFilters';
 import { VehicleModal } from '../components/vehicles/VehicleModal';
+import { EditVehicleModal } from '../components/vehicles/EditVehicleModal';
 import { VehiclePhotosModal } from '../components/vehicles/VehiclePhotosModal';
 import { VehicleCostsModal } from '../components/vehicles/VehicleCostsModal';
 import { VehicleFipeModal } from '../components/vehicles/VehicleFipeModal';
@@ -20,6 +21,10 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
   const [vehicleTypes, setVehicleTypes] = useState<LookupItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+
+  // Modal de Edição
+  const [editVehicleId, setEditVehicleId] = useState<string | null>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 
   // Modais
   const [selectedVehicleForPhotos, setSelectedVehicleForPhotos] = useState<VehicleSummary | null>(null);
@@ -72,6 +77,11 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
     await vehicleService.create(data);
   };
 
+  const handleOpenEdit = (vehicle: VehicleSummary) => {
+    setEditVehicleId(vehicle.id);
+    setIsEditModalOpen(true);
+  };
+
   const handleDeleteVehicle = async (vehicle: VehicleSummary) => {
     try {
       await vehicleService.delete(vehicle.id);
@@ -85,7 +95,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-6">
         <div>
-           <h1 className="text-xl font-bold text-white flex items-center gap-2">Estoque de Veículos</h1>
+          <h1 className="text-xl font-bold text-white flex items-center gap-2">Estoque de Veículos</h1>
           <p className="text-xs md:text-sm text-slate-400">Gerencie todos os veículos cadastrados no sistema.</p>
         </div>
 
@@ -130,6 +140,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
             <VehicleCard
               key={v.id}
               vehicle={v}
+              onEditVehicle={handleOpenEdit}
               onManagePhotos={(veh) => { setSelectedVehicleForPhotos(veh); setIsPhotosModalOpen(true); }}
               onManageCosts={(veh) => { setSelectedVehicleForCosts(veh); setIsCostsModalOpen(true); }}
               onManageFipe={(veh) => { setSelectedVehicleForFipe(veh); setIsFipeModalOpen(true); }}
@@ -142,7 +153,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         </div>
       )}
 
-      {/* Modais */}
+      {/* Modal de Cadastro */}
       {vehicleTypes.length > 0 && (
         <VehicleModal
           isOpen={isModalOpen}
@@ -150,6 +161,20 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
           onSuccess={loadData}
           vehicleTypes={vehicleTypes}
           onCreate={handleCreateVehicle}
+        />
+      )}
+
+      {/* Modal de Edição */}
+      {vehicleTypes.length > 0 && (
+        <EditVehicleModal
+          isOpen={isEditModalOpen}
+          vehicleId={editVehicleId}
+          onClose={() => {
+            setIsEditModalOpen(false);
+            setEditVehicleId(null);
+          }}
+          onSuccess={loadData}
+          vehicleTypes={vehicleTypes}
         />
       )}
 
@@ -194,7 +219,6 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         onClose={() => setIsTradeModalOpen(false)}
         onTradeCompleted={loadData}
       />
-
     </MainLayout>
   );
 }

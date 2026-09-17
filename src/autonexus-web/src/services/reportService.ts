@@ -13,7 +13,7 @@ export interface VehicleDre {
   model: string;
   plate?: string;
   status: string;
-  purchaseValue: number;
+  PurchaseValue: number;
   totalDirectCosts: number;
   totalCostBase: number;
   targetOrSaleValue: number;

@@ -41,12 +41,12 @@ public class ReportService : IReportService
             )).ToList() ?? new List<CostDetailDto>();
 
             var totalDirectCosts = costsList.Sum(c => c.Value);
-            var purchaseValue = vehicle.PurchaseValue;
-            var totalCostBase = purchaseValue + totalDirectCosts;
+            var PurchaseValue = vehicle.PurchaseValue;
+            var totalCostBase = PurchaseValue + totalDirectCosts;
 
             var revenueValue = vehicle.Status == VehicleStatus.Vendido
-                ? (vehicle.SaleValue ?? vehicle.ListedValue ?? purchaseValue)
-                : (vehicle.ListedValue ?? purchaseValue);
+                ? (vehicle.SaleValue ?? vehicle.ListedValue ?? PurchaseValue)
+                : (vehicle.ListedValue ?? PurchaseValue);
 
             var profit = revenueValue - totalCostBase;
             var marginPct = revenueValue > 0 ? (profit / revenueValue) * 100m : 0m;
@@ -78,7 +78,7 @@ public class ReportService : IReportService
                 Model: vehicle.Model,
                 Plate: vehicle.Plate,
                 Status: vehicle.Status.ToString(),
-                PurchaseValue: purchaseValue,
+                PurchaseValue: PurchaseValue,
                 TotalDirectCosts: totalDirectCosts,
                 TotalCostBase: totalCostBase,
                 TargetOrSaleValue: revenueValue,

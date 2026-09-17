@@ -2,7 +2,7 @@ using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Application.DTOs;
 
-public record VehicleSummaryDto(
+public record VehicleDto(
     Guid Id,
     Guid VehicleTypeId,
     string VehicleTypeName,
@@ -12,16 +12,20 @@ public record VehicleSummaryDto(
     int ManufacturingYear,
     int ModelYear,
     string? Plate,
+    string? Chassis,
+    string? Renavam,
     int Mileage,
     string? Color,
-    VehicleStatus Status,
+    int Fuel,
+    int Transmission,
     decimal PurchaseValue,
     decimal? ListedValue,
     decimal? SaleValue,
+    int Status,
+    string? Notes,
     string? MainPhotoUrl,
     DateTime CreatedAt
 );
-
 public record VehiclePhotoDto(
     Guid Id,
     string FileName,
@@ -98,8 +102,9 @@ public record UpdateVehicleDto(
     string? Renavam,
     int Mileage,
     string? Color,
-    FuelType? Fuel,
-    TransmissionType? Transmission,
+    FuelType Fuel,
+    TransmissionType Transmission,
+    decimal PurchaseValue,
     decimal? ListedValue,
     string? Notes
 );

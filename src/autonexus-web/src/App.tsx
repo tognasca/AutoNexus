@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+﻿import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { canAccessView } from './utils/permissions';
 import { LoginPage } from './pages/LoginPage';
@@ -11,11 +11,41 @@ import { CommissionPage } from './pages/reports/CommissionPage';
 import { BankConfigPage } from './pages/admin/BankConfigPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { ShieldAlert, Loader2 } from 'lucide-react';
+import { CompanyDocumentsPage } from './pages/admin/CompanyDocumentsPage';
+import { PublicCatalogPage } from './pages/PublicCatalogPage';
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
   const [currentView, setCurrentView] = useState('dashboard');
+  const [isPublicCatalogRoute, setIsPublicCatalogRoute] = useState(
+    window.location.pathname === '/catalogo'
+  );
 
+  useEffect(() => {
+    const handlePopState = () => {
+      setIsPublicCatalogRoute(window.location.pathname === '/catalogo');
+    };
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  // 1. Se a URL do navegador for /catalogo, renderiza a vitrine pública direto (sem exigir login)
+  if (isPublicCatalogRoute) {
+    return (
+      <PublicCatalogPage
+        currentView="catalog"
+        onNavigate={(view) => {
+          if (view !== 'catalog') {
+            window.history.pushState({}, '', '/');
+            setIsPublicCatalogRoute(false);
+            setCurrentView(view);
+          }
+        }}
+      />
+    );
+  }
+
+  // 2. Estado de Carregamento
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
@@ -25,11 +55,19 @@ function AppContent() {
     );
   }
 
+  // 3. Se não estiver autenticado, direciona para a Tela de Login
   if (!isAuthenticated || !user) {
     return <LoginPage />;
   }
 
+  // 4. Manipulador de navegação interna
   const handleNavigate = (view: string) => {
+    if (view === 'catalog') {
+      window.history.pushState({}, '', '/catalogo');
+      setIsPublicCatalogRoute(true);
+      return;
+    }
+
     if (canAccessView(user?.profile, view)) {
       setCurrentView(view);
     } else {
@@ -74,6 +112,10 @@ function AppContent() {
         return <BankConfigPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'users':
         return <UsersPage currentView={currentView} onNavigate={handleNavigate} />;
+      case 'company-documents':
+        return <CompanyDocumentsPage currentView={currentView} onNavigate={handleNavigate} />;
+      case 'catalog':
+        return <PublicCatalogPage currentView={currentView} onNavigate={handleNavigate} />;
       default:
         return <DashboardPage currentView={currentView} onNavigate={handleNavigate} />;
     }

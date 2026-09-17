@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { formatCurrency } from '../../utils/formatters';
+
 import {
   Gauge,
   Calendar,
@@ -12,23 +13,26 @@ import {
   CheckCircle2,
   FileText,
   FileSignature,
-  Trash2
+  Trash2,
+  Pencil
 } from 'lucide-react';
 import { ContractFormModal } from '../Contract/ContractFormModal';
 
 interface VehicleCardProps {
   vehicle: VehicleSummary;
+  onEditVehicle?: (vehicle: VehicleSummary) => void;
   onManagePhotos: (vehicle: VehicleSummary) => void;
   onManageCosts: (vehicle: VehicleSummary) => void;
   onManageFipe: (vehicle: VehicleSummary) => void;
   onManageDocuments: (vehicle: VehicleSummary) => void;
   onSellVehicle: (vehicle: VehicleSummary) => void;
   onTradeVehicle: (vehicle: VehicleSummary) => void;
-  onDeleteVehicle?: (vehicle: VehicleSummary) => void; // <-- Nova Prop
+  onDeleteVehicle?: (vehicle: VehicleSummary) => void;
 }
 
 export function VehicleCard({
   vehicle,
+  onEditVehicle,
   onManagePhotos,
   onManageCosts,
   onManageFipe,
@@ -38,6 +42,11 @@ export function VehicleCard({
   onDeleteVehicle,
 }: VehicleCardProps) {
   const [showContractModal, setShowContractModal] = useState(false);
+
+  const purchaseVal = Number(vehicle.purchaseValue ?? (vehicle as any).purchaseValue ?? 0);
+  const listedVal = Number(vehicle.listedValue ?? (vehicle as any).listedValue ?? 0);
+
+  console.log('VehicleCard Rendered:', vehicle.id, vehicle.brand, vehicle.model, purchaseVal, listedVal);
 
   const handleDelete = () => {
     if (onDeleteVehicle) {
@@ -60,7 +69,6 @@ export function VehicleCard({
     }
   };
 
-  // Função auxiliar para calcular dias em estoque
   const getAgingBadge = (createdAt?: string, status?: VehicleStatus) => {
     if (!createdAt || status === VehicleStatus.Vendido) return null;
 
@@ -91,12 +99,6 @@ export function VehicleCard({
     );
   };
 
-  // No JSX do VehicleCard.tsx, coloque ao lado da badge do Status:
-  <div className="absolute top-3 left-3 flex items-center gap-1.5">
-    {getStatusBadge(vehicle.status)}
-    {getAgingBadge(vehicle.createdAt, vehicle.status)}
-  </div>
-
   return (
     <>
       <div className="bg-nexus-card border border-nexus-border rounded-xl overflow-hidden hover:border-nexus-accent/50 transition-all duration-300 flex flex-col group">
@@ -114,23 +116,37 @@ export function VehicleCard({
             </div>
           )}
 
-          <div className="absolute top-3 left-3 flex items-center gap-2">
+          {/* Badges do Status e Envelhecimento */}
+          <div className="absolute top-3 left-3 flex items-center gap-1.5 z-20">
             {getStatusBadge(vehicle.status)}
+            {getAgingBadge(vehicle.createdAt, vehicle.status)}
           </div>
 
-          {/* Botão de Exclusão no topo direito */}
-          {onDeleteVehicle && (
-            <button
-              onClick={handleDelete}
-              title="Excluir Veículo do Estoque"
-              className="absolute top-3 right-3 p-1.5 bg-black/60 hover:bg-rose-600 backdrop-blur-md rounded-lg text-slate-300 hover:text-white transition-all shadow-md cursor-pointer"
-            >
-              <Trash2 size={14} />
-            </button>
-          )}
+          {/* Botões Superiores no topo direito: EDITAR (Amarelo) e EXCLUIR (Vermelho) */}
+          <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
+            {onEditVehicle && (
+              <button
+                onClick={() => onEditVehicle(vehicle)}
+                title="Editar Veículo"
+                className="p-1.5 bg-black/70 hover:bg-amber-500 backdrop-blur-md rounded-lg text-amber-400 hover:text-white transition-all shadow-md cursor-pointer"
+              >
+                <Pencil size={15} />
+              </button>
+            )}
 
-          {/* Barra de Ações Rápidas no topo inferior da Imagem */}
-          <div className="absolute bottom-3 right-3 flex items-center gap-1.5">
+            {onDeleteVehicle && (
+              <button
+                onClick={handleDelete}
+                title="Excluir Veículo do Estoque"
+                className="p-1.5 bg-black/70 hover:bg-rose-600 backdrop-blur-md rounded-lg text-slate-300 hover:text-white transition-all shadow-md cursor-pointer"
+              >
+                <Trash2 size={15} />
+              </button>
+            )}
+          </div>
+
+          {/* Barra de Ações Rápidas no canto inferior direito da imagem */}
+          <div className="absolute bottom-3 right-3 flex items-center gap-1.5 z-20">
             <button
               onClick={() => setShowContractModal(true)}
               title="Gerar Contrato ou Proposta Comercial"
@@ -225,13 +241,14 @@ export function VehicleCard({
             <div>
               <span className="text-[10px] text-slate-500 uppercase font-medium block">Preço Anunciado</span>
               <span className="text-lg font-bold text-emerald-400">
-                {formatCurrency(vehicle.listedValue || vehicle.purchaseValue)}
+
+                {formatCurrency(listedVal > 0 ? listedVal : purchaseVal)}
               </span>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-slate-500 uppercase font-medium block">Compra</span>
               <span className="text-xs font-medium text-slate-400">
-                {formatCurrency(vehicle.purchaseValue)}
+                   {formatCurrency(purchaseVal)}
               </span>
             </div>
           </div>
@@ -246,7 +263,7 @@ export function VehicleCard({
             brand: vehicle.brand,
             model: vehicle.model,
             modelYear: vehicle.modelYear,
-            price: vehicle.listedValue || vehicle.purchaseValue,
+            price: vehicle.ListedValue || vehicle.PurchaseValue,
             plate: vehicle.plate
           }}
           onClose={() => setShowContractModal(false)}

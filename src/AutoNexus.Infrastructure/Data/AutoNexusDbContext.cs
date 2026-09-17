@@ -20,10 +20,23 @@ public class AutoNexusDbContext : DbContext
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<BuyerAccessLink> BuyerAccessLinks => Set<BuyerAccessLink>();
     public DbSet<ElectronicAcceptance> ElectronicAcceptances => Set<ElectronicAcceptance>();
-        public DbSet<BankConfig> BankConfigs => Set<BankConfig>();
+    public DbSet<BankConfig> BankConfigs => Set<BankConfig>();
+    public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
     protected override void OnModelCreating(ModelBuilder modelBuilder)
+{
+    base.OnModelCreating(modelBuilder);
+    modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
+
+    // Ajusta automaticamente o nome de todas as colunas para camelCase/snake_case
+    foreach (var entity in modelBuilder.Model.GetEntityTypes())
     {
-        base.OnModelCreating(modelBuilder);
-        modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
+        foreach (var property in entity.GetProperties())
+        {
+            var propertyName = property.Name;
+            // Garante que a primeira letra da coluna no PostgreSQL seja minúscula (ex: purchaseValue)
+            var lowerCamelCase = char.ToLowerInvariant(propertyName[0]) + propertyName[1..];
+            property.SetColumnName(lowerCamelCase);
+        }
     }
+}
 }

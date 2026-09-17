@@ -11,8 +11,8 @@ interface SellerOption {
 
 export function VehicleSaleModal({ vehicle, isOpen, onClose, onSaleCompleted }: any) {
   const { user } = useAuth(); // Usuário logado
-  const [saleValue, setSaleValue] = useState<number>(vehicle?.listedValue || vehicle?.purchaseValue || 0);
-  const [selectedSellerId, setSelectedSellerId] = useState<string>(user?.id || '');
+  const [saleValue, setSaleValue] = useState<number>(vehicle?.ListedValue || vehicle?.PurchaseValue || 0);
+  const [selectedSellerId, setSelectedSellerId] = useState<string>(user?.userId || '');
   const [sellers, setSellers] = useState<SellerOption[]>([]);
   const [loading, setLoading] = useState(false);
 

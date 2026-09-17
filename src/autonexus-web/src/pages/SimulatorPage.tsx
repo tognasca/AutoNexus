@@ -11,8 +11,8 @@ interface VehicleOption {
   brand: string;
   model: string;
   modelYear: number;
-  listedValue: number;
-  purchaseValue: number;
+  ListedValue: number;
+  PurchaseValue: number;
   plate: string;
 }
 
@@ -62,13 +62,24 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
     setShowCreditModal(true);
   };
 
-  // Busca o estoque disponível
+  // Busca o estoque disponível tratando ambas as nomenclaturas (PurchaseValue e PurchaseValue)
   useEffect(() => {
     const fetchStock = async () => {
       try {
         const response = await request<any>('/vehicles?status=1&pageSize=100');
-        const stock = response.items || [];
-        setVehicles(stock);
+        const stockItems = response.items || response || [];
+        
+        const mappedStock: VehicleOption[] = stockItems.map((v: any) => ({
+          id: v.id,
+          brand: v.brand || '',
+          model: v.model || '',
+          modelYear: v.modelYear || v.yearModel || 0,
+          ListedValue: Number(v.ListedValue ?? v.ListedValue ?? 0),
+          PurchaseValue: Number(v.PurchaseValue ?? v.PurchaseValue ?? 0),
+          plate: v.plate || '',
+        }));
+
+        setVehicles(mappedStock);
       } catch (err) {
         console.error("Erro ao carregar estoque para simulação", err);
       } finally {
@@ -78,11 +89,12 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
     fetchStock();
   }, []);
 
-  // Atualiza o preço automaticamente ao trocar de carro
+  // Atualiza o preço automaticamente ao trocar de carro (Prioriza Valor Anunciado > Valor de Compra)
   useEffect(() => {
     const vehicle = vehicles.find(v => v.id === selectedVehicleId);
     if (vehicle) {
-      setVehiclePrice(vehicle.listedValue || vehicle.purchaseValue);
+      const price = vehicle.ListedValue > 0 ? vehicle.ListedValue : vehicle.PurchaseValue;
+      setVehiclePrice(price || 0);
     } else {
       setVehiclePrice(0);
     }
@@ -131,7 +143,6 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
             <p className="text-xs md:text-sm text-slate-400">Calcule parcelas com taxas em tempo real para o cliente.</p>
           </div>
         </div>
-        
 
         {/* Grid do Conteúdo (100% da largura) */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 w-full">
@@ -153,11 +164,14 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
                   className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
                 >
                   <option value="">-- Selecionar um veículo --</option>
-                  {vehicles.map(v => (
-                    <option key={v.id} value={v.id}>
-                      {v.brand} {v.model} {v.modelYear} - {v.plate} ({formatCurrency(v.listedValue || v.purchaseValue)})
-                    </option>
-                  ))}
+                  {vehicles.map(v => {
+                    const displayPrice = v.ListedValue > 0 ? v.ListedValue : v.PurchaseValue;
+                    return (
+                      <option key={v.id} value={v.id}>
+                        {v.brand} {v.model} {v.modelYear} - {v.plate} ({formatCurrency(displayPrice)})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 

@@ -1,4 +1,4 @@
-﻿using AutoNexus.Application.DTOs.Reports;
+﻿using System.Diagnostics;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
@@ -13,12 +13,13 @@ public class VehicleRepository : IVehicleRepository
 
     public VehicleRepository(AutoNexusDbContext context)
     {
+        Debugger.Break();
         _context = context;
     }
 
     public async Task<Vehicle?> GetByIdAsync(Guid id, bool includeDetails = false, CancellationToken cancellationToken = default)
-    {
-        IQueryable<Vehicle> query = _context.Set<Vehicle>();
+    { Debugger.Break();
+        var query = _context.Vehicles.AsQueryable();
 
         if (includeDetails)
         {
@@ -26,33 +27,53 @@ public class VehicleRepository : IVehicleRepository
                 .Include(v => v.VehicleType)
                 .Include(v => v.Photos)
                 .Include(v => v.Costs)
-                    .ThenInclude(c => c.CostCategory)
-                .Include(v => v.FipeHistories)
-                .Include(v => v.SoldByUser); // <-- INCLUÍDO NAVEGAÇÃO DO VENDEDOR
+                .ThenInclude(c => c.CostCategory);
         }
 
         return await query.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 
-    public async Task<(IEnumerable<Vehicle> Items, int TotalCount)> GetPagedAsync(
-     int page,
-     int pageSize,
-     Guid? vehicleTypeId = null,
-     VehicleStatus? status = null,
-     string? search = null,
-     decimal? minPrice = null,
-     decimal? maxPrice = null,
-     int? minYear = null,
-     int? maxYear = null,
-     CancellationToken cancellationToken = default)
-    {
-        IQueryable<Vehicle> query = _context.Set<Vehicle>()
+    public async Task<IEnumerable<Vehicle>> GetByListAsync(CancellationToken cancellationToken = default)
+    { Debugger.Break();
+        return await _context.Vehicles
             .Include(v => v.VehicleType)
             .Include(v => v.Photos)
-            .Include(v => v.Costs)
-                .ThenInclude(c => c.CostCategory)
-            .Include(v => v.FipeHistories)
-            .Include(v => v.SoldByUser); // <-- INCLUÍDO NAVEGAÇÃO DO VENDEDOR
+            .Where(v => v.Status == VehicleStatus.AVenda)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<Vehicle>> GetAllAsync(CancellationToken cancellationToken = default)
+    { Debugger.Break();
+        return await _context.Vehicles
+            .Include(v => v.VehicleType)
+            .Include(v => v.Photos)
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
+
+    public async Task<List<Vehicle>> ListAsync(CancellationToken cancellationToken = default)
+    { Debugger.Break();
+        return await GetAllAsync(cancellationToken);
+    }
+
+    public async Task<(List<Vehicle> Items, int TotalCount)> GetPagedAsync(
+        int page = 1,
+        int pageSize = 10,
+        Guid? vehicleTypeId = null,
+        VehicleStatus? status = null,
+        string? search = null,
+        decimal? minPrice = null,
+        decimal? maxPrice = null,
+        int? minYear = null,
+        int? maxYear = null,
+        CancellationToken cancellationToken = default)
+    {
+        var query = _context.Vehicles
+            .Include(v => v.VehicleType)
+            .Include(v => v.Photos)
+            .AsNoTracking()
+            .AsQueryable();
 
         if (vehicleTypeId.HasValue)
             query = query.Where(v => v.VehicleTypeId == vehicleTypeId.Value);
@@ -62,11 +83,11 @@ public class VehicleRepository : IVehicleRepository
 
         if (!string.IsNullOrWhiteSpace(search))
         {
-            var s = search.Trim().ToLower();
+            var term = search.Trim().ToLower();
             query = query.Where(v =>
-                v.Brand.ToLower().Contains(s) ||
-                v.Model.ToLower().Contains(s) ||
-                (v.Plate != null && v.Plate.ToLower().Contains(s)));
+                v.Brand.ToLower().Contains(term) ||
+                v.Model.ToLower().Contains(term) ||
+                (v.Plate != null && v.Plate.ToLower().Contains(term)));
         }
 
         if (minPrice.HasValue)
@@ -82,6 +103,7 @@ public class VehicleRepository : IVehicleRepository
             query = query.Where(v => v.ModelYear <= maxYear.Value);
 
         var totalCount = await query.CountAsync(cancellationToken);
+
         var items = await query
             .OrderByDescending(v => v.CreatedAt)
             .Skip((page - 1) * pageSize)
@@ -94,6 +116,13 @@ public class VehicleRepository : IVehicleRepository
     public async Task AddAsync(Vehicle vehicle, CancellationToken cancellationToken = default)
     {
         await _context.Vehicles.AddAsync(vehicle, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+
+    public async Task UpdateAsync(Vehicle vehicle, CancellationToken cancellationToken = default)
+    {
+        _context.Vehicles.Update(vehicle);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public void Update(Vehicle vehicle)
@@ -101,24 +130,25 @@ public class VehicleRepository : IVehicleRepository
         _context.Vehicles.Update(vehicle);
     }
 
+    public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var vehicle = await _context.Vehicles.FindAsync(new object[] { id }, cancellationToken);
+        if (vehicle != null)
+        {
+            _context.Vehicles.Remove(vehicle);
+            await _context.SaveChangesAsync(cancellationToken);
+        }
+    }
+
     public void Delete(Vehicle vehicle)
     {
         _context.Vehicles.Remove(vehicle);
     }
 
-    public async Task AddPhotoAsync(VehiclePhoto photo, CancellationToken cancellationToken = default)
-    {
-        await _context.VehiclePhotos.AddAsync(photo, cancellationToken);
-    }
-
-    public void DeletePhoto(VehiclePhoto photo)
-    {
-        _context.VehiclePhotos.Remove(photo);
-    }
-
     public async Task AddCostAsync(Cost cost, CancellationToken cancellationToken = default)
     {
         await _context.Costs.AddAsync(cost, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
     public void DeleteCost(Cost cost)
@@ -126,9 +156,20 @@ public class VehicleRepository : IVehicleRepository
         _context.Costs.Remove(cost);
     }
 
-    public async Task AddFipeHistoryAsync(FipeHistory history, CancellationToken cancellationToken = default)
+    public void DeletePhoto(VehiclePhoto photo)
     {
-        await _context.FipeHistories.AddAsync(history, cancellationToken);
+        _context.VehiclePhotos.Remove(photo);
+    }
+    public async Task AddFipeHistoryAsync(FipeHistory fipeHistory, CancellationToken cancellationToken = default)
+    {
+        await _context.Set<FipeHistory>().AddAsync(fipeHistory, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
+    }
+    public async Task AddPhotoAsync(VehiclePhoto photo, CancellationToken cancellationToken = default)
+    {
+        await _context.VehiclePhotos.AddAsync(photo, cancellationToken);
+        await _context.SaveChangesAsync(cancellationToken);
     }
 
+    
 }
