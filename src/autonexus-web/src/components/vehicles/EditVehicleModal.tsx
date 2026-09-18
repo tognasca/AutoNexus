@@ -17,7 +17,6 @@ import {
   Upload,
   Star,
   Download,
-  CheckCircle2,
 } from 'lucide-react';
 import { vehicleService } from '../../services/vehicleService';
 import { catalogService, getPhotoUrl } from '../../services/catalogService';
@@ -166,7 +165,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
         year: form.modelYear,
         price: form.ListedValue || form.PurchaseValue,
         mileage: form.mileage,
-        color: form.color,
+        color: form.color ?? '',
         fuelType: String(form.fuel),
         transmission: String(form.transmission),
       });

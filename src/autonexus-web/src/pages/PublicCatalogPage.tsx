@@ -7,7 +7,7 @@ import {
 import { catalogService, getPhotoUrl, type PublicVehicleDetail } from '../services/catalogService';
 import { formatCurrency } from '../utils/formatters';
 
-export function PublicCatalogPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
+export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
     const [vehicles, setVehicles] = useState<any[]>([]);
     const [filteredVehicles, setFilteredVehicles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
@@ -16,14 +16,13 @@ export function PublicCatalogPage({ currentView, onNavigate }: { currentView?: s
 
     // Modal de Detalhes
     const [selectedVehicle, setSelectedVehicle] = useState<PublicVehicleDetail | null>(null);
-    const [loadingDetail, setLoadingDetail] = useState(false);
     const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
     const WHATSAPP_NUMBER = "5511999999999";
 
     useEffect(() => {
         fetchCatalog();
-    }, []);
+    }, []);''
 
     useEffect(() => {
         let result = vehicles;
@@ -59,14 +58,11 @@ export function PublicCatalogPage({ currentView, onNavigate }: { currentView?: s
 
     const handleOpenDetails = async (vehicleId: string) => {
         try {
-            setLoadingDetail(true);
             setActivePhotoIndex(0);
             const detail = await catalogService.getPublicVehicle(vehicleId);
             setSelectedVehicle(detail);
         } catch (err) {
             console.error('Erro ao buscar detalhes do veículo:', err);
-        } finally {
-            setLoadingDetail(false);
         }
     };
 

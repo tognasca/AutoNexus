@@ -16,21 +16,9 @@ export const vehicleService = {
     if (filter.status !== undefined && filter.status !== null) params.append('status', filter.status.toString());
     if (filter.vehicleTypeId) params.append('vehicleTypeId', filter.vehicleTypeId);
 
-    return await request<PagedResult<VehicleSummary>>(`/vehicles?${params.toString()}`);
-  },
-
-  getAll: async (filter: VehicleFilter = {}): Promise<PagedResult<VehicleSummary>> => {
-    const params = new URLSearchParams();
-    if (filter.page) params.append('page', filter.page.toString());
-    if (filter.pageSize) params.append('pageSize', filter.pageSize.toString());
-    if (filter.search) params.append('search', filter.search);
-    if (filter.status !== undefined && filter.status !== null) params.append('status', filter.status.toString());
-    if (filter.vehicleTypeId) params.append('vehicleTypeId', filter.vehicleTypeId);
-
     const response = await request<any>(`/vehicles?${params.toString()}`);
     const rawItems = response.items || response || [];
 
-    // Normalização defensiva de chaves (camelCase e PascalCase)
     const items: VehicleSummary[] = rawItems.map((v: any) => ({
       id: v.id || v.Id,
       vehicleTypeId: v.vehicleTypeId || v.VehicleTypeId,
@@ -77,7 +65,6 @@ export const vehicleService = {
   },
 
   update: async (id: string, input: UpdateVehicleInput): Promise<VehicleSummary> => {
-    debugger;
     return await request<VehicleSummary>(`/vehicles/${id}`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },

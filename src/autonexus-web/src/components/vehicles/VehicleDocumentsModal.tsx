@@ -72,7 +72,7 @@ export function VehicleDocumentsModal({
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<string>(DEFAULT_CATEGORIES[0].id);
+  const [selectedCategoryId, setSelectedCategoryId] = useState<string>('');
   const [documentName, setDocumentName] = useState<string>('');
   const [showInCatalog, setShowInCatalog] = useState<boolean>(true);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -192,8 +192,14 @@ export function VehicleDocumentsModal({
       setUploading(true);
       setError(null);
 
+      const activeCategoryId = selectedCategoryId;
+      if (!activeCategoryId) {
+        setError('Selecione ou carregue uma categoria de documento antes de enviar.');
+        return;
+      }
+
       const formData = new FormData();
-      formData.append('categoryId', selectedCategoryId || categories[0]?.id);
+      formData.append('categoryId', activeCategoryId);
       formData.append('name', documentName.trim() || selectedFile.name);
       formData.append('showInCatalog', String(showInCatalog));
       formData.append('file', selectedFile);

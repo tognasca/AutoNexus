@@ -13,7 +13,6 @@ public class VehicleRepository : IVehicleRepository
 
     public VehicleRepository(AutoNexusDbContext context)
     {
-        Debugger.Break();
         _context = context;
     }
 
@@ -36,7 +35,6 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<IEnumerable<Vehicle>> GetByListAsync(CancellationToken cancellationToken = default)
     {
-        Debugger.Break();
         return await _context.Vehicles
             .Include(v => v.VehicleType)
             .Include(v => v.Photos)
@@ -47,7 +45,6 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<List<Vehicle>> GetAllAsync(CancellationToken cancellationToken = default)
     {
-        Debugger.Break();
         return await _context.Vehicles
             .Include(v => v.VehicleType)
             .Include(v => v.Photos)
@@ -57,7 +54,6 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task<List<Vehicle>> ListAsync(CancellationToken cancellationToken = default)
     {
-        Debugger.Break();
         return await GetAllAsync(cancellationToken);
     }
 

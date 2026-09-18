@@ -3,6 +3,7 @@ using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -91,7 +92,15 @@ public class VehicleDocumentsController : ControllerBase
             showInCatalog
         );
 
-        await _vehicleService.AddDocumentAsync(doc);
+        try
+        {
+            await _vehicleService.AddDocumentAsync(doc);
+        }
+        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("document_categories", StringComparison.OrdinalIgnoreCase) == true ||
+                                          ex.InnerException?.Message.Contains("foreign key", StringComparison.OrdinalIgnoreCase) == true)
+        {
+            return BadRequest(new { message = "Categoria do documento inválida ou não cadastrada." });
+        }
 
         return Ok(new VehicleDocumentDto(
             doc.Id,

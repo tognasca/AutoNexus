@@ -8,7 +8,6 @@ namespace AutoNexus.Api.Controllers;
 [ApiController]
 [Route("api/lookups")]
 [Route("api/lookup")]
-[AllowAnonymous]
 public class LookupsController : ControllerBase
 {
     private readonly ILookupRepository _lookupRepository;
@@ -19,6 +18,7 @@ public class LookupsController : ControllerBase
     }
 
     [HttpGet("vehicle-types")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetVehicleTypes(CancellationToken cancellationToken)
     {
         var types = await _lookupRepository.GetVehicleTypesAsync(true, cancellationToken);
@@ -34,6 +34,7 @@ public class LookupsController : ControllerBase
     }
 
     [HttpGet("document-categories")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetDocumentCategories(CancellationToken cancellationToken)
     {
         try
