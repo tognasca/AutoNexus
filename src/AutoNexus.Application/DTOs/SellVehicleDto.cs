@@ -1,7 +1,9 @@
+using System.Text.Json.Serialization;
+
 namespace AutoNexus.Application.DTOs;
 
 public record SellVehicleDto(
-    decimal SaleValue,
-    Guid SoldByUserId,
-    DateTime? SoldAt
+    [property: JsonPropertyName("saleValue")] decimal SaleValue,
+    [property: JsonPropertyName("soldByUserId")] Guid? SoldByUserId = null,
+    [property: JsonPropertyName("soldAt")] DateTime? SoldAt = null
 );

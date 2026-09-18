@@ -42,7 +42,6 @@ public record VehicleCostDto(
     decimal Value,
     DateTime CostDate
 );
-
 public record VehicleDetailDto(
     Guid Id,
     Guid VehicleTypeId,
@@ -68,7 +67,8 @@ public record VehicleDetailDto(
     DateTime CreatedAt,
     DateTime? UpdatedAt,
     IEnumerable<VehiclePhotoDto> Photos,
-    IEnumerable<VehicleCostDto> Costs
+    IEnumerable<VehicleCostDto> Costs,
+    IEnumerable<VehicleDocumentDto>? Documents = null
 );
 
 public record CreateVehicleDto(
@@ -106,6 +106,8 @@ public record UpdateVehicleDto(
     TransmissionType Transmission,
     decimal PurchaseValue,
     decimal? ListedValue,
+    decimal? SaleValue, // Permite atualização do valor de venda na edição
+    VehicleStatus Status,
     string? Notes
 );
 

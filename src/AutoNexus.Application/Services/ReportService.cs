@@ -1,4 +1,3 @@
-
 using AutoNexus.Application.DTOs.Reports;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
@@ -27,34 +26,37 @@ public class ReportService : IReportService
 
         var vehicleList = vehicles?.ToList() ?? new List<Vehicle>();
         var usersList = await _userRepository.GetAllAsync(cancellationToken);
-        var usersDict = usersList?.ToDictionary(u => u.Id, u => u.Name) ?? new Dictionary<Guid, string>();
+        var usersDict = usersList?.ToDictionary(u => u.Id, u => u.Name) ?? [];
 
         var dreItems = new List<VehicleDreDto>();
 
         foreach (var vehicle in vehicleList)
         {
+            var isSold = vehicle.Status == VehicleStatus.Vendido;
+
             var costsList = vehicle.Costs?.Select(c => new CostDetailDto(
                 Description: c.Description,
                 CategoryName: c.CostCategory?.Name ?? "Geral",
                 Value: c.Value,
                 Date: c.CostDate
-            )).ToList() ?? new List<CostDetailDto>();
+            )).ToList() ?? [];
 
             var totalDirectCosts = costsList.Sum(c => c.Value);
-            var PurchaseValue = vehicle.PurchaseValue;
-            var totalCostBase = PurchaseValue + totalDirectCosts;
+            var purchaseValue = vehicle.PurchaseValue;
+            var totalCostBase = purchaseValue + totalDirectCosts;
 
-            var revenueValue = vehicle.Status == VehicleStatus.Vendido
-                ? (vehicle.SaleValue ?? vehicle.ListedValue ?? PurchaseValue)
-                : (vehicle.ListedValue ?? PurchaseValue);
+            // RECEITA REAL: Para veículos vendidos, prioriza SaleValue (Valor Real de Venda).
+            var revenueValue = isSold
+                ? (vehicle.SaleValue.HasValue && vehicle.SaleValue.Value > 0 ? vehicle.SaleValue.Value : (vehicle.ListedValue ?? purchaseValue))
+                : (vehicle.ListedValue ?? purchaseValue);
 
             var profit = revenueValue - totalCostBase;
             var marginPct = revenueValue > 0 ? (profit / revenueValue) * 100m : 0m;
 
-            var daysInStock = (DateTime.UtcNow - vehicle.CreatedAt).Days;
+            var endDate = isSold && vehicle.SoldAt.HasValue ? vehicle.SoldAt.Value : DateTime.UtcNow;
+            var daysInStock = (endDate - vehicle.CreatedAt).Days;
             if (daysInStock < 0) daysInStock = 0;
 
-            // Mapeamento e Fallback do Vendedor
             string? soldByName = vehicle.SoldByUser?.Name;
 
             if (string.IsNullOrEmpty(soldByName) && vehicle.SoldByUserId.HasValue)
@@ -62,23 +64,22 @@ public class ReportService : IReportService
                 usersDict.TryGetValue(vehicle.SoldByUserId.Value, out soldByName);
             }
 
-            // Se foi vendido mas não tinha SoldByUserId (venda antiga de teste)
-            if (string.IsNullOrEmpty(soldByName) && vehicle.Status == VehicleStatus.Vendido)
+            if (string.IsNullOrEmpty(soldByName) && isSold)
             {
                 var firstSeller = usersList?.FirstOrDefault(u => u.Profile == UserProfile.Vendedor || u.Profile == UserProfile.Admin);
                 soldByName = firstSeller?.Name ?? "Vendedor Sistema";
             }
 
-            // Data/Hora da Venda (se nulo, utiliza a data da última atualização)
-            DateTime? soldAt = vehicle.SoldAt ?? (vehicle.Status == VehicleStatus.Vendido ? vehicle.UpdatedAt : null);
+            DateTime? soldAt = vehicle.SoldAt ?? (isSold ? vehicle.UpdatedAt : null);
+            string statusDisplay = isSold ? "Vendido" : "À Venda";
 
             dreItems.Add(new VehicleDreDto(
                 VehicleId: vehicle.Id,
                 Brand: vehicle.Brand,
                 Model: vehicle.Model,
                 Plate: vehicle.Plate,
-                Status: vehicle.Status.ToString(),
-                PurchaseValue: PurchaseValue,
+                Status: statusDisplay,
+                PurchaseValue: purchaseValue,
                 TotalDirectCosts: totalDirectCosts,
                 TotalCostBase: totalCostBase,
                 TargetOrSaleValue: revenueValue,
@@ -107,7 +108,7 @@ public class ReportService : IReportService
             TotalNetProfit: totalNetProfit,
             AverageMarginPercentage: Math.Round(avgMargin, 2),
             TotalVehiclesCount: dreItems.Count,
-            Vehicles: dreItems.OrderByDescending(d => d.ProfitOrMargin)
+            Vehicles: dreItems.OrderByDescending(d => d.SoldAt ?? DateTime.MinValue)
         );
     }
 
@@ -171,7 +172,6 @@ public class ReportService : IReportService
 
         foreach (var seller in sellers)
         {
-            // Veículos em que este vendedor foi o responsável pela venda
             var sellerSales = soldVehicles.Where(v => v.SoldByUserId == seller.Id).ToList();
 
             if (!sellerSales.Any()) continue;

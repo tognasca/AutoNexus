@@ -10,6 +10,52 @@ public static class DbInitializer
     {
         await context.Database.MigrateAsync();
 
+
+        if (!await context.VehicleBrands.AnyAsync())
+        {
+            var brandData = new Dictionary<string, string[]>
+            {
+                ["Chevrolet"] = new[] { "Onix", "Tracker", "S10", "Cruze", "Spin", "Montana", "Equinox", "Celta", "Corsa", "Astra", "Vectra", "Prisma", "Cobalt", "Trailblazer" },
+                ["Fiat"] = new[] { "Strada", "Toro", "Mobi", "Argo", "Cronos", "Pulse", "Fastback", "Uno", "Palio", "Siena", "Fiorino", "Ducato", "Idea", "Punto", "Doblò" },
+                ["Volkswagen"] = new[] { "Gol", "Polo", "Nivus", "T-Cross", "Taos", "Amarok", "Saveiro", "Virtus", "Fox", "Voyage", "Jetta", "Golf", "Tiguan", "Up!" },
+                ["Toyota"] = new[] { "Corolla", "Corolla Cross", "Hilux", "SW4", "Yaris", "Etios", "RAV4", "Camry" },
+                ["Hyundai"] = new[] { "HB20", "HB20S", "Creta", "Tucson", "Santa Fe", "IX35", "Azera", "HR" },
+                ["Ford"] = new[] { "Ka", "EcoSport", "Ranger", "Fiesta", "Focus", "Fusion", "Territory", "Maverick", "Bronco", "Mustang" },
+                ["Honda"] = new[] { "Civic", "Fit", "HR-V", "City", "WR-V", "CR-V", "ZR-V" },
+                ["Jeep"] = new[] { "Renegade", "Compass", "Commander", "Grand Cherokee", "Wrangler" },
+                ["Renault"] = new[] { "Kwid", "Sandero", "Duster", "Logan", "Captur", "Oroch", "Master", "Kardian", "Clio" },
+                ["Nissan"] = new[] { "Kicks", "Versa", "March", "Frontier", "Sentra" },
+                ["BYD"] = new[] { "Dolphin", "Dolphin Mini", "Song Plus", "Yuan Plus", "Seal", "King", "Tan", "Han" },
+                ["GWM"] = new[] { "Haval H6", "Ora 03", "Tank 300" },
+                ["BMW"] = new[] { "Série 3 (320i)", "Série 1", "X1", "X3", "X5", "X6", "M3", "M5" },
+                ["Mercedes-Benz"] = new[] { "Classe A", "Classe C", "Classe E", "GLA", "GLC", "Sprinter" },
+                ["Audi"] = new[] { "A3", "A4", "A5", "Q3", "Q5", "e-tron" },
+                ["Peugeot"] = new[] { "208", "2008", "3008", "Partner", "Expert" },
+                ["Citroën"] = new[] { "C3", "C4 Cactus", "Aircross", "Jumpy" },
+                ["Caoa Chery"] = new[] { "Tiggo 2", "Tiggo 3x", "Tiggo 5x", "Tiggo 7", "Tiggo 8", "iCar", "Arrizo 6" },
+                ["Mitsubishi"] = new[] { "L200 Triton", "ASX", "Eclipse Cross", "Pajero Full", "Outlander" },
+                ["RAM"] = new[] { "Rampage", "1500", "2500", "3500" },
+                ["Volvo"] = new[] { "XC40", "XC60", "XC90", "C40", "EX30" },
+                ["Porsche"] = new[] { "911", "Macan", "Cayenne", "Panamera", "Taycan" }
+            };
+
+            int order = 1;
+            foreach (var (brandName, models) in brandData)
+            {
+                var brand = new VehicleBrand(brandName, order++);
+                context.VehicleBrands.Add(brand);
+
+                foreach (var modelName in models)
+                {
+                    var model = new VehicleModel(brand.Id, modelName);
+                    context.VehicleModels.Add(model);
+                }
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+
         // 1. Tipos de Veículos Iniciais (Seção 5)
         if (!await context.VehicleTypes.AnyAsync())
         {

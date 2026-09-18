@@ -137,13 +137,29 @@ public class Vehicle : EntityBase
     }
 
     // Método para registrar a venda com o Vendedor
-    public void MarkAsSold(decimal saleValue, Guid soldByUserId, DateTime? soldAt = null)
-    {
-        Status = VehicleStatus.Vendido;
-        SaleValue = saleValue;
-        SoldByUserId = soldByUserId;
-        SoldAt = soldAt ?? DateTime.UtcNow;
-    }
+    public void MarkAsSold(decimal saleValue, Guid? soldByUserId = null, DateTime? soldAt = null)
+{
+    if (saleValue <= 0)
+        throw new ArgumentException("O valor de venda deve ser maior que R$ 0,00.");
+
+    Status = VehicleStatus.Vendido;
+    SaleValue = saleValue; // Atualiza para o novo valor negociado (ex: 74000.00)
+
+    if (soldByUserId.HasValue && soldByUserId.Value != Guid.Empty)
+        SoldByUserId = soldByUserId.Value;
+
+    SoldAt = soldAt ?? DateTime.UtcNow;
+    UpdatedAt = DateTime.UtcNow;
+}
+
+public void UpdateSaleValue(decimal? saleValue)
+{
+    if (saleValue.HasValue && saleValue.Value <= 0)
+        throw new ArgumentException("O valor de venda deve ser maior que R$ 0,00.");
+
+    SaleValue = saleValue;
+    UpdatedAt = DateTime.UtcNow;
+}
     public decimal GetTotalCost()
     {
         return PurchaseValue + Costs.Sum(c => c.Value);

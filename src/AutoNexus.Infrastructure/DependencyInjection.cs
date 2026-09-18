@@ -35,6 +35,7 @@ public static class DependencyInjection
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
+        
 
         return services;
     }

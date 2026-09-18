@@ -4,7 +4,7 @@ using AutoNexus.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
-namespace AutoNexus.API.Controllers;
+namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/public")]
@@ -26,22 +26,65 @@ public class PublicCatalogController : ControllerBase
     }
 
     [HttpGet("catalog")]
-    public async Task<IActionResult> GetPublicCatalog()
+    public async Task<IActionResult> GetPublicCatalog(CancellationToken cancellationToken)
     {
-        var result = await _vehicleService.GetAllVehiclesAsync();
-        if (result == null) return BadRequest(result);
+        var vehicles = await _vehicleService.GetByListAsync(cancellationToken);
+        if (vehicles == null) return Ok(new List<object>());
 
-        // Filter only available vehicles for public showcase
-        var publicVehicles = result.Where(v => v.Status == Domain.Enums.VehicleStatus.AVenda).ToList();
-        return Ok(publicVehicles);
+        return Ok(vehicles);
     }
 
     [HttpGet("catalog/{id:guid}")]
-    public async Task<IActionResult> GetPublicVehicleDetails(Guid id)
+    public async Task<IActionResult> GetPublicVehicleDetails(Guid id, CancellationToken cancellationToken)
     {
-        var result = await _vehicleService.GetByIdAsync(id);
-        if (result == null) return NotFound(result);
-        return Ok(result);
+        var vehicle = await _vehicleService.GetByIdAsync(id, cancellationToken);
+        if (vehicle == null)
+        {
+            return NotFound(new { message = "Veículo não encontrado no estoque." });
+        }
+
+        // Filtra fotos e documentos marcados com ShowInCatalog = true
+        var publicPhotos = vehicle.Photos?
+            .Select(p => new {
+                id = p.Id,
+                url = p.StoragePath,
+                storagePath = p.StoragePath,
+                isMain = p.IsMain
+            }).ToList();
+
+        var publicDocuments = vehicle.Documents?
+            .Where(d => d.ShowInCatalog)
+            .Select(d => new {
+                id = d.Id,
+                name = d.Name,
+                documentType = d.CategoryName,
+                fileUrl = d.StoragePath,
+                filePath = d.StoragePath,
+                createdAt = d.CreatedAt
+            }).ToList();
+
+        var detail = new {
+            id = vehicle.Id,
+            brand = vehicle.Brand,
+            model = vehicle.Model,
+            version = vehicle.Version,
+            manufacturingYear = vehicle.ManufacturingYear,
+            modelYear = vehicle.ModelYear,
+            plate = vehicle.Plate,
+            mileage = vehicle.Mileage,
+            color = vehicle.Color,
+            fuel = (int?)vehicle.Fuel,
+            transmission = (int?)vehicle.Transmission,
+            status = (int)vehicle.Status,
+            listedValue = vehicle.ListedValue ?? vehicle.PurchaseValue,
+            purchaseValue = vehicle.PurchaseValue,
+            notes = vehicle.Notes,
+            mainPhotoUrl = vehicle.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? vehicle.Photos?.FirstOrDefault()?.StoragePath,
+            photos = publicPhotos,
+            documents = publicDocuments
+        };
+
+        return Ok(detail);
     }
 
     [HttpGet("feed/xml")]
@@ -56,8 +99,17 @@ public class PublicCatalogController : ControllerBase
     public IActionResult GenerateAiDescription([FromBody] GenerateAiDescriptionDto dto)
     {
         var copy = _aiDescriptionService.GenerateVehicleAdDescription(
-            dto.Brand, dto.Model, dto.Year, dto.Price, dto.FipePrice, dto.Mileage, dto.Color, dto.FuelType, dto.Transmission, dto.Optionals);
-        
+            dto.Brand, 
+            dto.Model, 
+            dto.Year, 
+            dto.Price, 
+            dto.FipePrice, 
+            dto.Mileage, 
+            dto.Color, 
+            dto.FuelType, 
+            dto.Transmission, 
+            dto.Optionals);
+
         return Ok(new { description = copy });
     }
 }

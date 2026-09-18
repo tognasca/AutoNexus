@@ -3,6 +3,7 @@ using System;
 using AutoNexus.Infrastructure.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace AutoNexus.Infrastructure.Migrations
 {
     [DbContext(typeof(AutoNexusDbContext))]
-    partial class AutoNexusDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260918153547_InitialCreateAuto")]
+    partial class InitialCreateAuto
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -779,10 +782,6 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("notes");
-
-                    b.Property<bool>("ShowInCatalog")
-                        .HasColumnType("boolean")
-                        .HasColumnName("showInCatalog");
 
                     b.Property<string>("StoragePath")
                         .IsRequired()

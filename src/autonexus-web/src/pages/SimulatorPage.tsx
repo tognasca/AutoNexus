@@ -62,7 +62,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
     setShowCreditModal(true);
   };
 
-  // Busca o estoque disponível tratando ambas as nomenclaturas (PurchaseValue e PurchaseValue)
+  // Busca o estoque disponível tratando camelCase e PascalCase vindo da API
   useEffect(() => {
     const fetchStock = async () => {
       try {
@@ -70,13 +70,13 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
         const stockItems = response.items || response || [];
         
         const mappedStock: VehicleOption[] = stockItems.map((v: any) => ({
-          id: v.id,
-          brand: v.brand || '',
-          model: v.model || '',
-          modelYear: v.modelYear || v.yearModel || 0,
-          ListedValue: Number(v.ListedValue ?? v.ListedValue ?? 0),
-          PurchaseValue: Number(v.PurchaseValue ?? v.PurchaseValue ?? 0),
-          plate: v.plate || '',
+          id: v.id || v.Id,
+          brand: v.brand || v.Brand || '',
+          model: v.model || v.Model || '',
+          modelYear: v.modelYear || v.ModelYear || v.yearModel || 0,
+          ListedValue: Number(v.listedValue ?? v.ListedValue ?? 0),
+          PurchaseValue: Number(v.purchaseValue ?? v.PurchaseValue ?? 0),
+          plate: v.plate || v.Plate || '',
         }));
 
         setVehicles(mappedStock);
@@ -161,7 +161,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
                 <select
                   value={selectedVehicleId}
                   onChange={e => setSelectedVehicleId(e.target.value)}
-                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500"
+                  className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-blue-500 cursor-pointer"
                 >
                   <option value="">-- Selecionar um veículo --</option>
                   {vehicles.map(v => {
@@ -177,7 +177,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
 
               <div>
                 <label className="text-xs text-slate-400 block mb-1">Valor do Veículo na Simulação (R$)</label>
-                <CurrencyInput value={vehiclePrice} onChange={setVehiclePrice} />
+                <CurrencyInput  className="w-full bg-nexus-dark border border-emerald-500/40 rounded-lg p-2.5 text-base text-white font-bold focus:outline-none focus:border-emerald-400" value={vehiclePrice} onChange={setVehiclePrice} />
               </div>
             </div>
 
@@ -190,11 +190,11 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Valor de Entrada (PIX/Dinheiro)</label>
-                  <CurrencyInput value={entryValue} onChange={setEntryValue} />
+                  <CurrencyInput  className="w-full bg-nexus-dark border border-emerald-500/40 rounded-lg p-2.5 text-base text-white font-bold focus:outline-none focus:border-emerald-400" value={entryValue} onChange={setEntryValue} />
                 </div>
                 <div>
                   <label className="text-xs text-slate-400 block mb-1">Valor do Veículo na Troca</label>
-                  <CurrencyInput value={tradeValue} onChange={setTradeValue} />
+                  <CurrencyInput  className="w-full bg-nexus-dark border border-emerald-500/40 rounded-lg p-2.5 text-base text-white font-bold focus:outline-none focus:border-emerald-400" value={tradeValue} onChange={setTradeValue} />
                 </div>
               </div>
             </div>
@@ -211,7 +211,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
                   <select
                     value={selectedBank}
                     onChange={e => setSelectedBank(e.target.value)}
-                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-amber-500"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2.5 text-sm text-white outline-none focus:border-amber-500 cursor-pointer"
                   >
                     {DEFAULT_BANKS.map(b => (
                       <option key={b.id} value={b.id}>{b.name}</option>

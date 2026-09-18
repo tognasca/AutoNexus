@@ -36,7 +36,6 @@ export function DrePage({ currentView, onNavigate }: DrePageProps) {
 
   return (
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
-      {/* w-full para usar 100% da largura da tela sem limitação */}
       <div className="space-y-6 p-4 sm:p-6 w-full">
         
         {/* Cabeçalho */}
@@ -80,12 +79,12 @@ export function DrePage({ currentView, onNavigate }: DrePageProps) {
           </div>
         ) : (
           <>
-            {/* Cards de Métricas Consolidadas (Largura Total) */}
+            {/* Cards de Métricas Consolidadas */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
               <div className="bg-nexus-card border border-nexus-border p-4 rounded-xl">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Receita Potencial / Realizada</p>
-                <p className="text-2xl font-bold text-white mt-1">{formatCurrency(data.totalRevenue)}</p>
-                <p className="text-[10px] text-slate-500 mt-1">Soma de Vendas e Preços Anunciados</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Receita Realizada (Vendas)</p>
+                <p className="text-2xl font-bold text-emerald-400 mt-1">{formatCurrency(data.totalRevenue)}</p>
+                <p className="text-[10px] text-slate-500 mt-1">Soma dos Valores Reais de Venda</p>
               </div>
 
               <div className="bg-nexus-card border border-nexus-border p-4 rounded-xl">
@@ -95,7 +94,7 @@ export function DrePage({ currentView, onNavigate }: DrePageProps) {
               </div>
 
               <div className="bg-nexus-card border border-nexus-border p-4 rounded-xl">
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lucro Líquido do Estoque</p>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Lucro Líquido Real</p>
                 <p className={`text-2xl font-bold mt-1 ${data.totalNetProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {formatCurrency(data.totalNetProfit)}
                 </p>
@@ -114,15 +113,15 @@ export function DrePage({ currentView, onNavigate }: DrePageProps) {
                     <TrendingDown className="w-5 h-5 text-rose-400" />
                   )}
                 </div>
-                <p className="text-[10px] text-slate-500 mt-1">Retorno sobre o faturamento</p>
+                <p className="text-[10px] text-slate-500 mt-1">Retorno sobre o faturamento real</p>
               </div>
             </div>
 
-            {/* Tabela de Veículos no DRE (Espaçada e em Largura Total) */}
+            {/* Tabela de Veículos no DRE */}
             <div className="bg-nexus-card border border-nexus-border rounded-xl overflow-hidden shadow-sm w-full">
               <div className="p-4 border-b border-nexus-border bg-slate-900/50 flex justify-between items-center">
                 <h3 className="font-semibold text-sm text-white">Detalhamento por Veículo ({data.totalVehiclesCount})</h3>
-                <span className="text-xs text-slate-400">Ordenado por Lucro Líquido</span>
+                <span className="text-xs text-slate-400">Ordenado por Data de Venda</span>
               </div>
 
               <div className="overflow-x-auto w-full">
@@ -133,111 +132,135 @@ export function DrePage({ currentView, onNavigate }: DrePageProps) {
                       <th className="py-3.5 px-4">Status</th>
                       <th className="py-3.5 px-4">Vendedor Responsável</th>
                       <th className="py-3.5 px-4">Data / Hora Venda</th>
-                      <th className="py-3.5 px-4">Valor Compra</th>
-                      <th className="py-3.5 px-4">Custos Extras</th>
-                      <th className="py-3.5 px-4">Custo Base Total</th>
-                      <th className="py-3.5 px-4">Valor Venda/Anunciado</th>
-                      <th className="py-3.5 px-4">Lucro Líquido</th>
-                      <th className="py-3.5 px-4">Margem (%)</th>
+                      <th className="py-3.5 px-4 text-right">Valor Compra</th>
+                      <th className="py-3.5 px-4 text-right">Custos Extras</th>
+                      <th className="py-3.5 px-4 text-right">Custo Base Total</th>
+                      <th className="py-3.5 px-4 text-right">Valor Venda (Real)</th>
+                      <th className="py-3.5 px-4 text-right">Lucro Líquido</th>
+                      <th className="py-3.5 px-4 text-right">Margem (%)</th>
                       <th className="py-3.5 px-4 text-center">Custos</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-nexus-border text-slate-200">
-                    {data.vehicles.map((v) => (
-                      <React.Fragment key={v.vehicleId}>
-                        <tr className="hover:bg-slate-800/40 transition-colors">
-                          <td className="py-3.5 px-4 font-bold text-white">
-                            {v.brand} {v.model}
-                            {v.plate && (
-                              <span className="ml-2 font-mono text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
-                                {v.plate}
+                    {data.vehicles.map((v) => {
+                      const isSold = v.status === 'Vendido' || v.status === '3';
+                      const purchaseVal = Number(v.purchaseValue ?? v.purchaseValue ?? 0);
+                      const saleVal = Number(v.saleValue ?? (isSold ? v.targetOrSaleValue : 0));
+                      const listedVal = Number(v.listedValue ?? (isSold ? 0 : v.targetOrSaleValue));
+
+                      return (
+                        <React.Fragment key={v.vehicleId}>
+                          <tr className="hover:bg-slate-800/40 transition-colors">
+                            <td className="py-3.5 px-4 font-bold text-white">
+                              {v.brand} {v.model}
+                              {v.plate && (
+                                <span className="ml-2 font-mono text-[10px] text-slate-400 bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700">
+                                  {v.plate}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-3.5 px-4">
+                              <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
+                                isSold ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
+                              }`}>
+                                {v.status}
                               </span>
-                            )}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className={`px-2.5 py-1 rounded-full text-[10px] font-bold uppercase ${
-                              v.status === 'Vendido' ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30' : 'bg-blue-500/15 text-blue-400 border border-blue-500/30'
-                            }`}>
-                              {v.status}
-                            </span>
-                          </td>
+                            </td>
 
-                          {/* COLUNA: VENDEDOR */}
-                          <td className="py-3.5 px-4 font-semibold">
-                            {v.status === 'Vendido' ? (
-                              <span className="text-white flex items-center gap-1.5">
-                                <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                {v.soldByName || 'Vendedor Sistema'}
-                              </span>
-                            ) : (
-                              <span className="text-slate-500 text-[10px] italic">Em estoque</span>
-                            )}
-                          </td>
+                            {/* VENDEDOR */}
+                            <td className="py-3.5 px-4 font-semibold">
+                              {isSold ? (
+                                <span className="text-white flex items-center gap-1.5">
+                                  <User className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                  {v.soldByName || 'Vendedor Sistema'}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 text-[10px] italic">Em estoque</span>
+                              )}
+                            </td>
 
-                          {/* COLUNA: DATA / HERA DA VENDA */}
-                          <td className="py-3.5 px-4 text-slate-300 font-mono">
-                            {v.status === 'Vendido' ? (
-                              <span className="text-blue-300 flex items-center gap-1">
-                                <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                                {v.soldAt ? formatDateTime(v.soldAt) : '-'}
-                              </span>
-                            ) : (
-                              <span className="text-slate-500 text-[10px] italic">-</span>
-                            )}
-                          </td>
+                            {/* DATA DA VENDA */}
+                            <td className="py-3.5 px-4 text-slate-300 font-mono">
+                              {isSold ? (
+                                <span className="text-blue-300 flex items-center gap-1">
+                                  <Calendar className="w-3.5 h-3.5 text-blue-400 shrink-0" />
+                                  {v.soldAt ? formatDateTime(v.soldAt) : '-'}
+                                </span>
+                              ) : (
+                                <span className="text-slate-500 text-[10px] italic">-</span>
+                              )}
+                            </td>
 
-                          <td className="py-3.5 px-4 text-slate-300">{formatCurrency(v.PurchaseValue)}</td>
-                          <td className="py-3.5 px-4 font-medium text-amber-400">{formatCurrency(v.totalDirectCosts)}</td>
-                          <td className="py-3.5 px-4 text-slate-300 font-medium">{formatCurrency(v.totalCostBase)}</td>
-                          <td className="py-3.5 px-4 font-bold text-blue-400">{formatCurrency(v.targetOrSaleValue)}</td>
-                          <td className={`py-3.5 px-4 font-bold text-sm ${v.profitOrMargin >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
-                            {formatCurrency(v.profitOrMargin)}
-                          </td>
-                          <td className="py-3.5 px-4">
-                            <span className={`inline-flex items-center gap-1 font-bold px-2.5 py-0.5 rounded-full text-[10px] ${v.marginPercentage >= 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
-                              {v.marginPercentage >= 0 ? '+' : ''}{v.marginPercentage.toFixed(2)}%
-                            </span>
-                          </td>
-                          <td className="py-3.5 px-4 text-center">
-                            {v.costs.length > 0 ? (
-                              <button
-                                onClick={() => toggleExpand(v.vehicleId)}
-                                className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
-                                title="Ver custos deste veículo"
-                              >
-                                {expandedVehicleId === v.vehicleId ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                              </button>
-                            ) : (
-                              <span className="text-[10px] text-slate-600">-</span>
-                            )}
-                          </td>
-                        </tr>
-
-                        {/* Detalhamento Expandido de Custos */}
-                        {expandedVehicleId === v.vehicleId && v.costs.length > 0 && (
-                          <tr className="bg-slate-950/80">
-                            <td colSpan={11} className="p-4 border-l-2 border-amber-500">
-                              <div className="space-y-2">
-                                <p className="font-bold text-amber-400 text-xs uppercase tracking-wider">
-                                  Detalhamento de Custos Operacionais - {v.brand} {v.model}
-                                </p>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
-                                  {v.costs.map((c, idx) => (
-                                    <div key={idx} className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg flex justify-between items-center text-xs">
-                                      <div>
-                                        <p className="font-medium text-slate-200">{c.description}</p>
-                                        <p className="text-[10px] text-slate-500">{c.categoryName}</p>
-                                      </div>
-                                      <span className="font-bold text-amber-400">{formatCurrency(c.value)}</span>
-                                    </div>
-                                  ))}
+                            <td className="py-3.5 px-4 text-right text-slate-300">{formatCurrency(purchaseVal)}</td>
+                            <td className="py-3.5 px-4 text-right font-medium text-amber-400">{formatCurrency(v.totalDirectCosts)}</td>
+                            <td className="py-3.5 px-4 text-right text-slate-300 font-medium">{formatCurrency(v.totalCostBase)}</td>
+                            
+                            {/* COLUNA: VALOR REAL DE VENDA */}
+                            <td className="py-3.5 px-4 text-right">
+                              {isSold ? (
+                                <div>
+                                  <span className="font-bold text-emerald-400 text-sm block">{formatCurrency(saleVal)}</span>
+                                  {listedVal > 0 && listedVal !== saleVal && (
+                                    <span className="text-[9px] text-slate-500 block">Anunciado: {formatCurrency(listedVal)}</span>
+                                  )}
                                 </div>
-                              </div>
+                              ) : (
+                                <div>
+                                  <span className="font-semibold text-blue-400 block">{formatCurrency(v.targetOrSaleValue)}</span>
+                                  <span className="text-[9px] text-slate-500 block">(Anunciado)</span>
+                                </div>
+                              )}
+                            </td>
+
+                            <td className={`py-3.5 px-4 text-right font-bold text-sm ${v.profitOrMargin >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              {formatCurrency(v.profitOrMargin)}
+                            </td>
+                            <td className="py-3.5 px-4 text-right">
+                              <span className={`inline-flex items-center gap-1 font-bold px-2.5 py-0.5 rounded-full text-[10px] ${v.marginPercentage >= 0 ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border border-rose-500/20'}`}>
+                                {v.marginPercentage >= 0 ? '+' : ''}{v.marginPercentage.toFixed(2)}%
+                              </span>
+                            </td>
+                            <td className="py-3.5 px-4 text-center">
+                              {v.costs.length > 0 ? (
+                                <button
+                                  onClick={() => toggleExpand(v.vehicleId)}
+                                  className="p-1.5 hover:bg-slate-700 rounded text-slate-400 hover:text-white transition-colors cursor-pointer"
+                                  title="Ver custos deste veículo"
+                                >
+                                  {expandedVehicleId === v.vehicleId ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+                                </button>
+                              ) : (
+                                <span className="text-[10px] text-slate-600">-</span>
+                              )}
                             </td>
                           </tr>
-                        )}
-                      </React.Fragment>
-                    ))}
+
+                          {/* Detalhamento Expandido de Custos */}
+                          {expandedVehicleId === v.vehicleId && v.costs.length > 0 && (
+                            <tr className="bg-slate-950/80">
+                              <td colSpan={11} className="p-4 border-l-2 border-amber-500">
+                                <div className="space-y-2">
+                                  <p className="font-bold text-amber-400 text-xs uppercase tracking-wider">
+                                    Detalhamento de Custos Operacionais - {v.brand} {v.model}
+                                  </p>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                                    {v.costs.map((c, idx) => (
+                                      <div key={idx} className="bg-slate-900 border border-slate-800 p-2.5 rounded-lg flex justify-between items-center text-xs">
+                                        <div>
+                                          <p className="font-medium text-slate-200">{c.description}</p>
+                                          <p className="text-[10px] text-slate-500">{c.categoryName}</p>
+                                        </div>
+                                        <span className="font-bold text-amber-400">{formatCurrency(c.value)}</span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

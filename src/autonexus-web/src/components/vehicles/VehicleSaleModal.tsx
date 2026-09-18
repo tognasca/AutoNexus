@@ -1,125 +1,134 @@
-﻿import React, { useState, useEffect } from 'react';
-import { useAuth } from '../../contexts/AuthContext';
+﻿import { useState, useEffect } from 'react';
 import { CurrencyInput } from '../ui/CurrencyInput';
+import { X, CheckCircle2, Loader2 } from 'lucide-react';
 import { request } from '../../services/api';
-import { User, CheckCircle2, X } from 'lucide-react';
+import type { VehicleSummary } from '../../types/vehicle';
 
-interface SellerOption {
-  id: string;
-  name: string;
+interface VehicleSaleModalProps {
+  isOpen: boolean;
+  vehicle: VehicleSummary | null;
+  onClose: () => void;
+  onSaleCompleted: () => void;
 }
 
-export function VehicleSaleModal({ vehicle, isOpen, onClose, onSaleCompleted }: any) {
-  const { user } = useAuth(); // Usuário logado
-  const [saleValue, setSaleValue] = useState<number>(vehicle?.ListedValue || vehicle?.PurchaseValue || 0);
-  const [selectedSellerId, setSelectedSellerId] = useState<string>(user?.userId || '');
-  const [sellers, setSellers] = useState<SellerOption[]>([]);
+export function VehicleSaleModal({ isOpen, vehicle, onClose, onSaleCompleted }: VehicleSaleModalProps) {
+  const [saleValue, setSaleValue] = useState<number>(0);
+  const [soldAt, setSoldAt] = useState<string>(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  // Carrega a lista de vendedores da loja
   useEffect(() => {
-    const fetchSellers = async () => {
-      try {
-        const data = await request<SellerOption[]>('/users');
-        setSellers(data || []);
-      } catch {
-        // Fallback para o próprio usuário logado
-        if (user) setSellers([{ id: user.userId, name: user.name }]);
-      }
-    };
-    if (isOpen) fetchSellers();
-  }, [isOpen, user]);
+    if (vehicle) {
+      const initialVal = vehicle.saleValue || vehicle.listedValue || vehicle.purchaseValue || 0;
+      setSaleValue(Number(initialVal));
+    }
+  }, [vehicle]);
 
-  const handleConfirmSale = async (e: React.FormEvent) => {
+  if (!isOpen || !vehicle) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedSellerId) {
-      alert('Selecione o Vendedor responsável pela venda.');
+    setError(null);
+
+    const val = Number(saleValue);
+    if (val <= 0) {
+      setError('O valor de venda deve ser maior que R$ 0,00.');
       return;
     }
 
-    setLoading(true);
     try {
+      setLoading(true);
+      
+      // Envia as chaves em ambos os formatos para garantir compatibilidade
       await request(`/vehicles/${vehicle.id}/sell`, {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          saleValue: Number(saleValue),
-          soldByUserId: selectedSellerId, // <-- Grava o Vendedor no banco!
-          soldAt: new Date().toISOString()
-        })
+          saleValue: val,
+          SaleValue: val,
+          soldAt: soldAt ? new Date(soldAt).toISOString() : new Date().toISOString()
+        }),
       });
 
       onSaleCompleted();
       onClose();
-    } catch (err) {
-      alert('Erro ao confirmar venda do veículo.');
+    } catch (err: any) {
+      console.error('Erro ao realizar venda:', err);
+      setError(err.message || 'Erro ao registrar venda do veículo.');
     } finally {
       setLoading(false);
     }
   };
 
-  if (!isOpen || !vehicle) return null;
-
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md text-slate-100 shadow-2xl p-6 space-y-4">
-        
-        <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-          <h3 className="font-bold text-base text-emerald-400 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5" /> Confirmar Venda do Veículo
-          </h3>
-          <button onClick={onClose} className="p-1 hover:bg-slate-800 rounded text-slate-400">
-            <X className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+      <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
+          <h2 className="text-lg font-bold text-white flex items-center gap-2">
+            <CheckCircle2 className="text-emerald-400" size={20} />
+            Confirmar Venda do Veículo
+          </h2>
+          <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
+            <X size={20} />
           </button>
         </div>
 
-        <form onSubmit={handleConfirmSale} className="space-y-4 text-xs">
-          <div>
-            <p className="text-slate-400">Veículo:</p>
-            <p className="text-sm font-bold text-white">{vehicle.brand} {vehicle.model} - {vehicle.plate}</p>
+        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+          {error && (
+            <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
+              {error}
+            </div>
+          )}
+
+          <div className="bg-slate-900/60 border border-slate-800 p-3.5 rounded-xl">
+            <p className="text-xs font-semibold text-nexus-accent uppercase tracking-wider">{vehicle.brand}</p>
+            <h3 className="text-base font-bold text-white">{vehicle.model} {vehicle.version}</h3>
+            <p className="text-xs text-slate-400 font-mono mt-0.5">{vehicle.plate || 'SEM PLACA'} • {vehicle.modelYear}</p>
           </div>
 
-          {/* Seleção do Vendedor Responsável */}
           <div>
-            <label className="text-slate-400 block mb-1 flex items-center gap-1">
-              <User className="w-3.5 h-3.5 text-blue-400" /> Vendedor Responsável *
+            <label className="block text-xs font-semibold text-emerald-400 uppercase mb-1">
+              Valor Final da Venda (R$) *
             </label>
-            <select
-              value={selectedSellerId}
-              onChange={e => setSelectedSellerId(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
+            <CurrencyInput
+              value={saleValue}
+              onChange={(val) => setSaleValue(val)}
+              className="w-full bg-nexus-dark border border-emerald-500/40 rounded-lg p-2.5 text-base text-white font-bold focus:outline-none focus:border-emerald-400"
               required
-            >
-              <option value="">-- Selecione o Vendedor --</option>
-              {sellers.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
-            </select>
+            />
           </div>
 
-          {/* Valor Real de Venda */}
           <div>
-            <label className="text-slate-400 block mb-1">Valor Final da Venda (R$) *</label>
-            <CurrencyInput value={saleValue} onChange={setSaleValue} />
+            <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">
+              Data da Venda
+            </label>
+            <input
+              type="date"
+              value={soldAt}
+              onChange={(e) => setSoldAt(e.target.value)}
+              className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
+              required
+            />
           </div>
 
-          <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+          <div className="flex items-center justify-end gap-3 pt-4 border-t border-nexus-border">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl"
+              className="px-4 py-2.5 text-sm font-semibold text-slate-400 hover:text-white transition-colors cursor-pointer"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl disabled:opacity-50"
+              className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-900/20"
             >
+              {loading && <Loader2 size={16} className="animate-spin" />}
               {loading ? 'Confirmando...' : 'Confirmar Venda'}
             </button>
           </div>
         </form>
-
       </div>
     </div>
   );
