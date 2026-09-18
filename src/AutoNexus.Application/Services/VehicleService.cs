@@ -10,15 +10,18 @@ namespace AutoNexus.Application.Services;
 public class VehicleService : IVehicleService
 {
     private readonly IVehicleRepository _vehicleRepository;
+    private readonly IDocumentRepository _documentRepository;
     private readonly ILookupRepository _lookupRepository;
     private readonly IUnitOfWork _unitOfWork;
 
     public VehicleService(
         IVehicleRepository vehicleRepository,
+        IDocumentRepository documentRepository,
         ILookupRepository lookupRepository,
         IUnitOfWork unitOfWork)
     {
         _vehicleRepository = vehicleRepository;
+        _documentRepository = documentRepository;
         _lookupRepository = lookupRepository;
         _unitOfWork = unitOfWork;
     }
@@ -296,11 +299,10 @@ public class VehicleService : IVehicleService
     // --- GESTÃO DE DOCUMENTOS ---
     public async Task AddDocumentAsync(VehicleDocument document, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _vehicleRepository.GetByIdAsync(document.VehicleId, true, cancellationToken)
+        var vehicle = await _vehicleRepository.GetByIdAsync(document.VehicleId, false, cancellationToken)
             ?? throw new KeyNotFoundException("Veículo não encontrado.");
 
-        vehicle.Documents.Add(document);
-        await _vehicleRepository.UpdateAsync(vehicle, cancellationToken);
+        await _documentRepository.AddAsync(document, cancellationToken);
         await _unitOfWork.CommitAsync(cancellationToken);
     }
 

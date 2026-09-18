@@ -124,7 +124,7 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
         year: form.modelYear,
         price: form.ListedValue || form.PurchaseValue,
         mileage: form.mileage,
-        color: form.color,
+        color: form.color ?? '',
         fuelType: String(form.fuel),
         transmission: String(form.transmission),
       });

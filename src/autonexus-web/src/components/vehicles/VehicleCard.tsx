@@ -263,7 +263,7 @@ export function VehicleCard({
             brand: vehicle.brand,
             model: vehicle.model,
             modelYear: vehicle.modelYear,
-            price: vehicle.ListedValue || vehicle.PurchaseValue,
+            price: vehicle.listedValue || vehicle.purchaseValue,
             plate: vehicle.plate
           }}
           onClose={() => setShowContractModal(false)}
