@@ -18,7 +18,7 @@ public class VehicleRepository : IVehicleRepository
     }
 
     public async Task<Vehicle?> GetByIdAsync(Guid id, bool includeDetails = false, CancellationToken cancellationToken = default)
-    { Debugger.Break();
+    {
         var query = _context.Vehicles.AsQueryable();
 
         if (includeDetails)
@@ -27,14 +27,16 @@ public class VehicleRepository : IVehicleRepository
                 .Include(v => v.VehicleType)
                 .Include(v => v.Photos)
                 .Include(v => v.Costs)
-                .ThenInclude(c => c.CostCategory);
+                .ThenInclude(c => c.CostCategory)
+                .Include(v => v.Documents); // <-- Carrega os documentos cadastrados
         }
 
         return await query.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
     }
 
     public async Task<IEnumerable<Vehicle>> GetByListAsync(CancellationToken cancellationToken = default)
-    { Debugger.Break();
+    {
+        Debugger.Break();
         return await _context.Vehicles
             .Include(v => v.VehicleType)
             .Include(v => v.Photos)
@@ -44,7 +46,8 @@ public class VehicleRepository : IVehicleRepository
     }
 
     public async Task<List<Vehicle>> GetAllAsync(CancellationToken cancellationToken = default)
-    { Debugger.Break();
+    {
+        Debugger.Break();
         return await _context.Vehicles
             .Include(v => v.VehicleType)
             .Include(v => v.Photos)
@@ -53,7 +56,8 @@ public class VehicleRepository : IVehicleRepository
     }
 
     public async Task<List<Vehicle>> ListAsync(CancellationToken cancellationToken = default)
-    { Debugger.Break();
+    {
+        Debugger.Break();
         return await GetAllAsync(cancellationToken);
     }
 
@@ -171,5 +175,5 @@ public class VehicleRepository : IVehicleRepository
         await _context.SaveChangesAsync(cancellationToken);
     }
 
-    
+
 }

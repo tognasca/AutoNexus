@@ -13,7 +13,9 @@ public class VehicleDocument : EntityBase
     public long FileSize { get; private set; }
     public Guid UploadedByUserId { get; private set; }
     public string? Notes { get; private set; }
+    public bool ShowInCatalog { get; private set; } 
 
+    // Relacionamentos EF Core
     public Vehicle Vehicle { get; private set; } = null!;
     public DocumentCategory DocumentCategory { get; private set; } = null!;
 
@@ -27,7 +29,9 @@ public class VehicleDocument : EntityBase
         string storagePath,
         string mimeType,
         long fileSize,
-        Guid uploadedByUserId)
+        Guid uploadedByUserId,
+        bool showInCatalog = false,
+        string? notes = null)
     {
         if (vehicleId == Guid.Empty)
             throw new ArgumentException("Identificador do veículo é obrigatório.", nameof(vehicleId));
@@ -46,5 +50,25 @@ public class VehicleDocument : EntityBase
         MimeType = mimeType;
         FileSize = fileSize;
         UploadedByUserId = uploadedByUserId;
+        ShowInCatalog = showInCatalog;
+        Notes = notes?.Trim();
+    }
+
+    /// <summary>
+    /// Alterna a exibição pública do documento no Catálogo Digital (/catalogo)
+    /// </summary>
+    public void ToggleShowInCatalog(bool show)
+    {
+        ShowInCatalog = show;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    /// <summary>
+    /// Atualiza notas e observações internas do documento
+    /// </summary>
+    public void UpdateNotes(string? notes)
+    {
+        Notes = notes?.Trim();
+        UpdatedAt = DateTime.UtcNow;
     }
 }

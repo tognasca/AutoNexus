@@ -70,12 +70,20 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
+// Garantir que a pasta /uploads exista e seja servida
+var uploadsDirectory = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+if (!Directory.Exists(uploadsDirectory))
+{
+    Directory.CreateDirectory(uploadsDirectory);
+}
 
 app.UseStaticFiles(new StaticFileOptions
 {
-    FileProvider = new PhysicalFileProvider(wwwrootFolder),
-    RequestPath = ""
+    FileProvider = new PhysicalFileProvider(uploadsDirectory),
+    RequestPath = "/uploads"
 });
+
+app.UseStaticFiles(); // Suporte a wwwroot se existir
 
 app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");

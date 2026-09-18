@@ -1,6 +1,6 @@
-﻿using System.Security.Claims;
-using AutoNexus.Application.DTOs;
+﻿using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
+using AutoNexus.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,93 +11,111 @@ namespace AutoNexus.Api.Controllers;
 [Authorize]
 public class VehicleDocumentsController : ControllerBase
 {
-    private readonly IDocumentService _documentService;
-    private readonly IPortalService _portalService;
+    private readonly IVehicleService _vehicleService;
+    private readonly IWebHostEnvironment _environment;
 
-    public VehicleDocumentsController(IDocumentService documentService, IPortalService portalService)
+    public VehicleDocumentsController(IVehicleService vehicleService, IWebHostEnvironment environment)
     {
-        _documentService = documentService;
-        _portalService = portalService;
+        _vehicleService = vehicleService;
+        _environment = environment;
     }
 
     [HttpGet]
-    public async Task<IActionResult> GetDocuments(Guid vehicleId, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetDocuments([FromRoute] Guid vehicleId, CancellationToken cancellationToken)
     {
-        var docs = await _documentService.GetVehicleDocumentsAsync(vehicleId, cancellationToken);
-        return Ok(docs);
+        var vehicle = await _vehicleService.GetByIdAsync(vehicleId, cancellationToken);
+        if (vehicle == null) return NotFound(new { message = "Veículo não encontrado." });
+        return Ok(vehicle.Documents ?? new List<VehicleDocumentDto>());
     }
 
     [HttpPost]
     [Consumes("multipart/form-data")]
+    [RequestSizeLimit(30_000_000)]
     public async Task<IActionResult> UploadDocument(
-        Guid vehicleId,
+        [FromRoute] Guid vehicleId,
         [FromForm] Guid categoryId,
-        [FromForm] string name,
-        [FromForm] IFormFile file,
-        [FromForm] string? notes,
-        CancellationToken cancellationToken)
+        [FromForm] string? name,
+        [FromForm] bool showInCatalog,
+        [FromForm] IFormFile file)
     {
-        try
+        if (file == null || file.Length == 0)
+            return BadRequest(new { message = "Arquivo não enviado." });
+
+        var vehicle = await _vehicleService.GetByIdAsync(vehicleId);
+        if (vehicle == null)
+            return NotFound(new { message = "Veículo não encontrado." });
+
+        var uploadDir = Path.Combine(_environment.ContentRootPath, "uploads", "documents");
+        if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
+
+        var extension = Path.GetExtension(file.FileName);
+        if (string.IsNullOrWhiteSpace(extension))
         {
-            if (file == null || file.Length == 0) return BadRequest(new { message = "Arquivo não informado." });
-
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(userIdClaim, out var userId)) return Unauthorized();
-
-            using var stream = file.OpenReadStream();
-            var doc = await _documentService.UploadDocumentAsync(
-                vehicleId, userId, categoryId, name, stream, file.FileName, file.ContentType, file.Length, notes, cancellationToken);
-
-            return StatusCode(StatusCodes.Status201Created, doc);
+            extension = file.ContentType switch
+            {
+                "image/png" => ".png",
+                "image/webp" => ".webp",
+                "application/pdf" => ".pdf",
+                _ => ".jpg"
+            };
         }
-        catch (Exception ex)
+
+        var storedFileName = $"{Guid.NewGuid()}{extension}";
+        var filePath = Path.Combine(uploadDir, storedFileName);
+        var relativePath = Path.Combine("uploads", "documents", storedFileName).Replace("\\", "/");
+
+        using (var stream = new FileStream(filePath, FileMode.Create))
         {
-            return BadRequest(new { message = ex.Message });
+            await file.CopyToAsync(stream);
         }
+
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value
+            ?? User.FindFirst("id")?.Value;
+
+        _ = Guid.TryParse(userIdClaim, out var createdByUserId);
+
+        var docName = string.IsNullOrWhiteSpace(name)
+            ? (string.IsNullOrWhiteSpace(file.FileName) ? "Documento/Foto" : file.FileName)
+            : name.Trim();
+
+        var doc = new VehicleDocument(
+            vehicleId,
+            categoryId,
+            docName,
+            file.FileName ?? storedFileName,
+            relativePath,
+            file.ContentType ?? "image/jpeg",
+            file.Length,
+            createdByUserId,
+            showInCatalog
+        );
+
+        await _vehicleService.AddDocumentAsync(doc);
+
+        return Ok(new VehicleDocumentDto(
+            doc.Id,
+            doc.DocumentCategoryId,
+            "Documento",
+            doc.Name,
+            doc.FileName,
+            doc.StoragePath,
+            doc.ShowInCatalog,
+            doc.CreatedAt
+        ));
+    }
+
+    [HttpPatch("{documentId:guid}/toggle-catalog")]
+    public async Task<IActionResult> ToggleDocumentCatalog([FromRoute] Guid vehicleId, [FromRoute] Guid documentId, CancellationToken cancellationToken)
+    {
+        await _vehicleService.ToggleDocumentCatalogAsync(vehicleId, documentId, cancellationToken);
+        return Ok(new { message = "Visibilidade do documento atualizada com sucesso." });
     }
 
     [HttpDelete("{documentId:guid}")]
-    public async Task<IActionResult> DeleteDocument(Guid vehicleId, Guid documentId, CancellationToken cancellationToken)
+    public async Task<IActionResult> DeleteDocument([FromRoute] Guid vehicleId, [FromRoute] Guid documentId, CancellationToken cancellationToken)
     {
-        try
-        {
-            await _documentService.DeleteDocumentAsync(vehicleId, documentId, cancellationToken);
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    [HttpGet("download-zip")]
-    public async Task<IActionResult> DownloadZip(Guid vehicleId, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var (zipBytes, fileName) = await _documentService.GenerateDocumentsZipAsync(vehicleId, cancellationToken);
-            return File(zipBytes, "application/zip", fileName);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
-    }
-
-    [HttpPost("share-link")]
-    public async Task<IActionResult> CreateShareLink(Guid vehicleId, [FromBody] CreateBuyerLinkDto dto, CancellationToken cancellationToken)
-    {
-        try
-        {
-            var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
-            if (!Guid.TryParse(userIdClaim, out var userId)) return Unauthorized();
-
-            var result = await _portalService.CreateBuyerLinkAsync(vehicleId, userId, dto, cancellationToken);
-            return Ok(result);
-        }
-        catch (Exception ex)
-        {
-            return BadRequest(new { message = ex.Message });
-        }
+        await _vehicleService.DeleteDocumentAsync(vehicleId, documentId, cancellationToken);
+        return NoContent();
     }
 }

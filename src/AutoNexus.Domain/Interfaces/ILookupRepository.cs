@@ -8,4 +8,6 @@ public interface ILookupRepository
     Task<IEnumerable<CostCategory>> GetCostCategoriesAsync(bool onlyActive = true, CancellationToken cancellationToken = default);
     Task<IEnumerable<DocumentCategory>> GetDocumentCategoriesAsync(bool onlyActive = true, CancellationToken cancellationToken = default);
     Task<VehicleType?> GetVehicleTypeByIdAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<IEnumerable<VehicleBrand>> GetBrandsAsync(bool onlyActive = true, CancellationToken cancellationToken = default);
+    Task<IEnumerable<VehicleModel>> GetModelsByBrandAsync(Guid brandId, bool onlyActive = true, CancellationToken cancellationToken = default);
 }

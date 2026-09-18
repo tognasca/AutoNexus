@@ -713,6 +713,31 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("vehicles", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.VehicleBrand", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isActive");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<int>("Order")
+                        .HasColumnType("integer")
+                        .HasColumnName("order");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("VehicleBrands");
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.VehicleDocument", b =>
                 {
                     b.Property<Guid>("Id")
@@ -755,6 +780,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("notes");
 
+                    b.Property<bool>("ShowInCatalog")
+                        .HasColumnType("boolean")
+                        .HasColumnName("showInCatalog");
+
                     b.Property<string>("StoragePath")
                         .IsRequired()
                         .HasMaxLength(1000)
@@ -780,6 +809,33 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("VehicleId");
 
                     b.ToTable("vehicle_documents", (string)null);
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.VehicleModel", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isActive");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("VehicleBrandId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("vehicleBrandId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("VehicleBrandId");
+
+                    b.ToTable("VehicleModels");
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.VehiclePhoto", b =>
@@ -984,6 +1040,17 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Navigation("Vehicle");
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.VehicleModel", b =>
+                {
+                    b.HasOne("AutoNexus.Domain.Entities.VehicleBrand", "VehicleBrand")
+                        .WithMany("Models")
+                        .HasForeignKey("VehicleBrandId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VehicleBrand");
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.VehiclePhoto", b =>
                 {
                     b.HasOne("AutoNexus.Domain.Entities.Vehicle", "Vehicle")
@@ -1014,6 +1081,11 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Navigation("FipeHistories");
 
                     b.Navigation("Photos");
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.VehicleBrand", b =>
+                {
+                    b.Navigation("Models");
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.VehicleType", b =>
