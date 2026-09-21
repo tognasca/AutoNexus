@@ -48,8 +48,8 @@ export const getPhotoUrl = (path?: string): string => {
   const cleanPath = normalized.startsWith('/') ? normalized : `/${normalized}`;
 
   const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const apiBase = import.meta.env.VITE_API_URL || `http://${host}:5000/api`;
-  const baseUrl = apiBase.replace(/\/api\/?$/, ''); // http://localhost:5000
+  const apiBase = import.meta.env.VITE_API_URL || `http://${host}:5001/api`;
+  const baseUrl = apiBase.replace(/\/api\/?$/, ''); // http://localhost:5001
 
   return `${baseUrl}${cleanPath}`;
 };
@@ -86,7 +86,7 @@ export const catalogService = {
 
   getXmlFeedUrl: (): string => {
     const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const baseURL = import.meta.env.VITE_API_URL || `http://${host}:5000/api`;
+    const baseURL = import.meta.env.VITE_API_URL || `http://${host}:5001/api`;
     return `${baseURL}/public/feed/xml`;
   }
 };

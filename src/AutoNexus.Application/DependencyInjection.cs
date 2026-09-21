@@ -27,6 +27,8 @@ public static class DependencyInjection
         services.AddScoped<IAiDescriptionService, AiDescriptionService>();
         services.AddScoped<IFeedExportService, FeedExportService>();
         services.AddScoped<ISuperAdminService, SuperAdminService>();
+        services.AddScoped<ITenantSettingService, TenantSettingService>();
+        services.AddScoped<ISubscriptionService, SubscriptionService>();
         return services;
     }
 }

@@ -42,7 +42,8 @@ public class UsersController : ControllerBase
                 _ => "Cliente"
             },
             IsActive: u.IsActive,
-            CreatedAt: u.CreatedAt
+            CreatedAt: u.CreatedAt,
+            TenantId: u.TenantId
         )).OrderBy(u => u.Name);
 
         return Ok(dtos);
@@ -73,7 +74,8 @@ public class UsersController : ControllerBase
             Profile: user.Profile,
             ProfileName: user.Profile == UserProfile.Admin ? "Administrador" : "Vendedor",
             IsActive: user.IsActive,
-            CreatedAt: user.CreatedAt
+            CreatedAt: user.CreatedAt,
+            TenantId: user.TenantId
         ));
     }
 }

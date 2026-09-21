@@ -29,14 +29,18 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IBuyerLinkRepository, BuyerLinkRepository>();
         services.AddScoped<IAcceptanceRepository, AcceptanceRepository>();
-        services.AddScoped<IBankConfigRepository, BankConfigRepository>(); // Registrado aqui
+        services.AddScoped<IBankConfigRepository, BankConfigRepository>();
+        services.AddScoped<IPlanRepository, PlanRepository>();
+        services.AddScoped<ITenantSubscriptionRepository, TenantSubscriptionRepository>();
+        services.AddScoped<ITenantSettingRepository, TenantSettingRepository>();
+        services.AddScoped<ITenantContext, TenantContext>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IBankAdapter, SantanderBankAdapter>();
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
-        
+        services.AddHttpContextAccessor();
 
         return services;
     }

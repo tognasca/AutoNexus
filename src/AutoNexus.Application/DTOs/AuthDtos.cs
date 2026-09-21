@@ -9,5 +9,6 @@ public record LoginResponseDto(
     Guid UserId,
     string Name,
     string Email,
-    UserProfile Profile
+    UserProfile Profile,
+    Guid TenantId = default
 );

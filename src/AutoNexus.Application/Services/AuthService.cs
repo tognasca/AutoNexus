@@ -71,6 +71,6 @@ public class AuthService : IAuthService
             _ => "Cliente"
         };
 
-        return new UserDto(user.Id, user.Name, user.Email, user.Profile, ProfileName, user.IsActive, user.CreatedAt);
+        return new UserDto(user.Id, user.Name, user.Email, user.Profile, ProfileName, user.IsActive, user.CreatedAt, user.TenantId);
     }
 }
