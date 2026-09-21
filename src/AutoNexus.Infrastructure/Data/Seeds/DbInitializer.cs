@@ -113,6 +113,20 @@ public static class DbInitializer
             await context.Users.AddAsync(adminUser);
         }
 
+        // 5. Usuário SuperAdmin inicial (dono do SaaS — TROQUE A SENHA em produção).
+        // Deliberadamente SEM TenantId (fica em Guid.Empty, o valor padrão de
+        // um Guid em C#): SuperAdmin não pertence a nenhuma empresa. Por isso
+        // não usamos AnyAsync com IgnoreQueryFilters aqui — como estamos no
+        // seed (fora de uma requisição HTTP), HasTenant já é false e o filtro
+        // global não está ativo, então esta consulta já enxerga todos os
+        // usuários normalmente.
+        if (!await context.Users.AnyAsync(u => u.Email == "superadmin@autonexus.com"))
+        {
+            var superAdminPasswordHash = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123456", workFactor: 12);
+            var superAdminUser = new User("Super Admin", "superadmin@autonexus.com", superAdminPasswordHash, UserProfile.SuperAdmin);
+            await context.Users.AddAsync(superAdminUser);
+        }
+
 
         if (!await context.Set<BankConfig>().AnyAsync())
         {

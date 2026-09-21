@@ -51,8 +51,11 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserDto dto, CancellationToken cancellationToken)
     {
-        var existing = await _userRepository.GetByEmailAsync(dto.Email, cancellationToken);
-        if (existing != null)
+        // Checagem global (não só do tenant atual): o e-mail é único no banco
+        // inteiro, então a validação amigável também precisa ser global —
+        // ver EmailExistsAsync.
+        var emailExists = await _userRepository.EmailExistsAsync(dto.Email, cancellationToken);
+        if (emailExists)
         {
             return BadRequest(new { message = "Já existe um usuário cadastrado com este e-mail." });
         }
