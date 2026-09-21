@@ -1,4 +1,5 @@
 using AutoNexus.Application.DTOs;
+using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;

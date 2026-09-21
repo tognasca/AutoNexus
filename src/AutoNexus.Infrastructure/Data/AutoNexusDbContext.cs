@@ -24,6 +24,13 @@ public class AutoNexusDbContext : DbContext
     public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
     public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
     public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
+    public DbSet<Tenant> Tenants => Set<Tenant>();
+    public DbSet<Plan> Plans => Set<Plan>();
+    public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
+    public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
+
+
+
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
