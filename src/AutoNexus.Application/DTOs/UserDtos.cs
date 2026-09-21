@@ -8,5 +8,6 @@ public record UserDto(
     UserProfile Profile,
     string ProfileName,
     bool IsActive,
-    DateTime CreatedAt
+    DateTime CreatedAt,
+    Guid TenantId
 );

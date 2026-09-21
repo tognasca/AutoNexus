@@ -1,7 +1,5 @@
 using AutoNexus.Domain.Entities;
-
 namespace AutoNexus.Domain.Interfaces;
-
 public interface ITenantRepository
 {
     Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
