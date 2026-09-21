@@ -54,7 +54,7 @@ export const getFullDocumentUrl = (path?: string) => {
   const normalizedPath = path.replace(/\\/g, '/');
   const cleanPath = normalizedPath.startsWith('/') ? normalizedPath : `/${normalizedPath}`;
   
-  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5000/api';
+  const apiBase = import.meta.env.VITE_API_URL || 'http://localhost:5001/api';
   const host = apiBase.replace('/api', '');
   
   return `${host}${cleanPath}`;
