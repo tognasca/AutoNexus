@@ -1,0 +1,3560 @@
+diff --git a/src/AutoNexus.Api/Controllers/PublicCatalogController.cs b/src/AutoNexus.Api/Controllers/PublicCatalogController.cs
+index 45c2e92..ad87722 100644
+--- a/src/AutoNexus.Api/Controllers/PublicCatalogController.cs
++++ b/src/AutoNexus.Api/Controllers/PublicCatalogController.cs
+@@ -1,6 +1,7 @@
+ using System.Text;
+ using AutoNexus.Application.DTOs;
+ using AutoNexus.Application.Interfaces;
++using AutoNexus.Domain.Enums;
+ using Microsoft.AspNetCore.Authorization;
+ using Microsoft.AspNetCore.Mvc;
+ 
+@@ -31,7 +32,33 @@ public class PublicCatalogController : ControllerBase
+         var vehicles = await _vehicleService.GetByListAsync(cancellationToken);
+         if (vehicles == null) return Ok(new List<object>());
+ 
+-        return Ok(vehicles);
++        // IMPORTANTE: nunca repassar aqui campos internos do veículo
++        // (purchaseValue, plate, custos, margem). Este endpoint é público
++        // e sem autenticação — qualquer campo incluído abaixo fica visível
++        // para qualquer visitante do site.
++        var publicVehicles = vehicles.Select(v => new
++        {
++            id = v.Id,
++            vehicleTypeName = v.VehicleTypeName,
++            brand = v.Brand,
++            model = v.Model,
++            version = v.Version,
++            manufacturingYear = v.ManufacturingYear,
++            modelYear = v.ModelYear,
++            mileage = v.Mileage,
++            color = v.Color,
++            fuel = v.Fuel?.ToString(),
++            transmission = v.Transmission?.ToString(),
++            status = v.Status.ToString(),
++            // Nunca cair para PurchaseValue aqui: um veículo sem preço
++            // anunciado simplesmente não deve mostrar preço nenhum.
++            listedValue = v.ListedValue,
++            saleValue = v.SaleValue,
++            mainPhotoUrl = v.MainPhotoUrl,
++            createdAt = v.CreatedAt
++        });
++
++        return Ok(publicVehicles);
+     }
+ 
+     [HttpGet("catalog/{id:guid}")]
+@@ -43,12 +70,19 @@ public class PublicCatalogController : ControllerBase
+             return NotFound(new { message = "Veículo não encontrado no estoque." });
+         }
+ 
++        // Veículos em preparação ou em processo interno de troca ainda não
++        // devem aparecer publicamente — tratamos como "não encontrado" para
++        // não revelar estoque que ainda não foi publicado.
++        if (vehicle.Status == VehicleStatus.InPreparation || vehicle.Status == VehicleStatus.EmTroca)
++        {
++            return NotFound(new { message = "Veículo não encontrado no estoque." });
++        }
++
+         // Filtra fotos e documentos marcados com ShowInCatalog = true
+         var publicPhotos = vehicle.Photos?
+             .Select(p => new {
+                 id = p.Id,
+                 url = p.StoragePath,
+-                storagePath = p.StoragePath,
+                 isMain = p.IsMain
+             }).ToList();
+ 
+@@ -59,25 +93,29 @@ public class PublicCatalogController : ControllerBase
+                 name = d.Name,
+                 documentType = d.CategoryName,
+                 fileUrl = d.StoragePath,
+-                filePath = d.StoragePath,
+                 createdAt = d.CreatedAt
+             }).ToList();
+ 
++        // IMPORTANTE: assim como no endpoint de listagem, nunca incluir aqui
++        // purchaseValue, plate, chassis, renavam, custos (Costs) ou
++        // documentos com ShowInCatalog = false — são dados internos/PII que
++        // nunca devem ser enviados ao frontend público.
+         var detail = new {
+             id = vehicle.Id,
++            vehicleTypeName = vehicle.VehicleTypeName,
+             brand = vehicle.Brand,
+             model = vehicle.Model,
+             version = vehicle.Version,
+             manufacturingYear = vehicle.ManufacturingYear,
+             modelYear = vehicle.ModelYear,
+-            plate = vehicle.Plate,
+             mileage = vehicle.Mileage,
+             color = vehicle.Color,
+-            fuel = (int?)vehicle.Fuel,
+-            transmission = (int?)vehicle.Transmission,
+-            status = (int)vehicle.Status,
+-            listedValue = vehicle.ListedValue ?? vehicle.PurchaseValue,
+-            purchaseValue = vehicle.PurchaseValue,
++            fuel = vehicle.Fuel?.ToString(),
++            transmission = vehicle.Transmission?.ToString(),
++            status = vehicle.Status.ToString(),
++            listedValue = vehicle.ListedValue,
++            saleValue = vehicle.SaleValue,
++            fipeValue = vehicle.LatestFipeValue,
+             notes = vehicle.Notes,
+             mainPhotoUrl = vehicle.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? vehicle.Photos?.FirstOrDefault()?.StoragePath,
+             photos = publicPhotos,
+diff --git a/src/AutoNexus.Api/Controllers/SubscriptionController.cs b/src/AutoNexus.Api/Controllers/SubscriptionController.cs
+new file mode 100644
+index 0000000..4234aef
+--- /dev/null
++++ b/src/AutoNexus.Api/Controllers/SubscriptionController.cs
+@@ -0,0 +1,40 @@
++using AutoNexus.Application.Interfaces;
++using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Mvc;
++
++namespace AutoNexus.Api.Controllers;
++
++/// <summary>
++/// Visão da própria assinatura/plano — qualquer usuário autenticado da
++/// empresa pode ver. Trocar de plano continua sendo feito pelo SuperAdmin
++/// (ver SuperAdminController) até existir cobrança automática.
++/// </summary>
++[ApiController]
++[Route("api/subscription")]
++[Authorize]
++public class SubscriptionController : ControllerBase
++{
++    private readonly ISubscriptionService _subscriptionService;
++
++    public SubscriptionController(ISubscriptionService subscriptionService)
++    {
++        _subscriptionService = subscriptionService;
++    }
++
++    [HttpGet]
++    public async Task<IActionResult> GetCurrent(CancellationToken cancellationToken)
++    {
++        var subscription = await _subscriptionService.GetCurrentAsync(cancellationToken);
++        if (subscription == null)
++            return NotFound(new { message = "Sua empresa ainda não tem uma assinatura." });
++
++        return Ok(subscription);
++    }
++
++    [HttpGet("plans")]
++    public async Task<IActionResult> GetAvailablePlans(CancellationToken cancellationToken)
++    {
++        var plans = await _subscriptionService.GetAvailablePlansAsync(cancellationToken);
++        return Ok(plans);
++    }
++}
+diff --git a/src/AutoNexus.Api/Controllers/SuperAdminController.cs b/src/AutoNexus.Api/Controllers/SuperAdminController.cs
+new file mode 100644
+index 0000000..b7520f5
+--- /dev/null
++++ b/src/AutoNexus.Api/Controllers/SuperAdminController.cs
+@@ -0,0 +1,124 @@
++using AutoNexus.Application.DTOs;
++using AutoNexus.Application.Interfaces;
++using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Mvc;
++
++namespace AutoNexus.Api.Controllers;
++
++/// <summary>
++/// Área exclusiva do dono do SaaS. Só usuários com Profile = SuperAdmin
++/// acessam — nenhuma outra rota do sistema concede este role. SuperAdmin não
++/// pertence a nenhum tenant, então fora deste controller ele não enxerga
++/// nenhum dado (o filtro global de tenant continua valendo normalmente em
++/// todo o resto da API — ver AutoNexusDbContext).
++/// </summary>
++[ApiController]
++[Route("api/superadmin")]
++[Authorize(Roles = "SuperAdmin")]
++public class SuperAdminController : ControllerBase
++{
++    private readonly ISuperAdminService _superAdminService;
++
++    public SuperAdminController(ISuperAdminService superAdminService)
++    {
++        _superAdminService = superAdminService;
++    }
++
++    [HttpGet("tenants")]
++    public async Task<IActionResult> GetTenants(CancellationToken cancellationToken)
++    {
++        var tenants = await _superAdminService.GetAllTenantsAsync(cancellationToken);
++        return Ok(tenants);
++    }
++
++    [HttpPost("tenants")]
++    public async Task<IActionResult> CreateTenant([FromBody] CreateTenantWithAdminDto dto, CancellationToken cancellationToken)
++    {
++        try
++        {
++            var tenant = await _superAdminService.CreateTenantAsync(dto, cancellationToken);
++            return CreatedAtAction(nameof(GetTenants), new { }, tenant);
++        }
++        catch (ArgumentException ex)
++        {
++            return BadRequest(new { message = ex.Message });
++        }
++        catch (InvalidOperationException ex)
++        {
++            return BadRequest(new { message = ex.Message });
++        }
++    }
++
++    [HttpPost("tenants/{tenantId:guid}/activate")]
++    public async Task<IActionResult> ActivateTenant(Guid tenantId, CancellationToken cancellationToken)
++    {
++        try
++        {
++            await _superAdminService.ActivateTenantAsync(tenantId, cancellationToken);
++            return NoContent();
++        }
++        catch (KeyNotFoundException ex)
++        {
++            return NotFound(new { message = ex.Message });
++        }
++    }
++
++    [HttpPost("tenants/{tenantId:guid}/deactivate")]
++    public async Task<IActionResult> DeactivateTenant(Guid tenantId, CancellationToken cancellationToken)
++    {
++        try
++        {
++            await _superAdminService.DeactivateTenantAsync(tenantId, cancellationToken);
++            return NoContent();
++        }
++        catch (KeyNotFoundException ex)
++        {
++            return NotFound(new { message = ex.Message });
++        }
++    }
++
++    [HttpGet("users")]
++    public async Task<IActionResult> GetUsers([FromQuery] Guid? tenantId, CancellationToken cancellationToken)
++    {
++        var users = await _superAdminService.GetUsersAsync(tenantId, cancellationToken);
++        return Ok(users);
++    }
++
++    [HttpGet("plans")]
++    public async Task<IActionResult> GetPlans(CancellationToken cancellationToken)
++    {
++        var plans = await _superAdminService.GetPlansAsync(cancellationToken);
++        return Ok(plans);
++    }
++
++    [HttpPost("plans")]
++    public async Task<IActionResult> CreatePlan([FromBody] CreatePlanDto dto, CancellationToken cancellationToken)
++    {
++        var plan = await _superAdminService.CreatePlanAsync(dto, cancellationToken);
++        return CreatedAtAction(nameof(GetPlans), new { }, plan);
++    }
++
++    [HttpGet("tenants/{tenantId:guid}/subscription")]
++    public async Task<IActionResult> GetSubscription(Guid tenantId, CancellationToken cancellationToken)
++    {
++        var subscription = await _superAdminService.GetSubscriptionAsync(tenantId, cancellationToken);
++        if (subscription == null)
++            return NotFound(new { message = "Esta empresa ainda não tem assinatura." });
++
++        return Ok(subscription);
++    }
++
++    [HttpPost("tenants/{tenantId:guid}/subscription")]
++    public async Task<IActionResult> AssignPlan(Guid tenantId, [FromBody] AssignPlanDto dto, CancellationToken cancellationToken)
++    {
++        try
++        {
++            var subscription = await _superAdminService.AssignPlanAsync(tenantId, dto, cancellationToken);
++            return Ok(subscription);
++        }
++        catch (KeyNotFoundException ex)
++        {
++            return NotFound(new { message = ex.Message });
++        }
++    }
++}
+diff --git a/src/AutoNexus.Api/Controllers/TenantSettingsController.cs b/src/AutoNexus.Api/Controllers/TenantSettingsController.cs
+new file mode 100644
+index 0000000..72834d9
+--- /dev/null
++++ b/src/AutoNexus.Api/Controllers/TenantSettingsController.cs
+@@ -0,0 +1,46 @@
++using AutoNexus.Application.DTOs;
++using AutoNexus.Application.Interfaces;
++using Microsoft.AspNetCore.Authorization;
++using Microsoft.AspNetCore.Mvc;
++
++namespace AutoNexus.Api.Controllers;
++
++/// <summary>
++/// Configurações da empresa do usuário autenticado (nome, logo, cor, fuso,
++/// moeda). O filtro global de tenant garante que só a própria empresa é
++/// vista/editada — diferente do SuperAdminController, que gerencia todas.
++/// </summary>
++[ApiController]
++[Route("api/tenant-settings")]
++[Authorize]
++public class TenantSettingsController : ControllerBase
++{
++    private readonly ITenantSettingService _tenantSettingService;
++
++    public TenantSettingsController(ITenantSettingService tenantSettingService)
++    {
++        _tenantSettingService = tenantSettingService;
++    }
++
++    [HttpGet]
++    public async Task<IActionResult> Get(CancellationToken cancellationToken)
++    {
++        var settings = await _tenantSettingService.GetCurrentAsync(cancellationToken);
++        return Ok(settings);
++    }
++
++    [HttpPut]
++    [Authorize(Roles = "Admin")]
++    public async Task<IActionResult> Update([FromBody] TenantSettingDto dto, CancellationToken cancellationToken)
++    {
++        try
++        {
++            var settings = await _tenantSettingService.UpdateAsync(dto, cancellationToken);
++            return Ok(settings);
++        }
++        catch (ArgumentException ex)
++        {
++            return BadRequest(new { message = ex.Message });
++        }
++    }
++}
+diff --git a/src/AutoNexus.Api/Controllers/UsersController.cs b/src/AutoNexus.Api/Controllers/UsersController.cs
+index 8630385..e687fd8 100644
+--- a/src/AutoNexus.Api/Controllers/UsersController.cs
++++ b/src/AutoNexus.Api/Controllers/UsersController.cs
+@@ -42,7 +42,8 @@ public class UsersController : ControllerBase
+                 _ => "Cliente"
+             },
+             IsActive: u.IsActive,
+-            CreatedAt: u.CreatedAt
++            CreatedAt: u.CreatedAt,
++            TenantId: u.TenantId
+         )).OrderBy(u => u.Name);
+ 
+         return Ok(dtos);
+@@ -51,8 +52,11 @@ public class UsersController : ControllerBase
+     [HttpPost]
+     public async Task<IActionResult> Create([FromBody] CreateUserDto dto, CancellationToken cancellationToken)
+     {
+-        var existing = await _userRepository.GetByEmailAsync(dto.Email, cancellationToken);
+-        if (existing != null)
++        // Checagem global (não só do tenant atual): o e-mail é único no banco
++        // inteiro, então a validação amigável também precisa ser global —
++        // ver EmailExistsAsync.
++        var emailExists = await _userRepository.EmailExistsAsync(dto.Email, cancellationToken);
++        if (emailExists)
+         {
+             return BadRequest(new { message = "Já existe um usuário cadastrado com este e-mail." });
+         }
+@@ -70,7 +74,8 @@ public class UsersController : ControllerBase
+             Profile: user.Profile,
+             ProfileName: user.Profile == UserProfile.Admin ? "Administrador" : "Vendedor",
+             IsActive: user.IsActive,
+-            CreatedAt: user.CreatedAt
++            CreatedAt: user.CreatedAt,
++            TenantId: user.TenantId
+         ));
+     }
+ }
+\ No newline at end of file
+diff --git a/src/AutoNexus.Application/DTOs/AuthDtos.cs b/src/AutoNexus.Application/DTOs/AuthDtos.cs
+index 0f66460..b1f6fda 100644
+--- a/src/AutoNexus.Application/DTOs/AuthDtos.cs
++++ b/src/AutoNexus.Application/DTOs/AuthDtos.cs
+@@ -9,5 +9,6 @@ public record LoginResponseDto(
+     Guid UserId,
+     string Name,
+     string Email,
+-    UserProfile Profile
++    UserProfile Profile,
++    Guid TenantId = default
+ );
+\ No newline at end of file
+diff --git a/src/AutoNexus.Application/DTOs/PlanDtos.cs b/src/AutoNexus.Application/DTOs/PlanDtos.cs
+new file mode 100644
+index 0000000..e0b9586
+--- /dev/null
++++ b/src/AutoNexus.Application/DTOs/PlanDtos.cs
+@@ -0,0 +1,41 @@
++using AutoNexus.Domain.Enums;
++
++namespace AutoNexus.Application.DTOs;
++
++public record PlanDto(
++    Guid Id,
++    string Name,
++    decimal Price,
++    bool IsActive,
++    int? MaxUsers,
++    int? MaxVehicles,
++    int? MaxStorageMb
++);
++
++public record CreatePlanDto(
++    string Name,
++    decimal Price,
++    int? MaxUsers,
++    int? MaxVehicles,
++    int? MaxStorageMb
++);
++
++public record TenantSubscriptionDto(
++    Guid Id,
++    Guid TenantId,
++    Guid PlanId,
++    string PlanName,
++    SubscriptionStatus Status,
++    DateTime StartDate,
++    DateTime? EndDate
++);
++
++public record AssignPlanDto(Guid PlanId);
++
++public record TenantSettingDto(
++    string CompanyName,
++    string? LogoUrl,
++    string PrimaryColor,
++    string TimeZone,
++    string Currency
++);
+diff --git a/src/AutoNexus.Application/DTOs/TenantDtos.cs b/src/AutoNexus.Application/DTOs/TenantDtos.cs
+new file mode 100644
+index 0000000..dc5f434
+--- /dev/null
++++ b/src/AutoNexus.Application/DTOs/TenantDtos.cs
+@@ -0,0 +1,25 @@
++namespace AutoNexus.Application.DTOs;
++
++public record TenantDto(
++    Guid Id,
++    string Name,
++    string Slug,
++    bool IsActive,
++    DateTime CreatedAt
++);
++
++public record CreateTenantDto(string Name, string Slug);
++
++/// <summary>
++/// Cria a empresa e já cria seu primeiro usuário Admin — sem isso, uma
++/// empresa recém-criada pelo SuperAdmin ficaria sem ninguém capaz de entrar
++/// nela (o cadastro normal de usuários exige já estar autenticado como Admin
++/// daquela empresa).
++/// </summary>
++public record CreateTenantWithAdminDto(
++    string TenantName,
++    string TenantSlug,
++    string AdminName,
++    string AdminEmail,
++    string AdminPassword
++);
+diff --git a/src/AutoNexus.Application/DTOs/UserDtos.cs b/src/AutoNexus.Application/DTOs/UserDtos.cs
+index 28356ad..ce9e6b9 100644
+--- a/src/AutoNexus.Application/DTOs/UserDtos.cs
++++ b/src/AutoNexus.Application/DTOs/UserDtos.cs
+@@ -8,5 +8,6 @@ public record UserDto(
+     UserProfile Profile,
+     string ProfileName,
+     bool IsActive,
+-    DateTime CreatedAt
++    DateTime CreatedAt,
++    Guid TenantId = default
+ );
+\ No newline at end of file
+diff --git a/src/AutoNexus.Application/DTOs/VehicleDtos.cs b/src/AutoNexus.Application/DTOs/VehicleDtos.cs
+index 9e6bdcd..a10c22e 100644
+--- a/src/AutoNexus.Application/DTOs/VehicleDtos.cs
++++ b/src/AutoNexus.Application/DTOs/VehicleDtos.cs
+@@ -68,7 +68,8 @@ public record VehicleDetailDto(
+     DateTime? UpdatedAt,
+     IEnumerable<VehiclePhotoDto> Photos,
+     IEnumerable<VehicleCostDto> Costs,
+-    IEnumerable<VehicleDocumentDto>? Documents = null
++    IEnumerable<VehicleDocumentDto>? Documents = null,
++    decimal? LatestFipeValue = null
+ );
+ 
+ public record CreateVehicleDto(
+diff --git a/src/AutoNexus.Application/DTOs/VehicleSummaryDto.cs b/src/AutoNexus.Application/DTOs/VehicleSummaryDto.cs
+index 6b8ac4e..b51aecf 100644
+--- a/src/AutoNexus.Application/DTOs/VehicleSummaryDto.cs
++++ b/src/AutoNexus.Application/DTOs/VehicleSummaryDto.cs
+@@ -15,6 +15,8 @@ public class VehicleSummaryDto
+     public string? Plate { get; set; }
+     public int Mileage { get; set; }
+     public string? Color { get; set; }
++    public FuelType? Fuel { get; set; }
++    public TransmissionType? Transmission { get; set; }
+     public VehicleStatus Status { get; set; }
+     public decimal PurchaseValue { get; set; }
+     public decimal? ListedValue { get; set; }
+diff --git a/src/AutoNexus.Application/DependencyInjection.cs b/src/AutoNexus.Application/DependencyInjection.cs
+index 2d034da..a693e26 100644
+--- a/src/AutoNexus.Application/DependencyInjection.cs
++++ b/src/AutoNexus.Application/DependencyInjection.cs
+@@ -26,6 +26,9 @@ public static class DependencyInjection
+         services.AddScoped<ICompanyDocumentService, CompanyDocumentService>();
+         services.AddScoped<IAiDescriptionService, AiDescriptionService>();
+         services.AddScoped<IFeedExportService, FeedExportService>();
++        services.AddScoped<ISuperAdminService, SuperAdminService>();
++        services.AddScoped<ITenantSettingService, TenantSettingService>();
++        services.AddScoped<ISubscriptionService, SubscriptionService>();
+         return services;
+     }
+ }
+diff --git a/src/AutoNexus.Application/Interfaces/ISubscriptionService.cs b/src/AutoNexus.Application/Interfaces/ISubscriptionService.cs
+new file mode 100644
+index 0000000..0ea0dad
+--- /dev/null
++++ b/src/AutoNexus.Application/Interfaces/ISubscriptionService.cs
+@@ -0,0 +1,15 @@
++using AutoNexus.Application.DTOs;
++
++namespace AutoNexus.Application.Interfaces;
++
++/// <summary>
++/// Visão da PRÓPRIA assinatura — diferente de ISuperAdminService, aqui o
++/// filtro global de tenant garante que cada empresa só vê a sua. Só leitura:
++/// trocar de plano continua sendo uma ação do SuperAdmin (ver
++/// SuperAdminController.AssignPlan) até existir cobrança automática.
++/// </summary>
++public interface ISubscriptionService
++{
++    Task<TenantSubscriptionDto?> GetCurrentAsync(CancellationToken cancellationToken = default);
++    Task<List<PlanDto>> GetAvailablePlansAsync(CancellationToken cancellationToken = default);
++}
+diff --git a/src/AutoNexus.Application/Interfaces/ISuperAdminService.cs b/src/AutoNexus.Application/Interfaces/ISuperAdminService.cs
+new file mode 100644
+index 0000000..83959f0
+--- /dev/null
++++ b/src/AutoNexus.Application/Interfaces/ISuperAdminService.cs
+@@ -0,0 +1,17 @@
++using AutoNexus.Application.DTOs;
++
++namespace AutoNexus.Application.Interfaces;
++
++public interface ISuperAdminService
++{
++    Task<List<TenantDto>> GetAllTenantsAsync(CancellationToken cancellationToken = default);
++    Task<TenantDto> CreateTenantAsync(CreateTenantWithAdminDto dto, CancellationToken cancellationToken = default);
++    Task ActivateTenantAsync(Guid tenantId, CancellationToken cancellationToken = default);
++    Task DeactivateTenantAsync(Guid tenantId, CancellationToken cancellationToken = default);
++    Task<List<UserDto>> GetUsersAsync(Guid? tenantId, CancellationToken cancellationToken = default);
++
++    Task<List<PlanDto>> GetPlansAsync(CancellationToken cancellationToken = default);
++    Task<PlanDto> CreatePlanAsync(CreatePlanDto dto, CancellationToken cancellationToken = default);
++    Task<TenantSubscriptionDto?> GetSubscriptionAsync(Guid tenantId, CancellationToken cancellationToken = default);
++    Task<TenantSubscriptionDto> AssignPlanAsync(Guid tenantId, AssignPlanDto dto, CancellationToken cancellationToken = default);
++}
+diff --git a/src/AutoNexus.Application/Interfaces/ITenantSettingService.cs b/src/AutoNexus.Application/Interfaces/ITenantSettingService.cs
+new file mode 100644
+index 0000000..a68f8c5
+--- /dev/null
++++ b/src/AutoNexus.Application/Interfaces/ITenantSettingService.cs
+@@ -0,0 +1,15 @@
++using AutoNexus.Application.DTOs;
++
++namespace AutoNexus.Application.Interfaces;
++
++/// <summary>
++/// Configurações da PRÓPRIA empresa autenticada — diferente do
++/// ISuperAdminService, aqui o filtro global de tenant garante que cada
++/// empresa só vê/edita a sua. Usado pela tela de configurações do Admin do
++/// tenant, não pelo SuperAdmin.
++/// </summary>
++public interface ITenantSettingService
++{
++    Task<TenantSettingDto> GetCurrentAsync(CancellationToken cancellationToken = default);
++    Task<TenantSettingDto> UpdateAsync(TenantSettingDto dto, CancellationToken cancellationToken = default);
++}
+diff --git a/src/AutoNexus.Application/Services/AuthService.cs b/src/AutoNexus.Application/Services/AuthService.cs
+index c82e373..9bdc67c 100644
+--- a/src/AutoNexus.Application/Services/AuthService.cs
++++ b/src/AutoNexus.Application/Services/AuthService.cs
+@@ -1,5 +1,6 @@
+ using AutoNexus.Application.DTOs;
+ using AutoNexus.Application.Interfaces;
++using AutoNexus.Domain.Enums;
+ using AutoNexus.Domain.Interfaces;
+ 
+ namespace AutoNexus.Application.Services;
+@@ -7,15 +8,18 @@ namespace AutoNexus.Application.Services;
+ public class AuthService : IAuthService
+ {
+     private readonly IUserRepository _userRepository;
++    private readonly ITenantRepository _tenantRepository;
+     private readonly IPasswordHasher _passwordHasher;
+     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+ 
+     public AuthService(
+         IUserRepository userRepository,
++        ITenantRepository tenantRepository,
+         IPasswordHasher passwordHasher,
+         IJwtTokenGenerator jwtTokenGenerator)
+     {
+         _userRepository = userRepository;
++        _tenantRepository = tenantRepository;
+         _passwordHasher = passwordHasher;
+         _jwtTokenGenerator = jwtTokenGenerator;
+     }
+@@ -33,6 +37,16 @@ public class AuthService : IAuthService
+         if (!isPasswordValid)
+             throw new UnauthorizedAccessException("Credenciais inválidas.");
+ 
++        // SuperAdmin não pertence a nenhum tenant (TenantId vazio de
++        // propósito) — só usuários normais de uma empresa precisam checar se
++        // a empresa continua ativa.
++        if (user.Profile != UserProfile.SuperAdmin)
++        {
++            var tenant = await _tenantRepository.GetByIdAsync(user.TenantId, cancellationToken);
++            if (tenant == null || !tenant.IsActive)
++                throw new UnauthorizedAccessException("Esta empresa está desativada. Fale com o suporte.");
++        }
++
+         var token = _jwtTokenGenerator.GenerateToken(user);
+ 
+         return new LoginResponseDto(
+@@ -40,7 +54,8 @@ public class AuthService : IAuthService
+             user.Id,
+             user.Name,
+             user.Email,
+-            user.Profile
++            user.Profile,
++            user.TenantId
+         );
+     }
+ 
+@@ -51,11 +66,12 @@ public class AuthService : IAuthService
+ 
+         var ProfileName = user.Profile switch
+         {
++            Domain.Enums.UserProfile.SuperAdmin => "Super Admin",
+             Domain.Enums.UserProfile.Admin => "Administrador",
+             Domain.Enums.UserProfile.Vendedor => "Vendedor",
+             _ => "Cliente"
+         };
+ 
+-        return new UserDto(user.Id, user.Name, user.Email, user.Profile, ProfileName, user.IsActive, user.CreatedAt);
++        return new UserDto(user.Id, user.Name, user.Email, user.Profile, ProfileName, user.IsActive, user.CreatedAt, user.TenantId);
+     }
+ }
+\ No newline at end of file
+diff --git a/src/AutoNexus.Application/Services/SubscriptionService.cs b/src/AutoNexus.Application/Services/SubscriptionService.cs
+new file mode 100644
+index 0000000..3d0e3b4
+--- /dev/null
++++ b/src/AutoNexus.Application/Services/SubscriptionService.cs
+@@ -0,0 +1,42 @@
++using AutoNexus.Application.DTOs;
++using AutoNexus.Domain.Interfaces;
++
++namespace AutoNexus.Application.Services;
++
++public class SubscriptionService : ISubscriptionService
++{
++    private readonly ITenantSubscriptionRepository _subscriptionRepository;
++    private readonly IPlanRepository _planRepository;
++
++    public SubscriptionService(ITenantSubscriptionRepository subscriptionRepository, IPlanRepository planRepository)
++    {
++        _subscriptionRepository = subscriptionRepository;
++        _planRepository = planRepository;
++    }
++
++    public async Task<TenantSubscriptionDto?> GetCurrentAsync(CancellationToken cancellationToken = default)
++    {
++        var subscription = await _subscriptionRepository.GetCurrentAsync(cancellationToken);
++        if (subscription == null) return null;
++
++        var plan = await _planRepository.GetByIdAsync(subscription.PlanId, cancellationToken);
++        return new TenantSubscriptionDto(
++            subscription.Id,
++            subscription.TenantId,
++            subscription.PlanId,
++            plan?.Name ?? "—",
++            subscription.Status,
++            subscription.StartDate,
++            subscription.EndDate
++        );
++    }
++
++    public async Task<List<PlanDto>> GetAvailablePlansAsync(CancellationToken cancellationToken = default)
++    {
++        var plans = await _planRepository.GetAllAsync(cancellationToken);
++        return plans
++            .Where(p => p.IsActive)
++            .Select(p => new PlanDto(p.Id, p.Name, p.Price, p.IsActive, p.MaxUsers, p.MaxVehicles, p.MaxStorageMb))
++            .ToList();
++    }
++}
+diff --git a/src/AutoNexus.Application/Services/SuperAdminService.cs b/src/AutoNexus.Application/Services/SuperAdminService.cs
+new file mode 100644
+index 0000000..29c046c
+--- /dev/null
++++ b/src/AutoNexus.Application/Services/SuperAdminService.cs
+@@ -0,0 +1,198 @@
++using AutoNexus.Application.DTOs;
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Enums;
++using AutoNexus.Domain.Interfaces;
++
++namespace AutoNexus.Application.Services;
++
++public class SuperAdminService : ISuperAdminService
++{
++    private readonly ITenantRepository _tenantRepository;
++    private readonly IUserRepository _userRepository;
++    private readonly IPlanRepository _planRepository;
++    private readonly ITenantSubscriptionRepository _subscriptionRepository;
++    private readonly ITenantSettingRepository _settingRepository;
++    private readonly IPasswordHasher _passwordHasher;
++    private readonly IUnitOfWork _unitOfWork;
++
++    public SuperAdminService(
++        ITenantRepository tenantRepository,
++        IUserRepository userRepository,
++        IPlanRepository planRepository,
++        ITenantSubscriptionRepository subscriptionRepository,
++        ITenantSettingRepository settingRepository,
++        IPasswordHasher passwordHasher,
++        IUnitOfWork unitOfWork)
++    {
++        _tenantRepository = tenantRepository;
++        _userRepository = userRepository;
++        _planRepository = planRepository;
++        _subscriptionRepository = subscriptionRepository;
++        _settingRepository = settingRepository;
++        _passwordHasher = passwordHasher;
++        _unitOfWork = unitOfWork;
++    }
++
++    public async Task<List<TenantDto>> GetAllTenantsAsync(CancellationToken cancellationToken = default)
++    {
++        var tenants = await _tenantRepository.GetAllAsync(cancellationToken);
++        return tenants.Select(ToDto).ToList();
++    }
++
++    public async Task<TenantDto> CreateTenantAsync(CreateTenantWithAdminDto dto, CancellationToken cancellationToken = default)
++    {
++        if (string.IsNullOrWhiteSpace(dto.TenantName))
++            throw new ArgumentException("Nome da empresa é obrigatório.");
++        if (string.IsNullOrWhiteSpace(dto.TenantSlug))
++            throw new ArgumentException("Slug da empresa é obrigatório.");
++        if (string.IsNullOrWhiteSpace(dto.AdminEmail) || string.IsNullOrWhiteSpace(dto.AdminPassword))
++            throw new ArgumentException("Nome, e-mail e senha do administrador inicial são obrigatórios.");
++
++        var slugExists = await _tenantRepository.SlugExistsAsync(dto.TenantSlug.Trim().ToLowerInvariant(), cancellationToken);
++        if (slugExists)
++            throw new InvalidOperationException("Já existe uma empresa cadastrada com esse slug.");
++
++        var emailExists = await _userRepository.EmailExistsAsync(dto.AdminEmail, cancellationToken);
++        if (emailExists)
++            throw new InvalidOperationException("Já existe um usuário cadastrado com este e-mail.");
++
++        var freePlan = (await _planRepository.GetAllAsync(cancellationToken))
++            .FirstOrDefault(p => p.Name == "Free")
++            ?? throw new InvalidOperationException("Plano Free não está cadastrado — verifique o seed de planos.");
++
++        var tenant = new Tenant(dto.TenantName, dto.TenantSlug);
++        await _tenantRepository.AddAsync(tenant, cancellationToken);
++
++        var passwordHash = _passwordHasher.Hash(dto.AdminPassword);
++        var adminUser = new User(dto.AdminName, dto.AdminEmail, passwordHash, UserProfile.Admin);
++
++        // AddForTenantAsync (não AddAsync): tudo que é criado aqui pertence ao
++        // tenant recém-criado acima, nunca ao "tenant" do SuperAdmin logado
++        // (que não tem tenant nenhum). Ver comentário nas interfaces dos
++        // repositórios. Sem isso, empresa nova nasceria sem ninguém capaz de
++        // entrar nela, sem configurações e sem plano.
++        await _userRepository.AddForTenantAsync(adminUser, tenant.Id, cancellationToken);
++
++        var settings = new TenantSetting(dto.TenantName);
++        await _settingRepository.AddForTenantAsync(settings, tenant.Id, cancellationToken);
++
++        var subscription = new TenantSubscription(freePlan.Id, SubscriptionStatus.Trialing);
++        await _subscriptionRepository.AddForTenantAsync(subscription, tenant.Id, cancellationToken);
++
++        await _unitOfWork.CommitAsync(cancellationToken);
++
++        return ToDto(tenant);
++    }
++
++    public async Task ActivateTenantAsync(Guid tenantId, CancellationToken cancellationToken = default)
++    {
++        var tenant = await _tenantRepository.GetByIdAsync(tenantId, cancellationToken)
++            ?? throw new KeyNotFoundException("Empresa não encontrada.");
++
++        tenant.Activate();
++        _tenantRepository.Update(tenant);
++        await _unitOfWork.CommitAsync(cancellationToken);
++    }
++
++    public async Task DeactivateTenantAsync(Guid tenantId, CancellationToken cancellationToken = default)
++    {
++        var tenant = await _tenantRepository.GetByIdAsync(tenantId, cancellationToken)
++            ?? throw new KeyNotFoundException("Empresa não encontrada.");
++
++        tenant.Deactivate();
++        _tenantRepository.Update(tenant);
++        await _unitOfWork.CommitAsync(cancellationToken);
++
++        // Bloqueio de acesso de fato: AuthService.LoginAsync já checa
++        // Tenant.IsActive antes de emitir token (ver etapa 6), então a partir
++        // daqui ninguém dessa empresa consegue mais fazer um NOVO login.
++        // Token já emitido antes disso continua válido até expirar (JWT sem
++        // blocklist) — limitação conhecida, documentada, não resolvida nesta
++        // etapa.
++    }
++
++    public async Task<List<UserDto>> GetUsersAsync(Guid? tenantId, CancellationToken cancellationToken = default)
++    {
++        var users = await _userRepository.GetAllAcrossTenantsAsync(tenantId, cancellationToken);
++        return users.Select(u => new UserDto(
++            u.Id,
++            u.Name,
++            u.Email,
++            u.Profile,
++            ProfileName(u.Profile),
++            u.IsActive,
++            u.CreatedAt,
++            u.TenantId
++        )).ToList();
++    }
++
++    public async Task<List<PlanDto>> GetPlansAsync(CancellationToken cancellationToken = default)
++    {
++        var plans = await _planRepository.GetAllAsync(cancellationToken);
++        return plans.Select(ToDto).ToList();
++    }
++
++    public async Task<PlanDto> CreatePlanAsync(CreatePlanDto dto, CancellationToken cancellationToken = default)
++    {
++        var plan = new Plan(dto.Name, dto.Price, dto.MaxUsers, dto.MaxVehicles, dto.MaxStorageMb);
++        await _planRepository.AddAsync(plan, cancellationToken);
++        await _unitOfWork.CommitAsync(cancellationToken);
++        return ToDto(plan);
++    }
++
++    public async Task<TenantSubscriptionDto?> GetSubscriptionAsync(Guid tenantId, CancellationToken cancellationToken = default)
++    {
++        var subscription = await _subscriptionRepository.GetByTenantIdAsync(tenantId, cancellationToken);
++        if (subscription == null) return null;
++
++        var plan = await _planRepository.GetByIdAsync(subscription.PlanId, cancellationToken);
++        return ToDto(subscription, plan?.Name ?? "—");
++    }
++
++    public async Task<TenantSubscriptionDto> AssignPlanAsync(Guid tenantId, AssignPlanDto dto, CancellationToken cancellationToken = default)
++    {
++        var plan = await _planRepository.GetByIdAsync(dto.PlanId, cancellationToken)
++            ?? throw new KeyNotFoundException("Plano não encontrado.");
++
++        var subscription = await _subscriptionRepository.GetByTenantIdAsync(tenantId, cancellationToken);
++
++        if (subscription == null)
++        {
++            subscription = new TenantSubscription(plan.Id, SubscriptionStatus.Active);
++            await _subscriptionRepository.AddForTenantAsync(subscription, tenantId, cancellationToken);
++        }
++        else
++        {
++            subscription.ChangePlan(plan.Id);
++            subscription.Activate();
++            _subscriptionRepository.Update(subscription);
++        }
++
++        await _unitOfWork.CommitAsync(cancellationToken);
++        return ToDto(subscription, plan.Name);
++    }
++
++    private static string ProfileName(UserProfile profile) => profile switch
++    {
++        UserProfile.SuperAdmin => "Super Admin",
++        UserProfile.Admin => "Administrador",
++        UserProfile.Vendedor => "Vendedor",
++        _ => "Cliente"
++    };
++
++    private static TenantDto ToDto(Tenant tenant) =>
++        new(tenant.Id, tenant.Name, tenant.Slug, tenant.IsActive, tenant.CreatedAt);
++
++    private static PlanDto ToDto(Plan plan) =>
++        new(plan.Id, plan.Name, plan.Price, plan.IsActive, plan.MaxUsers, plan.MaxVehicles, plan.MaxStorageMb);
++
++    private static TenantSubscriptionDto ToDto(TenantSubscription subscription, string planName) => new(
++        subscription.Id,
++        subscription.TenantId,
++        subscription.PlanId,
++        planName,
++        subscription.Status,
++        subscription.StartDate,
++        subscription.EndDate
++    );
++}
+diff --git a/src/AutoNexus.Application/Services/TenantSettingService.cs b/src/AutoNexus.Application/Services/TenantSettingService.cs
+new file mode 100644
+index 0000000..88921b9
+--- /dev/null
++++ b/src/AutoNexus.Application/Services/TenantSettingService.cs
+@@ -0,0 +1,73 @@
++using AutoNexus.Application.DTOs;
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Interfaces;
++
++namespace AutoNexus.Application.Services;
++
++public class TenantSettingService : ITenantSettingService
++{
++    private readonly ITenantSettingRepository _settingRepository;
++    private readonly ITenantContext _tenantContext;
++    private readonly IUnitOfWork _unitOfWork;
++
++    public TenantSettingService(
++        ITenantSettingRepository settingRepository,
++        ITenantContext tenantContext,
++        IUnitOfWork unitOfWork)
++    {
++        _settingRepository = settingRepository;
++        _tenantContext = tenantContext;
++        _unitOfWork = unitOfWork;
++    }
++
++    public async Task<TenantSettingDto> GetCurrentAsync(CancellationToken cancellationToken = default)
++    {
++        var settings = await _settingRepository.GetCurrentAsync(cancellationToken);
++
++        // Empresa sem configurações ainda (não deveria acontecer para
++        // tenants criados pelo fluxo normal do SuperAdmin, que já cria isso
++        // junto — mas cobrimos o caso mesmo assim, em vez de quebrar a tela).
++        if (settings == null)
++        {
++            if (!_tenantContext.HasTenant)
++                throw new InvalidOperationException("Nenhum tenant identificado na requisição atual.");
++
++            settings = new TenantSetting("Minha Empresa");
++            await _settingRepository.AddForTenantAsync(settings, _tenantContext.TenantId, cancellationToken);
++            await _unitOfWork.CommitAsync(cancellationToken);
++        }
++
++        return ToDto(settings);
++    }
++
++    public async Task<TenantSettingDto> UpdateAsync(TenantSettingDto dto, CancellationToken cancellationToken = default)
++    {
++        var settings = await _settingRepository.GetCurrentAsync(cancellationToken);
++
++        if (settings == null)
++        {
++            if (!_tenantContext.HasTenant)
++                throw new InvalidOperationException("Nenhum tenant identificado na requisição atual.");
++
++            settings = new TenantSetting(dto.CompanyName);
++            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.TimeZone, dto.Currency);
++            await _settingRepository.AddForTenantAsync(settings, _tenantContext.TenantId, cancellationToken);
++        }
++        else
++        {
++            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.TimeZone, dto.Currency);
++            _settingRepository.Update(settings);
++        }
++
++        await _unitOfWork.CommitAsync(cancellationToken);
++        return ToDto(settings);
++    }
++
++    private static TenantSettingDto ToDto(TenantSetting settings) => new(
++        settings.CompanyName,
++        settings.LogoUrl,
++        settings.PrimaryColor,
++        settings.TimeZone,
++        settings.Currency
++    );
++}
+diff --git a/src/AutoNexus.Application/Services/VehicleService.cs b/src/AutoNexus.Application/Services/VehicleService.cs
+index 45298fb..117f606 100644
+--- a/src/AutoNexus.Application/Services/VehicleService.cs
++++ b/src/AutoNexus.Application/Services/VehicleService.cs
+@@ -44,6 +44,8 @@ public class VehicleService : IVehicleService
+             Plate = v.Plate,
+             Mileage = v.Mileage,
+             Color = v.Color,
++            Fuel = v.Fuel,
++            Transmission = v.Transmission,
+             Status = v.Status,
+             PurchaseValue = v.PurchaseValue,
+             ListedValue = v.ListedValue,
+@@ -70,6 +72,8 @@ public class VehicleService : IVehicleService
+             Plate = v.Plate,
+             Mileage = v.Mileage,
+             Color = v.Color,
++            Fuel = v.Fuel,
++            Transmission = v.Transmission,
+             Status = v.Status,
+             PurchaseValue = v.PurchaseValue,
+             ListedValue = v.ListedValue,
+@@ -84,6 +88,10 @@ public class VehicleService : IVehicleService
+         var v = await _vehicleRepository.GetByIdAsync(id, includeDetails: true, cancellationToken);
+         if (v == null) return null;
+ 
++        var latestFipeValue = v.FipeHistories?
++            .OrderByDescending(f => f.ConsultationDate)
++            .FirstOrDefault()?.FipeValue;
++
+         return new VehicleDetailDto(
+             v.Id,
+             v.VehicleTypeId,
+@@ -110,7 +118,8 @@ public class VehicleService : IVehicleService
+             v.UpdatedAt,
+             v.Photos.Select(p => new VehiclePhotoDto(p.Id, p.FileName, p.StoragePath, p.IsMain, p.Order)),
+             v.Costs.Select(c => new VehicleCostDto(c.Id, c.CostCategoryId, c.CostCategory?.Name ?? string.Empty, c.Description, c.Value, c.CostDate)),
+-            v.Documents?.Select(d => new VehicleDocumentDto(d.Id, d.DocumentCategoryId, d.DocumentCategory?.Name ?? "Laudo", d.Name, d.FileName, d.StoragePath, d.ShowInCatalog, d.CreatedAt))
++            v.Documents?.Select(d => new VehicleDocumentDto(d.Id, d.DocumentCategoryId, d.DocumentCategory?.Name ?? "Laudo", d.Name, d.FileName, d.StoragePath, d.ShowInCatalog, d.CreatedAt)),
++            latestFipeValue
+         );
+     }
+ 
+diff --git a/src/AutoNexus.Domain/AssemblyInfo.cs b/src/AutoNexus.Domain/AssemblyInfo.cs
+new file mode 100644
+index 0000000..7582cfa
+--- /dev/null
++++ b/src/AutoNexus.Domain/AssemblyInfo.cs
+@@ -0,0 +1,9 @@
++using System.Runtime.CompilerServices;
++
++// Permite que a camada de Infrastructure (EF Core: DbContext, seeds, migrations)
++// atribua o TenantId das entidades através de setters "internal" — sem expor
++// esse setter publicamente para regras de negócio (Application/API), que nunca
++// devem definir o TenantId manualmente. Isso mantém a garantia de que o
++// TenantId só é atribuído de forma centralizada (ver TenantOwnedEntityBase e
++// AutoNexusDbContext.SaveChanges).
++[assembly: InternalsVisibleTo("AutoNexus.Infrastructure")]
+diff --git a/src/AutoNexus.Domain/Entities/AuditLog.cs b/src/AutoNexus.Domain/Entities/AuditLog.cs
+index e321e8a..334f6a0 100644
+--- a/src/AutoNexus.Domain/Entities/AuditLog.cs
++++ b/src/AutoNexus.Domain/Entities/AuditLog.cs
+@@ -1,6 +1,6 @@
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class AuditLog : EntityBase
++public class AuditLog : TenantOwnedEntityBase
+ {
+     public Guid? UserId { get; private set; }
+     public string Operation { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Entities/BankConfig.cs b/src/AutoNexus.Domain/Entities/BankConfig.cs
+index 626c24f..996047b 100644
+--- a/src/AutoNexus.Domain/Entities/BankConfig.cs
++++ b/src/AutoNexus.Domain/Entities/BankConfig.cs
+@@ -2,7 +2,7 @@ using System;
+ 
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class BankConfig : EntityBase
++public class BankConfig : TenantOwnedEntityBase
+ {
+     public string BankCode { get; private set; } = string.Empty;
+     public string Name { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Entities/BuyerAccessLink.cs b/src/AutoNexus.Domain/Entities/BuyerAccessLink.cs
+index 3e7b59d..1b238b8 100644
+--- a/src/AutoNexus.Domain/Entities/BuyerAccessLink.cs
++++ b/src/AutoNexus.Domain/Entities/BuyerAccessLink.cs
+@@ -1,6 +1,6 @@
+ ﻿namespace AutoNexus.Domain.Entities;
+ 
+-public class BuyerAccessLink : EntityBase
++public class BuyerAccessLink : TenantOwnedEntityBase
+ {
+     public Guid VehicleId { get; private set; }
+     public string Token { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Entities/CompanyDocument.cs b/src/AutoNexus.Domain/Entities/CompanyDocument.cs
+index 937373f..7d5bfc9 100644
+--- a/src/AutoNexus.Domain/Entities/CompanyDocument.cs
++++ b/src/AutoNexus.Domain/Entities/CompanyDocument.cs
+@@ -1,6 +1,6 @@
+ ﻿using System;
+ namespace AutoNexus.Domain.Entities;
+-public class CompanyDocument : EntityBase
++public class CompanyDocument : TenantOwnedEntityBase
+ {
+     public string Title { get; private set; } = string.Empty;
+     public string Category { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Entities/Cost.cs b/src/AutoNexus.Domain/Entities/Cost.cs
+index 5a73ce1..e328d57 100644
+--- a/src/AutoNexus.Domain/Entities/Cost.cs
++++ b/src/AutoNexus.Domain/Entities/Cost.cs
+@@ -1,6 +1,6 @@
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class Cost : EntityBase
++public class Cost : TenantOwnedEntityBase
+ {
+     public Guid VehicleId { get; private set; }
+     public Guid CostCategoryId { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/CostCategory.cs b/src/AutoNexus.Domain/Entities/CostCategory.cs
+index 5db9634..b9fe137 100644
+--- a/src/AutoNexus.Domain/Entities/CostCategory.cs
++++ b/src/AutoNexus.Domain/Entities/CostCategory.cs
+@@ -1,6 +1,6 @@
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class CostCategory : EntityBase
++public class CostCategory : TenantOwnedEntityBase
+ {
+     public string Name { get; private set; } = string.Empty;
+     public string? Description { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/DocumentCategory.cs b/src/AutoNexus.Domain/Entities/DocumentCategory.cs
+index bdfa22e..549e70f 100644
+--- a/src/AutoNexus.Domain/Entities/DocumentCategory.cs
++++ b/src/AutoNexus.Domain/Entities/DocumentCategory.cs
+@@ -1,6 +1,6 @@
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class DocumentCategory : EntityBase
++public class DocumentCategory : TenantOwnedEntityBase
+ {
+     public string Name { get; private set; } = string.Empty;
+     public string? Description { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/ElectronicAcceptance.cs b/src/AutoNexus.Domain/Entities/ElectronicAcceptance.cs
+index 4ace0d4..1fbe6db 100644
+--- a/src/AutoNexus.Domain/Entities/ElectronicAcceptance.cs
++++ b/src/AutoNexus.Domain/Entities/ElectronicAcceptance.cs
+@@ -1,6 +1,6 @@
+ ﻿namespace AutoNexus.Domain.Entities;
+ 
+-public class ElectronicAcceptance : EntityBase
++public class ElectronicAcceptance : TenantOwnedEntityBase
+ {
+     public Guid VehicleId { get; private set; }
+     public Guid? BuyerAccessLinkId { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/FipeHistory.cs b/src/AutoNexus.Domain/Entities/FipeHistory.cs
+index fa8836b..0e40f20 100644
+--- a/src/AutoNexus.Domain/Entities/FipeHistory.cs
++++ b/src/AutoNexus.Domain/Entities/FipeHistory.cs
+@@ -1,6 +1,6 @@
+ ﻿namespace AutoNexus.Domain.Entities;
+ 
+-public class FipeHistory : EntityBase
++public class FipeHistory : TenantOwnedEntityBase
+ {
+     public Guid VehicleId { get; private set; }
+     public decimal FipeValue { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/Plan.cs b/src/AutoNexus.Domain/Entities/Plan.cs
+new file mode 100644
+index 0000000..7305254
+--- /dev/null
++++ b/src/AutoNexus.Domain/Entities/Plan.cs
+@@ -0,0 +1,54 @@
++namespace AutoNexus.Domain.Entities;
++
++/// <summary>
++/// Catálogo de planos do SaaS (Free, Basic, Professional, Enterprise...).
++/// É dado global — como VehicleType/VehicleBrand — não pertence a um tenant,
++/// por isso herda de EntityBase diretamente, não de TenantOwnedEntityBase.
++/// Só o SuperAdmin cria/edita planos (ver SuperAdminController).
++///
++/// Os limites abaixo são nullable de propósito: null = sem limite. Eles
++/// ainda não são aplicados/checados em nenhum lugar do sistema (ver
++/// requisito 11 do documento original — "preparar a arquitetura", não
++/// "implementar os limites agora"). Quando isso for implementado, o lugar
++/// certo é um único ponto central (ex.: um PlanLimitsChecker chamado pelos
++/// services), nunca IFs espalhados pelos controllers.
++/// </summary>
++public class Plan : EntityBase
++{
++    public string Name { get; private set; } = string.Empty;
++    public decimal Price { get; private set; }
++    public bool IsActive { get; private set; }
++
++    public int? MaxUsers { get; private set; }
++    public int? MaxVehicles { get; private set; }
++    public int? MaxStorageMb { get; private set; }
++
++    protected Plan() { }
++
++    public Plan(string name, decimal price, int? maxUsers = null, int? maxVehicles = null, int? maxStorageMb = null)
++    {
++        if (string.IsNullOrWhiteSpace(name))
++            throw new ArgumentException("Nome do plano é obrigatório.", nameof(name));
++        if (price < 0)
++            throw new ArgumentException("Preço não pode ser negativo.", nameof(price));
++
++        Name = name.Trim();
++        Price = price;
++        MaxUsers = maxUsers;
++        MaxVehicles = maxVehicles;
++        MaxStorageMb = maxStorageMb;
++        IsActive = true;
++    }
++
++    public void Activate()
++    {
++        IsActive = true;
++        UpdatedAt = DateTime.UtcNow;
++    }
++
++    public void Deactivate()
++    {
++        IsActive = false;
++        UpdatedAt = DateTime.UtcNow;
++    }
++}
+diff --git a/src/AutoNexus.Domain/Entities/Tenant.cs b/src/AutoNexus.Domain/Entities/Tenant.cs
+new file mode 100644
+index 0000000..83cb449
+--- /dev/null
++++ b/src/AutoNexus.Domain/Entities/Tenant.cs
+@@ -0,0 +1,44 @@
++namespace AutoNexus.Domain.Entities;
++
++public class Tenant : EntityBase
++{
++    /// <summary>
++    /// Id fixo e conhecido do tenant criado automaticamente para receber todos
++    /// os dados que já existiam no sistema antes da introdução do multi-tenancy.
++    /// Usado tanto pela migration (como valor padrão de coluna, para popular
++    /// linhas já existentes) quanto pelo seed (<see cref="Seeds.DbInitializer"/>).
++    /// NÃO reutilizar este Id para nenhum outro tenant real.
++    /// </summary>
++    public static readonly Guid DefaultTenantId = Guid.Parse("00000000-0000-0000-0000-000000000001");
++
++    public string Name { get; private set; } = string.Empty;
++    public string Slug { get; private set; } = string.Empty;
++    public bool IsActive { get; private set; }
++
++    protected Tenant() { }
++
++    public Tenant(string name, string slug)
++    {
++        if (string.IsNullOrWhiteSpace(name))
++            throw new ArgumentException("Nome da empresa é obrigatório.", nameof(name));
++
++        if (string.IsNullOrWhiteSpace(slug))
++            throw new ArgumentException("Slug da empresa é obrigatório.", nameof(slug));
++
++        Name = name.Trim();
++        Slug = slug.Trim().ToLowerInvariant();
++        IsActive = true;
++    }
++
++    public void Activate()
++    {
++        IsActive = true;
++        UpdatedAt = DateTime.UtcNow;
++    }
++
++    public void Deactivate()
++    {
++        IsActive = false;
++        UpdatedAt = DateTime.UtcNow;
++    }
++}
+diff --git a/src/AutoNexus.Domain/Entities/TenantOwnedEntityBase.cs b/src/AutoNexus.Domain/Entities/TenantOwnedEntityBase.cs
+new file mode 100644
+index 0000000..b6ef45c
+--- /dev/null
++++ b/src/AutoNexus.Domain/Entities/TenantOwnedEntityBase.cs
+@@ -0,0 +1,17 @@
++namespace AutoNexus.Domain.Entities;
++
++/// <summary>
++/// Toda entidade que representa um dado de negócio pertencente a uma empresa
++/// (não um dado de referência global, como VehicleType/VehicleBrand/VehicleModel)
++/// deve herdar desta classe em vez de <see cref="EntityBase"/> diretamente.
++///
++/// O TenantId NUNCA deve ser atribuído manualmente em código de
++/// Application/API — ele é preenchido automaticamente pelo
++/// AutoNexusDbContext (ver SaveChanges) a partir do ITenantContext resolvido
++/// da requisição autenticada. O setter é "internal" justamente para impedir
++/// que qualquer camada fora de Infrastructure o altere diretamente.
++/// </summary>
++public abstract class TenantOwnedEntityBase : EntityBase
++{
++    public Guid TenantId { get; internal set; }
++}
+diff --git a/src/AutoNexus.Domain/Entities/TenantSetting.cs b/src/AutoNexus.Domain/Entities/TenantSetting.cs
+new file mode 100644
+index 0000000..761789e
+--- /dev/null
++++ b/src/AutoNexus.Domain/Entities/TenantSetting.cs
+@@ -0,0 +1,46 @@
++namespace AutoNexus.Domain.Entities;
++
++/// <summary>
++/// Configurações próprias de cada empresa (uma linha por Tenant). Nunca
++/// compartilhadas entre tenants — o filtro global de TenantOwnedEntityBase
++/// garante isso automaticamente, e há também um índice único em TenantId
++/// (ver TenantSettingsConfiguration) para impedir duas linhas de settings
++/// para a mesma empresa.
++/// </summary>
++public class TenantSetting : TenantOwnedEntityBase
++{
++    public string CompanyName { get; private set; } = string.Empty;
++    public string? LogoUrl { get; private set; }
++    public string PrimaryColor { get; private set; } = "#15171B";
++    public string TimeZone { get; private set; } = "America/Sao_Paulo";
++    public string Currency { get; private set; } = "BRL";
++
++    protected TenantSetting() { }
++
++    public TenantSetting(string companyName)
++    {
++        if (string.IsNullOrWhiteSpace(companyName))
++            throw new ArgumentException("Nome da empresa é obrigatório.", nameof(companyName));
++
++        CompanyName = companyName.Trim();
++    }
++
++    public void Update(string companyName, string? logoUrl, string primaryColor, string timeZone, string currency)
++    {
++        if (string.IsNullOrWhiteSpace(companyName))
++            throw new ArgumentException("Nome da empresa é obrigatório.", nameof(companyName));
++        if (string.IsNullOrWhiteSpace(primaryColor))
++            throw new ArgumentException("Cor primária é obrigatória.", nameof(primaryColor));
++        if (string.IsNullOrWhiteSpace(timeZone))
++            throw new ArgumentException("Fuso horário é obrigatório.", nameof(timeZone));
++        if (string.IsNullOrWhiteSpace(currency))
++            throw new ArgumentException("Moeda é obrigatória.", nameof(currency));
++
++        CompanyName = companyName.Trim();
++        LogoUrl = logoUrl;
++        PrimaryColor = primaryColor.Trim();
++        TimeZone = timeZone.Trim();
++        Currency = currency.Trim().ToUpperInvariant();
++        UpdatedAt = DateTime.UtcNow;
++    }
++}
+diff --git a/src/AutoNexus.Domain/Entities/TenantSubscription.cs b/src/AutoNexus.Domain/Entities/TenantSubscription.cs
+new file mode 100644
+index 0000000..7c3b70a
+--- /dev/null
++++ b/src/AutoNexus.Domain/Entities/TenantSubscription.cs
+@@ -0,0 +1,51 @@
++using AutoNexus.Domain.Enums;
++
++namespace AutoNexus.Domain.Entities;
++
++/// <summary>
++/// Vínculo entre um Tenant e um Plan. Ainda não há cobrança de verdade (ver
++/// requisito 10 do documento original) — isso só registra qual plano cada
++/// empresa está usando e o status, preparado para futuramente plugar um
++/// gateway (Stripe, Mercado Pago etc.) sem precisar redesenhar isso.
++/// </summary>
++public class TenantSubscription : TenantOwnedEntityBase
++{
++    public Guid PlanId { get; private set; }
++    public SubscriptionStatus Status { get; private set; }
++    public DateTime StartDate { get; private set; }
++    public DateTime? EndDate { get; private set; }
++
++    protected TenantSubscription() { }
++
++    public TenantSubscription(Guid planId, SubscriptionStatus status = SubscriptionStatus.Trialing)
++    {
++        PlanId = planId;
++        Status = status;
++        StartDate = DateTime.UtcNow;
++    }
++
++    public void ChangePlan(Guid planId)
++    {
++        PlanId = planId;
++        UpdatedAt = DateTime.UtcNow;
++    }
++
++    public void Activate()
++    {
++        Status = SubscriptionStatus.Active;
++        UpdatedAt = DateTime.UtcNow;
++    }
++
++    public void Suspend()
++    {
++        Status = SubscriptionStatus.Suspended;
++        UpdatedAt = DateTime.UtcNow;
++    }
++
++    public void Cancel()
++    {
++        Status = SubscriptionStatus.Canceled;
++        EndDate = DateTime.UtcNow;
++        UpdatedAt = DateTime.UtcNow;
++    }
++}
+diff --git a/src/AutoNexus.Domain/Entities/Trade.cs b/src/AutoNexus.Domain/Entities/Trade.cs
+index 9d2ec6a..9b045ea 100644
+--- a/src/AutoNexus.Domain/Entities/Trade.cs
++++ b/src/AutoNexus.Domain/Entities/Trade.cs
+@@ -2,7 +2,7 @@ using AutoNexus.Domain.Enums;
+ 
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class Trade : EntityBase
++public class Trade : TenantOwnedEntityBase
+ {
+     public Guid ReceivedVehicleId { get; private set; }
+     public Guid DeliveredVehicleId { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/User.cs b/src/AutoNexus.Domain/Entities/User.cs
+index 89bad51..6d1d57e 100644
+--- a/src/AutoNexus.Domain/Entities/User.cs
++++ b/src/AutoNexus.Domain/Entities/User.cs
+@@ -2,7 +2,7 @@ using AutoNexus.Domain.Enums;
+ 
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class User : EntityBase
++public class User : TenantOwnedEntityBase
+ {
+     public string Name { get; private set; } = string.Empty;
+     public string Email { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Entities/Vehicle.cs b/src/AutoNexus.Domain/Entities/Vehicle.cs
+index 49851ae..90b7da7 100644
+--- a/src/AutoNexus.Domain/Entities/Vehicle.cs
++++ b/src/AutoNexus.Domain/Entities/Vehicle.cs
+@@ -2,7 +2,7 @@ using AutoNexus.Domain.Enums;
+ 
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class Vehicle : EntityBase
++public class Vehicle : TenantOwnedEntityBase
+ {
+     public Guid VehicleTypeId { get; private set; }
+     public string Brand { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Entities/VehicleDocument.cs b/src/AutoNexus.Domain/Entities/VehicleDocument.cs
+index a83e8e6..9875fdc 100644
+--- a/src/AutoNexus.Domain/Entities/VehicleDocument.cs
++++ b/src/AutoNexus.Domain/Entities/VehicleDocument.cs
+@@ -2,7 +2,7 @@
+ 
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class VehicleDocument : EntityBase
++public class VehicleDocument : TenantOwnedEntityBase
+ {
+     public Guid VehicleId { get; private set; }
+     public Guid DocumentCategoryId { get; private set; }
+diff --git a/src/AutoNexus.Domain/Entities/VehiclePhoto.cs b/src/AutoNexus.Domain/Entities/VehiclePhoto.cs
+index 104d308..213f238 100644
+--- a/src/AutoNexus.Domain/Entities/VehiclePhoto.cs
++++ b/src/AutoNexus.Domain/Entities/VehiclePhoto.cs
+@@ -1,6 +1,6 @@
+ namespace AutoNexus.Domain.Entities;
+ 
+-public class VehiclePhoto : EntityBase
++public class VehiclePhoto : TenantOwnedEntityBase
+ {
+     public Guid VehicleId { get; private set; }
+     public string FileName { get; private set; } = string.Empty;
+diff --git a/src/AutoNexus.Domain/Enums/SubscriptionStatus.cs b/src/AutoNexus.Domain/Enums/SubscriptionStatus.cs
+new file mode 100644
+index 0000000..799a944
+--- /dev/null
++++ b/src/AutoNexus.Domain/Enums/SubscriptionStatus.cs
+@@ -0,0 +1,10 @@
++namespace AutoNexus.Domain.Enums;
++
++public enum SubscriptionStatus
++{
++    Trialing = 1,
++    Active = 2,
++    PastDue = 3,
++    Canceled = 4,
++    Suspended = 5
++}
+diff --git a/src/AutoNexus.Domain/Enums/UserProfile.cs b/src/AutoNexus.Domain/Enums/UserProfile.cs
+index 9b45256..8221a49 100644
+--- a/src/AutoNexus.Domain/Enums/UserProfile.cs
++++ b/src/AutoNexus.Domain/Enums/UserProfile.cs
+@@ -2,6 +2,14 @@ namespace AutoNexus.Domain.Enums;
+ 
+ public enum UserProfile
+ {
++    /// <summary>
++    /// Dono do SaaS. Não pertence a nenhuma empresa (TenantId fica vazio/Guid.Empty
++    /// de propósito) — ver SuperAdminController e o bypass explícito com
++    /// IgnoreQueryFilters() em SuperAdminService. Fora do SuperAdminController,
++    /// um usuário SuperAdmin não enxerga nada (o filtro global de tenant
++    /// continua ativo normalmente em toda outra rota).
++    /// </summary>
++    SuperAdmin = 0,
+     Admin = 1,
+     Vendedor = 2,
+     Cliente = 3
+diff --git a/src/AutoNexus.Domain/Interfaces/IPlanRepository.cs b/src/AutoNexus.Domain/Interfaces/IPlanRepository.cs
+new file mode 100644
+index 0000000..c320816
+--- /dev/null
++++ b/src/AutoNexus.Domain/Interfaces/IPlanRepository.cs
+@@ -0,0 +1,11 @@
++using AutoNexus.Domain.Entities;
++
++namespace AutoNexus.Domain.Interfaces;
++
++public interface IPlanRepository
++{
++    Task<Plan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
++    Task<List<Plan>> GetAllAsync(CancellationToken cancellationToken = default);
++    Task AddAsync(Plan plan, CancellationToken cancellationToken = default);
++    void Update(Plan plan);
++}
+diff --git a/src/AutoNexus.Domain/Interfaces/ITenantContext.cs b/src/AutoNexus.Domain/Interfaces/ITenantContext.cs
+new file mode 100644
+index 0000000..73131b3
+--- /dev/null
++++ b/src/AutoNexus.Domain/Interfaces/ITenantContext.cs
+@@ -0,0 +1,27 @@
++namespace AutoNexus.Domain.Interfaces;
++
++/// <summary>
++/// Descobre qual Tenant está associado à requisição atual. A implementação
++/// concreta (fora do Domain, ver AutoNexus.Infrastructure.Services.TenantContext)
++/// lê o TenantId exclusivamente de um claim do token JWT já validado —
++/// nunca de um header, query string ou corpo da requisição enviados pelo
++/// cliente.
++/// </summary>
++public interface ITenantContext
++{
++    /// <summary>
++    /// Id do tenant autenticado na requisição atual. Só é válido quando
++    /// <see cref="HasTenant"/> é true.
++    /// </summary>
++    Guid TenantId { get; }
++
++    /// <summary>
++    /// False quando não há um tenant identificado na requisição atual —
++    /// por exemplo, durante o seed/migração na inicialização da aplicação
++    /// (que roda fora de um request HTTP), ou futuramente para rotas
++    /// exclusivas do SuperAdmin. Nesses casos o filtro global de tenant
++    /// deixa de ser aplicado — por isso HasTenant deve ser tratado com
++    /// cuidado e nunca fica true a partir de dado enviado pelo cliente.
++    /// </summary>
++    bool HasTenant { get; }
++}
+diff --git a/src/AutoNexus.Domain/Interfaces/ITenantRepository.cs b/src/AutoNexus.Domain/Interfaces/ITenantRepository.cs
+new file mode 100644
+index 0000000..6bb08b0
+--- /dev/null
++++ b/src/AutoNexus.Domain/Interfaces/ITenantRepository.cs
+@@ -0,0 +1,12 @@
++using AutoNexus.Domain.Entities;
++
++namespace AutoNexus.Domain.Interfaces;
++
++public interface ITenantRepository
++{
++    Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
++    Task<List<Tenant>> GetAllAsync(CancellationToken cancellationToken = default);
++    Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default);
++    Task AddAsync(Tenant tenant, CancellationToken cancellationToken = default);
++    void Update(Tenant tenant);
++}
+diff --git a/src/AutoNexus.Domain/Interfaces/ITenantSettingRepository.cs b/src/AutoNexus.Domain/Interfaces/ITenantSettingRepository.cs
+new file mode 100644
+index 0000000..0a7d058
+--- /dev/null
++++ b/src/AutoNexus.Domain/Interfaces/ITenantSettingRepository.cs
+@@ -0,0 +1,16 @@
++using AutoNexus.Domain.Entities;
++
++namespace AutoNexus.Domain.Interfaces;
++
++public interface ITenantSettingRepository
++{
++    /// <summary>Respeita o filtro global — usado pela própria empresa vendo/editando suas configurações.</summary>
++    Task<TenantSetting?> GetCurrentAsync(CancellationToken cancellationToken = default);
++
++    Task AddAsync(TenantSetting settings, CancellationToken cancellationToken = default);
++
++    /// <summary>Uso exclusivo do provisionamento pelo SuperAdmin — ver ITenantSubscriptionRepository.AddForTenantAsync.</summary>
++    Task AddForTenantAsync(TenantSetting settings, Guid tenantId, CancellationToken cancellationToken = default);
++
++    void Update(TenantSetting settings);
++}
+diff --git a/src/AutoNexus.Domain/Interfaces/ITenantSubscriptionRepository.cs b/src/AutoNexus.Domain/Interfaces/ITenantSubscriptionRepository.cs
+new file mode 100644
+index 0000000..d9791df
+--- /dev/null
++++ b/src/AutoNexus.Domain/Interfaces/ITenantSubscriptionRepository.cs
+@@ -0,0 +1,27 @@
++using AutoNexus.Domain.Entities;
++
++namespace AutoNexus.Domain.Interfaces;
++
++public interface ITenantSubscriptionRepository
++{
++    /// <summary>Respeita o filtro global normalmente — usar dentro de rotas comuns (tenant vendo a própria assinatura).</summary>
++    Task<TenantSubscription?> GetCurrentAsync(CancellationToken cancellationToken = default);
++
++    /// <summary>
++    /// Uso exclusivo do SuperAdmin: busca a assinatura de um tenant
++    /// específico ignorando o filtro global (o SuperAdmin não pertence a
++    /// tenant nenhum, então sem isso nunca enxergaria nenhuma assinatura).
++    /// </summary>
++    Task<TenantSubscription?> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken = default);
++
++    Task AddAsync(TenantSubscription subscription, CancellationToken cancellationToken = default);
++
++    /// <summary>
++    /// Mesmo cuidado do IUserRepository.AddForTenantAsync: usado pelo
++    /// SuperAdmin ao provisionar a assinatura de uma empresa que não é a
++    /// sua (ele não tem tenant nenhum) — atribui o TenantId explicitamente
++    /// em vez de deixar o AutoNexusDbContext carimbar o tenant errado.
++    /// </summary>
++    Task AddForTenantAsync(TenantSubscription subscription, Guid tenantId, CancellationToken cancellationToken = default);
++    void Update(TenantSubscription subscription);
++}
+diff --git a/src/AutoNexus.Domain/Interfaces/IUserRepository.cs b/src/AutoNexus.Domain/Interfaces/IUserRepository.cs
+index b6b8196..d923175 100644
+--- a/src/AutoNexus.Domain/Interfaces/IUserRepository.cs
++++ b/src/AutoNexus.Domain/Interfaces/IUserRepository.cs
+@@ -7,6 +7,33 @@ public interface IUserRepository
+     Task<User?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default);
+     Task<IEnumerable<User>?> GetAllAsync(CancellationToken cancellationToken = default);
+     Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default);
++
++    /// <summary>
++    /// Checagem global de existência de e-mail (ignora o filtro de tenant de
++    /// propósito): o índice único de User.Email no banco é global, então a
++    /// validação de "e-mail já cadastrado" precisa ser global também, ou o
++    /// Create acaba falhando com erro de banco em vez de uma mensagem
++    /// amigável quando duas empresas tentam usar o mesmo e-mail.
++    /// </summary>
++    Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
+     Task AddAsync(User user, CancellationToken cancellationToken = default);
++
++    /// <summary>
++    /// Uso exclusivo do fluxo de provisionamento do SuperAdmin (criar uma
++    /// empresa nova + seu primeiro Admin). Diferente de AddAsync, aqui o
++    /// TenantId é atribuído explicitamente ao tenant recém-criado — nunca ao
++    /// tenant do usuário autenticado (o SuperAdmin não pertence a nenhum).
++    /// Fora desse fluxo, jamais atribuir TenantId manualmente: em todo o
++    /// resto do sistema isso é feito sozinho por AutoNexusDbContext.SaveChanges.
++    /// </summary>
++    Task AddForTenantAsync(User user, Guid tenantId, CancellationToken cancellationToken = default);
+     void Update(User user);
++
++    /// <summary>
++    /// Uso exclusivo do SuperAdmin: ignora deliberadamente o filtro global de
++    /// tenant para listar usuários de uma empresa específica (gestão) ou de
++    /// todas (visão global). Nunca chamar isso fora de um fluxo autorizado
++    /// como SuperAdmin — ver SuperAdminService/SuperAdminController.
++    /// </summary>
++    Task<List<User>> GetAllAcrossTenantsAsync(Guid? tenantId = null, CancellationToken cancellationToken = default);
+ }
+\ No newline at end of file
+diff --git a/src/AutoNexus.Infrastructure/Data/AutoNexusDbContext.cs b/src/AutoNexus.Infrastructure/Data/AutoNexusDbContext.cs
+index ba68ac8..af98cf6 100644
+--- a/src/AutoNexus.Infrastructure/Data/AutoNexusDbContext.cs
++++ b/src/AutoNexus.Infrastructure/Data/AutoNexusDbContext.cs
+@@ -1,12 +1,21 @@
+-﻿using AutoNexus.Domain.Entities;
++﻿using System.Reflection;
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Interfaces;
+ using Microsoft.EntityFrameworkCore;
+ 
+ namespace AutoNexus.Infrastructure.Data;
+ 
+ public class AutoNexusDbContext : DbContext
+ {
+-    public AutoNexusDbContext(DbContextOptions<AutoNexusDbContext> options) : base(options) { }
++    private readonly ITenantContext _tenantContext;
+ 
++    public AutoNexusDbContext(DbContextOptions<AutoNexusDbContext> options, ITenantContext tenantContext)
++        : base(options)
++    {
++        _tenantContext = tenantContext;
++    }
++
++    public DbSet<Tenant> Tenants => Set<Tenant>();
+     public DbSet<Vehicle> Vehicles => Set<Vehicle>();
+     public DbSet<VehicleType> VehicleTypes => Set<VehicleType>();
+     public DbSet<VehiclePhoto> VehiclePhotos => Set<VehiclePhoto>();
+@@ -24,11 +33,61 @@ public class AutoNexusDbContext : DbContext
+     public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
+     public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
+     public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
++    public DbSet<Plan> Plans => Set<Plan>();
++    public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
++    public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
++
+     protected override void OnModelCreating(ModelBuilder modelBuilder)
+     {
+         base.OnModelCreating(modelBuilder);
+         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
+ 
++        // --- Multi-tenancy: aplicado de forma centralizada para TODA entidade
++        // que herdar de TenantOwnedEntityBase, sem precisar configurar
++        // manualmente em cada Configuration/Controller (ver ITenantContext).
++        //
++        // Para cada entidade tenant-owned:
++        //  1) TenantId é obrigatório e ganha um índice (consultas por tenant
++        //     são, de longe, as mais frequentes do sistema);
++        //  2) TenantId ganha um valor padrão de coluna igual ao tenant padrão
++        //     — isso faz com que a migration que adiciona essa coluna já
++        //     preencha automaticamente todas as linhas hoje existentes com o
++        //     tenant padrão, sem precisar de um passo manual de backfill;
++        //  3) um Global Query Filter garante que nenhuma consulta LINQ feita
++        //     através deste DbContext — em nenhum repositório, service ou
++        //     controller — pode retornar linhas de outro tenant, mesmo que o
++        //     autor da consulta esqueça de filtrar manualmente.
++        foreach (var entityType in modelBuilder.Model.GetEntityTypes())
++        {
++            if (!typeof(TenantOwnedEntityBase).IsAssignableFrom(entityType.ClrType))
++                continue;
++
++            modelBuilder.Entity(entityType.ClrType)
++                .Property(nameof(TenantOwnedEntityBase.TenantId))
++                .IsRequired()
++                .HasDefaultValue(Tenant.DefaultTenantId);
++
++            // Algumas entidades (ex.: TenantSettings, uma linha por empresa)
++            // já declaram seu próprio índice único em TenantId na própria
++            // Configuration — nesse caso não criamos um segundo índice
++            // genérico aqui por cima, para não arriscar o EF Core tratar as
++            // duas chamadas de HasIndex como a mesma configuração e uma
++            // sobrescrever a outra.
++            var alreadyHasTenantIdIndex = entityType.GetIndexes()
++                .Any(i => i.Properties.Count == 1 && i.Properties[0].Name == nameof(TenantOwnedEntityBase.TenantId));
++
++            if (!alreadyHasTenantIdIndex)
++            {
++                modelBuilder.Entity(entityType.ClrType)
++                    .HasIndex(nameof(TenantOwnedEntityBase.TenantId));
++            }
++
++            typeof(AutoNexusDbContext)
++                .GetMethod(nameof(ApplyTenantQueryFilter), BindingFlags.NonPublic | BindingFlags.Instance)!
++                .MakeGenericMethod(entityType.ClrType)
++                .Invoke(this, new object[] { modelBuilder });
++        }
++
+         // Ajusta automaticamente o nome de todas as colunas para camelCase/snake_case
+         foreach (var entity in modelBuilder.Model.GetEntityTypes())
+         {
+@@ -41,4 +100,49 @@ public class AutoNexusDbContext : DbContext
+             }
+         }
+     }
++
++    // Precisa ser genérico (Entity<TEntity>().HasQueryFilter requer um tipo
++    // concreto, não aceita Type em tempo de execução) — por isso é chamado
++    // via reflection dentro do loop acima, uma vez para cada entidade
++    // tenant-owned.
++    private void ApplyTenantQueryFilter<TEntity>(ModelBuilder modelBuilder)
++        where TEntity : TenantOwnedEntityBase
++    {
++        modelBuilder.Entity<TEntity>().HasQueryFilter(entity =>
++            !_tenantContext.HasTenant || entity.TenantId == _tenantContext.TenantId);
++    }
++
++    public override int SaveChanges()
++    {
++        StampTenantId();
++        return base.SaveChanges();
++    }
++
++    public override async Task<int> SaveChangesAsync(CancellationToken cancellationToken = default)
++    {
++        StampTenantId();
++        return await base.SaveChangesAsync(cancellationToken);
++    }
++
++    // Preenche automaticamente o TenantId de qualquer entidade nova sendo
++    // inserida nesta unidade de trabalho — nenhum repositório, service ou
++    // controller precisa (nem deve) definir TenantId manualmente.
++    //
++    // Entidades criadas fora de uma requisição autenticada (seed/migração na
++    // inicialização) não são tocadas aqui: nesses casos HasTenant é false, e
++    // quem estiver semeando dados é responsável por atribuir um TenantId
++    // explicitamente (ver DbInitializer), já que o setter é internal e
++    // acessível apenas dentro de AutoNexus.Infrastructure.
++    private void StampTenantId()
++    {
++        if (!_tenantContext.HasTenant) return;
++
++        foreach (var entry in ChangeTracker.Entries<TenantOwnedEntityBase>())
++        {
++            if (entry.State == EntityState.Added && entry.Entity.TenantId == Guid.Empty)
++            {
++                entry.Entity.TenantId = _tenantContext.TenantId;
++            }
++        }
++    }
+ }
+diff --git a/src/AutoNexus.Infrastructure/Data/Configurations/PlanConfiguration.cs b/src/AutoNexus.Infrastructure/Data/Configurations/PlanConfiguration.cs
+new file mode 100644
+index 0000000..6df6c08
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Data/Configurations/PlanConfiguration.cs
+@@ -0,0 +1,36 @@
++using AutoNexus.Domain.Entities;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Metadata.Builders;
++
++namespace AutoNexus.Infrastructure.Data.Configurations;
++
++public class PlanConfiguration : IEntityTypeConfiguration<Plan>
++{
++    // Ids fixos para poder referenciar de forma previsível (ex.: o plano Free
++    // usado ao criar automaticamente a assinatura de um tenant novo).
++    public static readonly Guid FreePlanId = Guid.Parse("00000000-0000-0000-0000-0000000000f1");
++    public static readonly Guid BasicPlanId = Guid.Parse("00000000-0000-0000-0000-0000000000f2");
++    public static readonly Guid ProfessionalPlanId = Guid.Parse("00000000-0000-0000-0000-0000000000f3");
++    public static readonly Guid EnterprisePlanId = Guid.Parse("00000000-0000-0000-0000-0000000000f4");
++
++    public void Configure(EntityTypeBuilder<Plan> builder)
++    {
++        builder.ToTable("plans");
++        builder.HasKey(x => x.Id);
++
++        builder.Property(x => x.Name).HasMaxLength(100).IsRequired();
++        builder.Property(x => x.Price).HasColumnType("decimal(10,2)").IsRequired();
++        builder.Property(x => x.IsActive).IsRequired();
++        builder.Property(x => x.CreatedAt).IsRequired();
++        builder.Property(x => x.UpdatedAt);
++
++        var seedDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc);
++
++        builder.HasData(
++            new { Id = FreePlanId, Name = "Free", Price = 0m, IsActive = true, MaxUsers = (int?)2, MaxVehicles = (int?)10, MaxStorageMb = (int?)500, CreatedAt = seedDate, UpdatedAt = (DateTime?)null },
++            new { Id = BasicPlanId, Name = "Basic", Price = 99m, IsActive = true, MaxUsers = (int?)5, MaxVehicles = (int?)50, MaxStorageMb = (int?)2000, CreatedAt = seedDate, UpdatedAt = (DateTime?)null },
++            new { Id = ProfessionalPlanId, Name = "Professional", Price = 299m, IsActive = true, MaxUsers = (int?)20, MaxVehicles = (int?)500, MaxStorageMb = (int?)10000, CreatedAt = seedDate, UpdatedAt = (DateTime?)null },
++            new { Id = EnterprisePlanId, Name = "Enterprise", Price = 999m, IsActive = true, MaxUsers = (int?)null, MaxVehicles = (int?)null, MaxStorageMb = (int?)null, CreatedAt = seedDate, UpdatedAt = (DateTime?)null }
++        );
++    }
++}
+diff --git a/src/AutoNexus.Infrastructure/Data/Configurations/TenantConfiguration.cs b/src/AutoNexus.Infrastructure/Data/Configurations/TenantConfiguration.cs
+new file mode 100644
+index 0000000..ffa7ef5
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Data/Configurations/TenantConfiguration.cs
+@@ -0,0 +1,39 @@
++using AutoNexus.Domain.Entities;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Metadata.Builders;
++
++namespace AutoNexus.Infrastructure.Data.Configurations;
++
++public class TenantConfiguration : IEntityTypeConfiguration<Tenant>
++{
++    public void Configure(EntityTypeBuilder<Tenant> builder)
++    {
++        builder.ToTable("tenants");
++        builder.HasKey(x => x.Id);
++
++        builder.Property(x => x.Name).HasMaxLength(200).IsRequired();
++        builder.Property(x => x.Slug).HasMaxLength(100).IsRequired();
++        builder.Property(x => x.IsActive).IsRequired();
++        builder.Property(x => x.CreatedAt).IsRequired();
++        builder.Property(x => x.UpdatedAt);
++
++        builder.HasIndex(x => x.Slug).IsUnique();
++
++        // Tenant padrão: recebe automaticamente todos os dados que já
++        // existiam no banco antes da introdução do multi-tenancy (ver
++        // Tenant.DefaultTenantId e o valor padrão de coluna aplicado a toda
++        // entidade TenantOwnedEntityBase em AutoNexusDbContext.OnModelCreating).
++        // Usamos HasData (em vez de invocar o construtor) porque o construtor
++        // público não permite escolher o Id — e aqui ele precisa ser fixo e
++        // previsível em qualquer ambiente.
++        builder.HasData(new
++        {
++            Id = Tenant.DefaultTenantId,
++            Name = "Empresa Padrão",
++            Slug = "default",
++            IsActive = true,
++            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
++            UpdatedAt = (DateTime?)null
++        });
++    }
++}
+diff --git a/src/AutoNexus.Infrastructure/Data/Configurations/TenantSettingConfiguration.cs b/src/AutoNexus.Infrastructure/Data/Configurations/TenantSettingConfiguration.cs
+new file mode 100644
+index 0000000..73ba428
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Data/Configurations/TenantSettingConfiguration.cs
+@@ -0,0 +1,40 @@
++using AutoNexus.Domain.Entities;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Metadata.Builders;
++
++namespace AutoNexus.Infrastructure.Data.Configurations;
++
++public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting>
++{
++    public void Configure(EntityTypeBuilder<TenantSetting> builder)
++    {
++        builder.ToTable("tenant_settings");
++        builder.HasKey(x => x.Id);
++
++        builder.Property(x => x.CompanyName).HasMaxLength(200).IsRequired();
++        builder.Property(x => x.LogoUrl).HasMaxLength(500);
++        builder.Property(x => x.PrimaryColor).HasMaxLength(20).IsRequired();
++        builder.Property(x => x.TimeZone).HasMaxLength(100).IsRequired();
++        builder.Property(x => x.Currency).HasMaxLength(10).IsRequired();
++        builder.Property(x => x.CreatedAt).IsRequired();
++        builder.Property(x => x.UpdatedAt);
++
++        // Uma linha de configuração por empresa, nunca duas — além do filtro
++        // global (que impede ver a de outro tenant), este índice único
++        // impede criar uma segunda linha para o mesmo tenant por engano.
++        builder.HasIndex(x => x.TenantId).IsUnique();
++
++        builder.HasData(new
++        {
++            Id = Guid.Parse("00000000-0000-0000-0000-0000000000b1"),
++            TenantId = Tenant.DefaultTenantId,
++            CompanyName = "Empresa Padrão",
++            LogoUrl = (string?)null,
++            PrimaryColor = "#15171B",
++            TimeZone = "America/Sao_Paulo",
++            Currency = "BRL",
++            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
++            UpdatedAt = (DateTime?)null
++        });
++    }
++}
+diff --git a/src/AutoNexus.Infrastructure/Data/Configurations/TenantSubscriptionConfiguration.cs b/src/AutoNexus.Infrastructure/Data/Configurations/TenantSubscriptionConfiguration.cs
+new file mode 100644
+index 0000000..d1b5e94
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Data/Configurations/TenantSubscriptionConfiguration.cs
+@@ -0,0 +1,39 @@
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Enums;
++using Microsoft.EntityFrameworkCore;
++using Microsoft.EntityFrameworkCore.Metadata.Builders;
++
++namespace AutoNexus.Infrastructure.Data.Configurations;
++
++public class TenantSubscriptionConfiguration : IEntityTypeConfiguration<TenantSubscription>
++{
++    public void Configure(EntityTypeBuilder<TenantSubscription> builder)
++    {
++        builder.ToTable("tenant_subscriptions");
++        builder.HasKey(x => x.Id);
++
++        builder.Property(x => x.PlanId).IsRequired();
++        builder.Property(x => x.Status).HasConversion<int>().IsRequired();
++        builder.Property(x => x.StartDate).IsRequired();
++        builder.Property(x => x.EndDate);
++        builder.Property(x => x.CreatedAt).IsRequired();
++        builder.Property(x => x.UpdatedAt);
++
++        // Assinatura inicial do tenant padrão (o mesmo que já existia antes
++        // do multi-tenancy) — sem isso, ele ficaria sem plano nenhum depois
++        // desta etapa, o que quebraria qualquer tela que dependa de haver
++        // uma assinatura. Plano Free, sempre ativo (nunca vai vencer sozinho
++        // já que ainda não há cobrança de verdade).
++        builder.HasData(new
++        {
++            Id = Guid.Parse("00000000-0000-0000-0000-0000000000a1"),
++            TenantId = Tenant.DefaultTenantId,
++            PlanId = PlanConfiguration.FreePlanId,
++            Status = SubscriptionStatus.Active,
++            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
++            EndDate = (DateTime?)null,
++            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
++            UpdatedAt = (DateTime?)null
++        });
++    }
++}
+diff --git a/src/AutoNexus.Infrastructure/Data/Seeds/DbInitializer.cs b/src/AutoNexus.Infrastructure/Data/Seeds/DbInitializer.cs
+index fb666b7..2bbb58c 100644
+--- a/src/AutoNexus.Infrastructure/Data/Seeds/DbInitializer.cs
++++ b/src/AutoNexus.Infrastructure/Data/Seeds/DbInitializer.cs
+@@ -86,6 +86,11 @@ public static class DbInitializer
+                 new("Transporte", "Frete e guincho"),
+                 new("Outro", "Outros custos operacionais")
+             };
++            // Fora de uma requisição HTTP não há tenant autenticado, então o
++            // AutoNexusDbContext não preenche TenantId sozinho (ver StampTenantId) —
++            // atribuímos explicitamente ao tenant padrão. O setter é internal e
++            // só acessível dentro de AutoNexus.Infrastructure (mesmo assembly).
++            costCategories.ForEach(c => c.TenantId = Tenant.DefaultTenantId);
+             await context.CostCategories.AddRangeAsync(costCategories);
+         }
+ 
+@@ -102,6 +107,7 @@ public static class DbInitializer
+                 new("Comprovantes", "Comprovantes diversos"),
+                 new("Outros", "Demais documentos anexos")
+             };
++            docCategories.ForEach(d => d.TenantId = Tenant.DefaultTenantId);
+             await context.DocumentCategories.AddRangeAsync(docCategories);
+         }
+ 
+@@ -110,9 +116,24 @@ public static class DbInitializer
+         {
+             var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123456", workFactor: 12);
+             var adminUser = new User("Administrador", "admin@autonexus.com", adminPasswordHash, UserProfile.Admin);
++            adminUser.TenantId = Tenant.DefaultTenantId;
+             await context.Users.AddAsync(adminUser);
+         }
+ 
++        // 5. Usuário SuperAdmin inicial (dono do SaaS — TROQUE A SENHA em produção).
++        // Deliberadamente SEM TenantId (fica em Guid.Empty, o valor padrão de
++        // um Guid em C#): SuperAdmin não pertence a nenhuma empresa. Por isso
++        // não usamos AnyAsync com IgnoreQueryFilters aqui — como estamos no
++        // seed (fora de uma requisição HTTP), HasTenant já é false e o filtro
++        // global não está ativo, então esta consulta já enxerga todos os
++        // usuários normalmente.
++        if (!await context.Users.AnyAsync(u => u.Email == "superadmin@autonexus.com"))
++        {
++            var superAdminPasswordHash = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123456", workFactor: 12);
++            var superAdminUser = new User("Super Admin", "superadmin@autonexus.com", superAdminPasswordHash, UserProfile.SuperAdmin);
++            await context.Users.AddAsync(superAdminUser);
++        }
++
+ 
+         if (!await context.Set<BankConfig>().AnyAsync())
+         {
+@@ -123,6 +144,7 @@ public static class DbInitializer
+         new("bv", "Banco BV", 1.79m, "https://api.bv.com.br/sandbox", "SANDBOX_KEY_BV", "SANDBOX_SECRET", "STORE_123", true),
+         new("bradesco", "Bradesco Financiamentos", 1.62m, "https://api.bradesco.com.br/sandbox", "SANDBOX_KEY_BRADESCO", "SANDBOX_SECRET", "STORE_123", true)
+     };
++            defaultBanks.ForEach(b => b.TenantId = Tenant.DefaultTenantId);
+ 
+             await context.Set<BankConfig>().AddRangeAsync(defaultBanks);
+             await context.SaveChangesAsync();
+diff --git a/src/AutoNexus.Infrastructure/DependencyInjection.cs b/src/AutoNexus.Infrastructure/DependencyInjection.cs
+index 07d423c..d463c34 100644
+--- a/src/AutoNexus.Infrastructure/DependencyInjection.cs
++++ b/src/AutoNexus.Infrastructure/DependencyInjection.cs
+@@ -20,10 +20,19 @@ public static class DependencyInjection
+         services.AddDbContext<AutoNexusDbContext>(options =>
+             options.UseNpgsql(connectionString));
+ 
++        // Multi-tenancy: ITenantContext precisa de acesso ao HttpContext para
++        // ler o claim "tenant_id" do usuário autenticado (ver TenantContext).
++        services.AddHttpContextAccessor();
++        services.AddScoped<ITenantContext, TenantContext>();
++
+         services.AddScoped<IUnitOfWork, UnitOfWork>();
+         services.AddScoped<IVehicleRepository, VehicleRepository>();
+         services.AddScoped<ILookupRepository, LookupRepository>();
+         services.AddScoped<IUserRepository, UserRepository>();
++        services.AddScoped<ITenantRepository, TenantRepository>();
++        services.AddScoped<IPlanRepository, PlanRepository>();
++        services.AddScoped<ITenantSubscriptionRepository, TenantSubscriptionRepository>();
++        services.AddScoped<ITenantSettingRepository, TenantSettingRepository>();
+         services.AddScoped<ITradeRepository, TradeRepository>();
+         services.AddScoped<IDocumentRepository, DocumentRepository>();
+         services.AddScoped<IBuyerLinkRepository, BuyerLinkRepository>();
+diff --git a/src/AutoNexus.Infrastructure/Repositories/PlanRepository.cs b/src/AutoNexus.Infrastructure/Repositories/PlanRepository.cs
+new file mode 100644
+index 0000000..533fe58
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Repositories/PlanRepository.cs
+@@ -0,0 +1,31 @@
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Interfaces;
++using AutoNexus.Infrastructure.Data;
++using Microsoft.EntityFrameworkCore;
++
++namespace AutoNexus.Infrastructure.Repositories;
++
++// Plan é dado global (EntityBase, não TenantOwnedEntityBase) — nenhuma
++// consulta aqui é afetada pelo filtro de tenant, o que é correto: o
++// catálogo de planos é o mesmo para todas as empresas.
++public class PlanRepository : IPlanRepository
++{
++    private readonly AutoNexusDbContext _context;
++
++    public PlanRepository(AutoNexusDbContext context)
++    {
++        _context = context;
++    }
++
++    public Task<Plan?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
++        => _context.Plans.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
++
++    public Task<List<Plan>> GetAllAsync(CancellationToken cancellationToken = default)
++        => _context.Plans.OrderBy(p => p.Price).ToListAsync(cancellationToken);
++
++    public async Task AddAsync(Plan plan, CancellationToken cancellationToken = default)
++        => await _context.Plans.AddAsync(plan, cancellationToken);
++
++    public void Update(Plan plan)
++        => _context.Plans.Update(plan);
++}
+diff --git a/src/AutoNexus.Infrastructure/Repositories/TenantRepository.cs b/src/AutoNexus.Infrastructure/Repositories/TenantRepository.cs
+new file mode 100644
+index 0000000..732e2df
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Repositories/TenantRepository.cs
+@@ -0,0 +1,35 @@
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Interfaces;
++using AutoNexus.Infrastructure.Data;
++using Microsoft.EntityFrameworkCore;
++
++namespace AutoNexus.Infrastructure.Repositories;
++
++public class TenantRepository : ITenantRepository
++{
++    private readonly AutoNexusDbContext _context;
++
++    public TenantRepository(AutoNexusDbContext context)
++    {
++        _context = context;
++    }
++
++    // Tenant não herda de TenantOwnedEntityBase (é EntityBase puro), então
++    // nenhuma consulta aqui é afetada pelo filtro global de tenant — o que é
++    // correto: listar/gerenciar empresas é uma operação do SuperAdmin, não
++    // de dentro de uma empresa específica.
++    public Task<Tenant?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
++        => _context.Tenants.FirstOrDefaultAsync(t => t.Id == id, cancellationToken);
++
++    public Task<List<Tenant>> GetAllAsync(CancellationToken cancellationToken = default)
++        => _context.Tenants.OrderBy(t => t.Name).ToListAsync(cancellationToken);
++
++    public Task<bool> SlugExistsAsync(string slug, CancellationToken cancellationToken = default)
++        => _context.Tenants.AnyAsync(t => t.Slug == slug, cancellationToken);
++
++    public async Task AddAsync(Tenant tenant, CancellationToken cancellationToken = default)
++        => await _context.Tenants.AddAsync(tenant, cancellationToken);
++
++    public void Update(Tenant tenant)
++        => _context.Tenants.Update(tenant);
++}
+diff --git a/src/AutoNexus.Infrastructure/Repositories/TenantSettingRepository.cs b/src/AutoNexus.Infrastructure/Repositories/TenantSettingRepository.cs
+new file mode 100644
+index 0000000..7a02222
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Repositories/TenantSettingRepository.cs
+@@ -0,0 +1,31 @@
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Interfaces;
++using AutoNexus.Infrastructure.Data;
++using Microsoft.EntityFrameworkCore;
++
++namespace AutoNexus.Infrastructure.Repositories;
++
++public class TenantSettingRepository : ITenantSettingRepository
++{
++    private readonly AutoNexusDbContext _context;
++
++    public TenantSettingRepository(AutoNexusDbContext context)
++    {
++        _context = context;
++    }
++
++    public Task<TenantSetting?> GetCurrentAsync(CancellationToken cancellationToken = default)
++        => _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
++
++    public async Task AddAsync(TenantSetting settings, CancellationToken cancellationToken = default)
++        => await _context.TenantSettings.AddAsync(settings, cancellationToken);
++
++    public async Task AddForTenantAsync(TenantSetting settings, Guid tenantId, CancellationToken cancellationToken = default)
++    {
++        settings.TenantId = tenantId;
++        await _context.TenantSettings.AddAsync(settings, cancellationToken);
++    }
++
++    public void Update(TenantSetting settings)
++        => _context.TenantSettings.Update(settings);
++}
+diff --git a/src/AutoNexus.Infrastructure/Repositories/TenantSubscriptionRepository.cs b/src/AutoNexus.Infrastructure/Repositories/TenantSubscriptionRepository.cs
+new file mode 100644
+index 0000000..3cded0e
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Repositories/TenantSubscriptionRepository.cs
+@@ -0,0 +1,35 @@
++using AutoNexus.Domain.Entities;
++using AutoNexus.Domain.Interfaces;
++using AutoNexus.Infrastructure.Data;
++using Microsoft.EntityFrameworkCore;
++
++namespace AutoNexus.Infrastructure.Repositories;
++
++public class TenantSubscriptionRepository : ITenantSubscriptionRepository
++{
++    private readonly AutoNexusDbContext _context;
++
++    public TenantSubscriptionRepository(AutoNexusDbContext context)
++    {
++        _context = context;
++    }
++
++    public Task<TenantSubscription?> GetCurrentAsync(CancellationToken cancellationToken = default)
++        => _context.TenantSubscriptions.FirstOrDefaultAsync(cancellationToken);
++
++    public Task<TenantSubscription?> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
++        => _context.TenantSubscriptions.IgnoreQueryFilters()
++            .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
++
++    public async Task AddAsync(TenantSubscription subscription, CancellationToken cancellationToken = default)
++        => await _context.TenantSubscriptions.AddAsync(subscription, cancellationToken);
++
++    public async Task AddForTenantAsync(TenantSubscription subscription, Guid tenantId, CancellationToken cancellationToken = default)
++    {
++        subscription.TenantId = tenantId;
++        await _context.TenantSubscriptions.AddAsync(subscription, cancellationToken);
++    }
++
++    public void Update(TenantSubscription subscription)
++        => _context.TenantSubscriptions.Update(subscription);
++}
+diff --git a/src/AutoNexus.Infrastructure/Repositories/UserRepository.cs b/src/AutoNexus.Infrastructure/Repositories/UserRepository.cs
+index b139e6c..0894fcd 100644
+--- a/src/AutoNexus.Infrastructure/Repositories/UserRepository.cs
++++ b/src/AutoNexus.Infrastructure/Repositories/UserRepository.cs
+@@ -29,13 +29,43 @@ public class UserRepository : IUserRepository
+         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower().Trim(), cancellationToken);
+     }
+ 
++    public async Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
++    {
++        return await _context.Users.IgnoreQueryFilters()
++            .AnyAsync(u => u.Email == email.ToLower().Trim(), cancellationToken);
++    }
++
+     public async Task AddAsync(User user, CancellationToken cancellationToken = default)
+     {
+         await _context.Users.AddAsync(user, cancellationToken);
+     }
+ 
++    public async Task AddForTenantAsync(User user, Guid tenantId, CancellationToken cancellationToken = default)
++    {
++        // Atribuição explícita e deliberada — só é permitida porque este
++        // repositório está dentro de AutoNexus.Infrastructure (o setter de
++        // TenantId é internal justamente para restringir isso). Ver
++        // comentário na interface para o porquê deste método existir.
++        user.TenantId = tenantId;
++        await _context.Users.AddAsync(user, cancellationToken);
++    }
++
+     public void Update(User user)
+     {
+         _context.Users.Update(user);
+     }
++
++    // IgnoreQueryFilters() é usado aqui DE PROPÓSITO e só aqui — este método
++    // existe exclusivamente para o SuperAdminService/SuperAdminController.
++    // Todo o resto do repositório continua respeitando o filtro global
++    // normalmente (GetByIdAsync, GetAllAsync, GetByEmailAsync acima).
++    public async Task<List<User>> GetAllAcrossTenantsAsync(Guid? tenantId = null, CancellationToken cancellationToken = default)
++    {
++        var query = _context.Users.IgnoreQueryFilters().AsQueryable();
++
++        if (tenantId.HasValue)
++            query = query.Where(u => u.TenantId == tenantId.Value);
++
++        return await query.OrderBy(u => u.Name).ToListAsync(cancellationToken);
++    }
+ }
+\ No newline at end of file
+diff --git a/src/AutoNexus.Infrastructure/Repositories/VehicleRepository.cs b/src/AutoNexus.Infrastructure/Repositories/VehicleRepository.cs
+index 68afa41..8ae4627 100644
+--- a/src/AutoNexus.Infrastructure/Repositories/VehicleRepository.cs
++++ b/src/AutoNexus.Infrastructure/Repositories/VehicleRepository.cs
+@@ -27,7 +27,8 @@ public class VehicleRepository : IVehicleRepository
+                 .Include(v => v.Photos)
+                 .Include(v => v.Costs)
+                 .ThenInclude(c => c.CostCategory)
+-                .Include(v => v.Documents); // <-- Carrega os documentos cadastrados
++                .Include(v => v.Documents) // <-- Carrega os documentos cadastrados
++                .Include(v => v.FipeHistories);
+         }
+ 
+         return await query.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
+diff --git a/src/AutoNexus.Infrastructure/Services/JwtTokenGenerator.cs b/src/AutoNexus.Infrastructure/Services/JwtTokenGenerator.cs
+index c80b09a..bb2cb24 100644
+--- a/src/AutoNexus.Infrastructure/Services/JwtTokenGenerator.cs
++++ b/src/AutoNexus.Infrastructure/Services/JwtTokenGenerator.cs
+@@ -34,7 +34,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
+             new Claim(JwtRegisteredClaimNames.Email, user.Email),
+             new Claim(JwtRegisteredClaimNames.Name, user.Name),
+             new Claim(ClaimTypes.Role, user.Profile.ToString()),
+-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
++            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
++            // Multi-tenancy: ITenantContext (Infrastructure) lê este claim para
++            // resolver o tenant de toda a requisição — nunca um valor vindo do
++            // frontend. Ver AutoNexus.Infrastructure.Services.TenantContext.
++            new Claim("tenant_id", user.TenantId.ToString())
+         };
+ 
+         var token = new JwtSecurityToken(
+diff --git a/src/AutoNexus.Infrastructure/Services/LocalStorageService.cs b/src/AutoNexus.Infrastructure/Services/LocalStorageService.cs
+index 6b05f65..1a7b966 100644
+--- a/src/AutoNexus.Infrastructure/Services/LocalStorageService.cs
++++ b/src/AutoNexus.Infrastructure/Services/LocalStorageService.cs
+@@ -1,5 +1,6 @@
+ ﻿using System.IO.Compression;
+ using AutoNexus.Application.Interfaces;
++using AutoNexus.Domain.Interfaces;
+ using Microsoft.AspNetCore.Hosting;
+ 
+ namespace AutoNexus.Infrastructure.Services;
+@@ -7,16 +8,35 @@ namespace AutoNexus.Infrastructure.Services;
+ public class LocalStorageService : IStorageService
+ {
+     private readonly IWebHostEnvironment _environment;
++    private readonly ITenantContext _tenantContext;
+ 
+-    public LocalStorageService(IWebHostEnvironment environment)
++    public LocalStorageService(IWebHostEnvironment environment, ITenantContext tenantContext)
+     {
+         _environment = environment;
++        _tenantContext = tenantContext;
+     }
+ 
+     public async Task<string> SaveFileAsync(Stream fileStream, string fileName, string folder, CancellationToken cancellationToken = default)
+     {
+         var root = GetWebRootPath();
+-        var targetDirectory = Path.Combine(root, "uploads", folder);
++
++        // Isola fisicamente os arquivos de cada empresa: novo upload sempre
++        // cai em /uploads/tenants/{tenantId}/{folder}/... Isso é só para
++        // organização/higiene operacional (ex.: dá pra apagar tudo de um
++        // tenant cancelado sem afetar os demais) — a autorização em si já é
++        // garantida antes de chegar aqui, pelo filtro global do
++        // AutoNexusDbContext (o vehicleId/documentId só existe se pertencer
++        // ao tenant autenticado).
++        //
++        // Arquivos que já existiam antes desta mudança continuam funcionando
++        // normalmente: o caminho de cada um já está salvo em StoragePath no
++        // banco e é usado literalmente por DeleteFileAsync/GetFileBytesAsync/
++        // CreateZipAsync — esta função só decide o caminho de uploads NOVOS.
++        var tenantSegment = _tenantContext.HasTenant
++            ? _tenantContext.TenantId.ToString()
++            : "shared";
++
++        var targetDirectory = Path.Combine(root, "uploads", "tenants", tenantSegment, folder);
+         if (!Directory.Exists(targetDirectory))
+         {
+             Directory.CreateDirectory(targetDirectory);
+@@ -31,7 +51,7 @@ public class LocalStorageService : IStorageService
+             await fileStream.CopyToAsync(stream, cancellationToken);
+         }
+ 
+-        return $"/uploads/{folder}/{uniqueFileName}".Replace("\\", "/");
++        return $"/uploads/tenants/{tenantSegment}/{folder}/{uniqueFileName}".Replace("\\", "/");
+     }
+ 
+     public Task DeleteFileAsync(string relativePath, CancellationToken cancellationToken = default)
+diff --git a/src/AutoNexus.Infrastructure/Services/TenantContext.cs b/src/AutoNexus.Infrastructure/Services/TenantContext.cs
+new file mode 100644
+index 0000000..67bcce1
+--- /dev/null
++++ b/src/AutoNexus.Infrastructure/Services/TenantContext.cs
+@@ -0,0 +1,36 @@
++using AutoNexus.Domain.Interfaces;
++using Microsoft.AspNetCore.Http;
++
++namespace AutoNexus.Infrastructure.Services;
++
++/// <summary>
++/// Implementação real de ITenantContext. Registrada como Scoped — uma
++/// instância por requisição HTTP (ou por escopo de DI criado manualmente,
++/// como no seed de inicialização, onde não existe HttpContext).
++///
++/// O TenantId é lido exclusivamente do claim "tenant_id" do token JWT já
++/// autenticado por ASP.NET Core (ou seja, já validado quanto à assinatura e
++/// expiração antes de chegar aqui). Isso é proposital: o TenantId nunca deve
++/// vir de um header, query string ou corpo enviados livremente pelo cliente.
++/// </summary>
++public class TenantContext : ITenantContext
++{
++    public Guid TenantId { get; }
++    public bool HasTenant { get; }
++
++    public TenantContext(IHttpContextAccessor httpContextAccessor)
++    {
++        var claimValue = httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
++
++        if (!string.IsNullOrEmpty(claimValue) && Guid.TryParse(claimValue, out var parsedTenantId))
++        {
++            TenantId = parsedTenantId;
++            HasTenant = true;
++        }
++        else
++        {
++            TenantId = Guid.Empty;
++            HasTenant = false;
++        }
++    }
++}
+diff --git a/src/autonexus-web/src/App.tsx b/src/autonexus-web/src/App.tsx
+index c755f1d..a673313 100644
+--- a/src/autonexus-web/src/App.tsx
++++ b/src/autonexus-web/src/App.tsx
+@@ -1,6 +1,6 @@
+ ﻿import { useState, useEffect } from 'react';
+ import { AuthProvider, useAuth } from './contexts/AuthContext';
+-import { canAccessView } from './utils/permissions';
++import { canAccessView, UserProfileEnum } from './utils/permissions';
+ import { LoginPage } from './pages/LoginPage';
+ import { DashboardPage } from './pages/DashboardPage';
+ import { VehiclesPage } from './pages/VehiclesPage';
+@@ -13,6 +13,9 @@ import { UsersPage } from './pages/admin/UsersPage';
+ import { ShieldAlert, Loader2 } from 'lucide-react';
+ import { CompanyDocumentsPage } from './pages/admin/CompanyDocumentsPage';
+ import { PublicCatalogPage } from './pages/PublicCatalogPage';
++import { TenantSettingsPage } from './pages/admin/TenantSettingsPage';
++import { SubscriptionPage } from './pages/admin/SubscriptionPage';
++import { SuperAdminPage } from './pages/admin/SuperAdminPage';
+ 
+ function AppContent() {
+   const { user, isAuthenticated, loading } = useAuth();
+@@ -29,6 +32,16 @@ function AppContent() {
+     return () => window.removeEventListener('popstate', handlePopState);
+   }, []);
+ 
++  // SuperAdmin não pertence a nenhuma empresa, então não tem "dashboard"
++  // (nem nenhum outro módulo operacional) — manda ele direto pro próprio
++  // painel assim que a sessão carrega.
++  useEffect(() => {
++    if (user?.profile === UserProfileEnum.SuperAdmin && currentView === 'dashboard') {
++      setCurrentView('superadmin');
++    }
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [user]);
++
+   // 1. Se a URL do navegador for /catalogo, renderiza a vitrine pública direto (sem exigir login)
+   if (isPublicCatalogRoute) {
+     return (
+@@ -78,6 +91,7 @@ function AppContent() {
+   const renderContent = () => {
+     // Garante que a visão atual seja permitida para o perfil do usuário
+     if (!canAccessView(user?.profile, currentView)) {
++      const homeView = user?.profile === UserProfileEnum.SuperAdmin ? 'superadmin' : 'dashboard';
+       return (
+         <div className="p-12 text-center text-slate-300 space-y-4">
+           <ShieldAlert className="w-12 h-12 text-rose-500 mx-auto" />
+@@ -86,10 +100,10 @@ function AppContent() {
+             Seu perfil de acesso ({user?.profileName || 'Usuário'}) não possui permissão para visualizar esta página.
+           </p>
+           <button
+-            onClick={() => setCurrentView('dashboard')}
++            onClick={() => setCurrentView(homeView)}
+             className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
+           >
+-            Voltar ao Dashboard
++            {homeView === 'superadmin' ? 'Voltar ao Painel SuperAdmin' : 'Voltar ao Dashboard'}
+           </button>
+         </div>
+       );
+@@ -116,6 +130,12 @@ function AppContent() {
+         return <CompanyDocumentsPage currentView={currentView} onNavigate={handleNavigate} />;
+       case 'catalog':
+         return <PublicCatalogPage currentView={currentView} onNavigate={handleNavigate} />;
++      case 'tenant-settings':
++        return <TenantSettingsPage currentView={currentView} onNavigate={handleNavigate} />;
++      case 'subscription':
++        return <SubscriptionPage currentView={currentView} onNavigate={handleNavigate} />;
++      case 'superadmin':
++        return <SuperAdminPage currentView={currentView} onNavigate={handleNavigate} />;
+       default:
+         return <DashboardPage currentView={currentView} onNavigate={handleNavigate} />;
+     }
+diff --git a/src/autonexus-web/src/components/layout/Header.tsx b/src/autonexus-web/src/components/layout/Header.tsx
+index 16ddd38..42d7f0d 100644
+--- a/src/autonexus-web/src/components/layout/Header.tsx
++++ b/src/autonexus-web/src/components/layout/Header.tsx
+@@ -7,6 +7,7 @@ export function Header() {
+ 
+   const getProfileName = (profile?: number) => {
+     switch (profile) {
++      case 0: return 'Super Admin';
+       case 1: return 'Admin';
+       case 2: return 'Vendedor';
+       case 3: return 'Cliente';
+diff --git a/src/autonexus-web/src/components/layout/Sidebar.tsx b/src/autonexus-web/src/components/layout/Sidebar.tsx
+index e6683fa..1bc06e4 100644
+--- a/src/autonexus-web/src/components/layout/Sidebar.tsx
++++ b/src/autonexus-web/src/components/layout/Sidebar.tsx
+@@ -9,7 +9,10 @@ import {
+   Building2,
+   Users,
+   Award,
+-  FolderOpen
++  FolderOpen,
++  Settings,
++  CreditCard,
++  ShieldCheck
+ } from 'lucide-react';
+ 
+ interface SidebarProps {
+@@ -160,6 +163,49 @@ export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps)
+             Docs Empresa (Admin)
+           </button>
+         )}
++
++        {canAccessView(profile, 'tenant-settings') && (
++          <button
++            onClick={() => onNavigate?.('tenant-settings')}
++            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
++              currentView === 'tenant-settings'
++                ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
++                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
++            }`}
++          >
++            <Settings size={18} />
++            Minha Empresa
++          </button>
++        )}
++
++        {canAccessView(profile, 'subscription') && (
++          <button
++            onClick={() => onNavigate?.('subscription')}
++            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
++              currentView === 'subscription'
++                ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
++                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
++            }`}
++          >
++            <CreditCard size={18} />
++            Minha Assinatura
++          </button>
++        )}
++
++        {/* MÓDULO EXCLUSIVO SUPERADMIN */}
++        {canAccessView(profile, 'superadmin') && (
++          <button
++            onClick={() => onNavigate?.('superadmin')}
++            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
++              currentView === 'superadmin'
++                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
++                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
++            }`}
++          >
++            <ShieldCheck size={18} />
++            Painel SuperAdmin
++          </button>
++        )}
+       </nav>
+     </aside>
+   );
+diff --git a/src/autonexus-web/src/pages/admin/SubscriptionPage.tsx b/src/autonexus-web/src/pages/admin/SubscriptionPage.tsx
+new file mode 100644
+index 0000000..59089da
+--- /dev/null
++++ b/src/autonexus-web/src/pages/admin/SubscriptionPage.tsx
+@@ -0,0 +1,130 @@
++import { useEffect, useState } from 'react';
++import { subscriptionService, TenantSubscription, Plan, SubscriptionStatus } from '../../services/subscriptionService';
++import { formatDateTime } from '../../utils/formatters';
++import { MainLayout } from '../../components/layout/MainLayout';
++import { CreditCard, RefreshCw, CheckCircle2, Users, Car, HardDrive } from 'lucide-react';
++
++interface SubscriptionPageProps {
++  currentView?: string;
++  onNavigate?: (view: string) => void;
++}
++
++export function SubscriptionPage({ currentView, onNavigate }: SubscriptionPageProps) {
++  const [subscription, setSubscription] = useState<TenantSubscription | null>(null);
++  const [plans, setPlans] = useState<Plan[]>([]);
++  const [loading, setLoading] = useState(true);
++
++  const load = async () => {
++    setLoading(true);
++    try {
++      const [sub, availablePlans] = await Promise.all([
++        subscriptionService.getCurrent(),
++        subscriptionService.getAvailablePlans(),
++      ]);
++      setSubscription(sub);
++      setPlans(availablePlans);
++    } catch (err) {
++      console.error('Erro ao carregar assinatura:', err);
++    } finally {
++      setLoading(false);
++    }
++  };
++
++  useEffect(() => {
++    load();
++  }, []);
++
++  const currentPlan = plans.find(p => p.id === subscription?.planId);
++
++  return (
++    <MainLayout currentView={currentView} onNavigate={onNavigate}>
++      <div className="space-y-6 p-4 sm:p-6 w-full">
++
++        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-nexus-border pb-4">
++          <div>
++            <h1 className="text-xl font-bold text-white flex items-center gap-2">
++              <CreditCard className="w-6 h-6 text-blue-400" />
++              Minha Assinatura
++            </h1>
++            <p className="text-xs text-nexus-text-muted mt-1">
++              Plano atual da sua empresa. Para alterar de plano, fale com o suporte.
++            </p>
++          </div>
++          <button
++            onClick={load}
++            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer"
++          >
++            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
++          </button>
++        </div>
++
++        {loading ? (
++          <div className="text-center text-slate-400 py-8">Carregando...</div>
++        ) : !subscription ? (
++          <div className="bg-nexus-card border border-nexus-border rounded-xl p-8 text-center text-slate-400">
++            Sua empresa ainda não tem uma assinatura ativa. Fale com o suporte.
++          </div>
++        ) : (
++          <div className="bg-nexus-card border border-nexus-border rounded-xl p-6 space-y-5">
++            <div className="flex items-center justify-between flex-wrap gap-3">
++              <div>
++                <p className="text-xs text-slate-400 uppercase tracking-wider">Plano atual</p>
++                <p className="text-2xl font-bold text-white">{subscription.planName}</p>
++              </div>
++              <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
++                <CheckCircle2 className="w-3.5 h-3.5" />
++                {SubscriptionStatus[subscription.status] ?? 'Desconhecido'}
++              </span>
++            </div>
++
++            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-4 border-t border-slate-800 text-xs">
++              <div className="flex items-center gap-2 text-slate-300">
++                <Users className="w-4 h-4 text-blue-400" />
++                {currentPlan?.maxUsers ? `Até ${currentPlan.maxUsers} usuários` : 'Usuários ilimitados'}
++              </div>
++              <div className="flex items-center gap-2 text-slate-300">
++                <Car className="w-4 h-4 text-blue-400" />
++                {currentPlan?.maxVehicles ? `Até ${currentPlan.maxVehicles} veículos` : 'Veículos ilimitados'}
++              </div>
++              <div className="flex items-center gap-2 text-slate-300">
++                <HardDrive className="w-4 h-4 text-blue-400" />
++                {currentPlan?.maxStorageMb ? `${(currentPlan.maxStorageMb / 1000).toFixed(1)} GB de armazenamento` : 'Armazenamento ilimitado'}
++              </div>
++            </div>
++
++            <p className="text-[11px] text-slate-500 pt-2 border-t border-slate-800">
++              Assinatura iniciada em {formatDateTime(subscription.startDate)}
++              {subscription.endDate ? ` · encerrada em ${formatDateTime(subscription.endDate)}` : ''}
++            </p>
++          </div>
++        )}
++
++        {plans.length > 0 && (
++          <div>
++            <h2 className="text-sm font-bold text-white mb-3">Planos disponíveis</h2>
++            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
++              {plans.map(plan => (
++                <div
++                  key={plan.id}
++                  className={`bg-nexus-card border rounded-xl p-4 text-xs ${plan.id === subscription?.planId ? 'border-blue-500' : 'border-nexus-border'}`}
++                >
++                  <p className="text-sm font-bold text-white">{plan.name}</p>
++                  <p className="text-lg font-bold text-blue-400 mt-1">
++                    {plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toFixed(2)}/mês`}
++                  </p>
++                  <ul className="mt-3 space-y-1 text-slate-400">
++                    <li>{plan.maxUsers ? `Até ${plan.maxUsers} usuários` : 'Usuários ilimitados'}</li>
++                    <li>{plan.maxVehicles ? `Até ${plan.maxVehicles} veículos` : 'Veículos ilimitados'}</li>
++                  </ul>
++                  {plan.id === subscription?.planId && (
++                    <p className="mt-3 text-blue-400 font-bold">Plano atual</p>
++                  )}
++                </div>
++              ))}
++            </div>
++          </div>
++        )}
++      </div>
++    </MainLayout>
++  );
++}
+diff --git a/src/autonexus-web/src/pages/admin/SuperAdminPage.tsx b/src/autonexus-web/src/pages/admin/SuperAdminPage.tsx
+new file mode 100644
+index 0000000..9791a75
+--- /dev/null
++++ b/src/autonexus-web/src/pages/admin/SuperAdminPage.tsx
+@@ -0,0 +1,468 @@
++import React, { useEffect, useState } from 'react';
++import {
++  superAdminService,
++  Tenant,
++  SuperAdminUser,
++} from '../../services/superAdminService';
++import type { Plan } from '../../services/subscriptionService';
++import { formatDateTime } from '../../utils/formatters';
++import { MainLayout } from '../../components/layout/MainLayout';
++import {
++  ShieldCheck, Building2, Users, CreditCard, Plus, X, Save,
++  CheckCircle2, XCircle, RefreshCw, Power,
++} from 'lucide-react';
++
++interface SuperAdminPageProps {
++  currentView?: string;
++  onNavigate?: (view: string) => void;
++}
++
++type Tab = 'tenants' | 'plans' | 'users';
++
++const emptyTenantForm = {
++  tenantName: '',
++  tenantSlug: '',
++  adminName: '',
++  adminEmail: '',
++  adminPassword: '',
++};
++
++const emptyPlanForm = {
++  name: '',
++  price: 0,
++  maxUsers: '' as number | '',
++  maxVehicles: '' as number | '',
++  maxStorageMb: '' as number | '',
++};
++
++export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps) {
++  const [tab, setTab] = useState<Tab>('tenants');
++
++  const [tenants, setTenants] = useState<Tenant[]>([]);
++  const [plans, setPlans] = useState<Plan[]>([]);
++  const [users, setUsers] = useState<SuperAdminUser[]>([]);
++  const [loading, setLoading] = useState(true);
++
++  const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
++  const [tenantForm, setTenantForm] = useState(emptyTenantForm);
++  const [savingTenant, setSavingTenant] = useState(false);
++
++  const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
++  const [planForm, setPlanForm] = useState(emptyPlanForm);
++  const [savingPlan, setSavingPlan] = useState(false);
++
++  const loadAll = async () => {
++    setLoading(true);
++    try {
++      const [tenantsData, plansData, usersData] = await Promise.all([
++        superAdminService.getTenants(),
++        superAdminService.getPlans(),
++        superAdminService.getUsers(),
++      ]);
++      setTenants(tenantsData);
++      setPlans(plansData);
++      setUsers(usersData);
++    } catch (err) {
++      console.error('Erro ao carregar painel SuperAdmin:', err);
++    } finally {
++      setLoading(false);
++    }
++  };
++
++  useEffect(() => {
++    loadAll();
++  }, []);
++
++  const handleCreateTenant = async (e: React.FormEvent) => {
++    e.preventDefault();
++    setSavingTenant(true);
++    try {
++      await superAdminService.createTenant(tenantForm);
++      setIsTenantModalOpen(false);
++      setTenantForm(emptyTenantForm);
++      await loadAll();
++    } catch (err: any) {
++      alert(err.message || 'Erro ao criar empresa.');
++    } finally {
++      setSavingTenant(false);
++    }
++  };
++
++  const handleToggleTenant = async (tenant: Tenant) => {
++    const action = tenant.isActive ? 'desativar' : 'ativar';
++    if (!confirm(`Tem certeza que deseja ${action} a empresa "${tenant.name}"?`)) return;
++
++    try {
++      if (tenant.isActive) {
++        await superAdminService.deactivateTenant(tenant.id);
++      } else {
++        await superAdminService.activateTenant(tenant.id);
++      }
++      await loadAll();
++    } catch (err: any) {
++      alert(err.message || `Erro ao ${action} empresa.`);
++    }
++  };
++
++  const handleCreatePlan = async (e: React.FormEvent) => {
++    e.preventDefault();
++    setSavingPlan(true);
++    try {
++      await superAdminService.createPlan({
++        name: planForm.name,
++        price: Number(planForm.price),
++        maxUsers: planForm.maxUsers === '' ? null : Number(planForm.maxUsers),
++        maxVehicles: planForm.maxVehicles === '' ? null : Number(planForm.maxVehicles),
++        maxStorageMb: planForm.maxStorageMb === '' ? null : Number(planForm.maxStorageMb),
++      });
++      setIsPlanModalOpen(false);
++      setPlanForm(emptyPlanForm);
++      await loadAll();
++    } catch (err: any) {
++      alert(err.message || 'Erro ao criar plano.');
++    } finally {
++      setSavingPlan(false);
++    }
++  };
++
++  const tabs: { key: Tab; label: string; icon: React.ReactNode }[] = [
++    { key: 'tenants', label: 'Empresas', icon: <Building2 className="w-4 h-4" /> },
++    { key: 'plans', label: 'Planos', icon: <CreditCard className="w-4 h-4" /> },
++    { key: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
++  ];
++
++  return (
++    <MainLayout currentView={currentView} onNavigate={onNavigate}>
++      <div className="space-y-6 p-4 sm:p-6 w-full">
++
++        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-nexus-border pb-4">
++          <div>
++            <h1 className="text-xl font-bold text-white flex items-center gap-2">
++              <ShieldCheck className="w-6 h-6 text-amber-400" />
++              Painel do SuperAdmin
++            </h1>
++            <p className="text-xs text-nexus-text-muted mt-1">
++              Gestão global do SaaS — empresas, planos e usuários de todos os tenants.
++            </p>
++          </div>
++          <button
++            onClick={loadAll}
++            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer"
++          >
++            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
++          </button>
++        </div>
++
++        <div className="flex gap-2 border-b border-nexus-border">
++          {tabs.map(t => (
++            <button
++              key={t.key}
++              onClick={() => setTab(t.key)}
++              className={`inline-flex items-center gap-2 px-4 py-2 text-xs font-bold border-b-2 transition-colors cursor-pointer ${
++                tab === t.key ? 'border-amber-400 text-white' : 'border-transparent text-slate-400 hover:text-slate-200'
++              }`}
++            >
++              {t.icon}
++              {t.label}
++            </button>
++          ))}
++        </div>
++
++        {/* --- ABA EMPRESAS --- */}
++        {tab === 'tenants' && (
++          <div className="space-y-4">
++            <div className="flex justify-end">
++              <button
++                onClick={() => setIsTenantModalOpen(true)}
++                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
++              >
++                <Plus className="w-4 h-4" />
++                Nova Empresa
++              </button>
++            </div>
++
++            <div className="bg-nexus-card border border-nexus-border rounded-xl overflow-hidden">
++              {loading ? (
++                <div className="p-8 text-center text-slate-400">Carregando...</div>
++              ) : tenants.length === 0 ? (
++                <div className="p-8 text-center text-slate-400">Nenhuma empresa cadastrada.</div>
++              ) : (
++                <div className="overflow-x-auto">
++                  <table className="w-full text-left text-xs">
++                    <thead>
++                      <tr className="border-b border-nexus-border bg-slate-950/60 text-slate-400 uppercase tracking-wider">
++                        <th className="py-3 px-4">Empresa</th>
++                        <th className="py-3 px-4">Slug</th>
++                        <th className="py-3 px-4">Criada em</th>
++                        <th className="py-3 px-4">Status</th>
++                        <th className="py-3 px-4">Ação</th>
++                      </tr>
++                    </thead>
++                    <tbody className="divide-y divide-nexus-border text-slate-200">
++                      {tenants.map(t => (
++                        <tr key={t.id} className="hover:bg-slate-800/40 transition-colors">
++                          <td className="py-3 px-4 font-bold text-white">{t.name}</td>
++                          <td className="py-3 px-4 text-slate-400 font-mono text-[11px]">{t.slug}</td>
++                          <td className="py-3 px-4 text-slate-400">{formatDateTime(t.createdAt)}</td>
++                          <td className="py-3 px-4">
++                            {t.isActive ? (
++                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
++                                <CheckCircle2 className="w-3 h-3" /> Ativa
++                              </span>
++                            ) : (
++                              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-red-500/15 text-red-400 border border-red-500/30">
++                                <XCircle className="w-3 h-3" /> Desativada
++                              </span>
++                            )}
++                          </td>
++                          <td className="py-3 px-4">
++                            <button
++                              onClick={() => handleToggleTenant(t)}
++                              className="inline-flex items-center gap-1 px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-medium cursor-pointer"
++                            >
++                              <Power className="w-3 h-3" />
++                              {t.isActive ? 'Desativar' : 'Ativar'}
++                            </button>
++                          </td>
++                        </tr>
++                      ))}
++                    </tbody>
++                  </table>
++                </div>
++              )}
++            </div>
++          </div>
++        )}
++
++        {/* --- ABA PLANOS --- */}
++        {tab === 'plans' && (
++          <div className="space-y-4">
++            <div className="flex justify-end">
++              <button
++                onClick={() => setIsPlanModalOpen(true)}
++                className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
++              >
++                <Plus className="w-4 h-4" />
++                Novo Plano
++              </button>
++            </div>
++
++            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
++              {plans.map(plan => (
++                <div key={plan.id} className="bg-nexus-card border border-nexus-border rounded-xl p-4 text-xs">
++                  <p className="text-sm font-bold text-white">{plan.name}</p>
++                  <p className="text-lg font-bold text-blue-400 mt-1">
++                    {plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toFixed(2)}/mês`}
++                  </p>
++                  <ul className="mt-3 space-y-1 text-slate-400">
++                    <li>{plan.maxUsers ? `Até ${plan.maxUsers} usuários` : 'Usuários ilimitados'}</li>
++                    <li>{plan.maxVehicles ? `Até ${plan.maxVehicles} veículos` : 'Veículos ilimitados'}</li>
++                    <li>{plan.maxStorageMb ? `${(plan.maxStorageMb / 1000).toFixed(1)} GB` : 'Armazenamento ilimitado'}</li>
++                  </ul>
++                </div>
++              ))}
++            </div>
++          </div>
++        )}
++
++        {/* --- ABA USUÁRIOS --- */}
++        {tab === 'users' && (
++          <div className="bg-nexus-card border border-nexus-border rounded-xl overflow-hidden">
++            {loading ? (
++              <div className="p-8 text-center text-slate-400">Carregando...</div>
++            ) : users.length === 0 ? (
++              <div className="p-8 text-center text-slate-400">Nenhum usuário cadastrado.</div>
++            ) : (
++              <div className="overflow-x-auto">
++                <table className="w-full text-left text-xs">
++                  <thead>
++                    <tr className="border-b border-nexus-border bg-slate-950/60 text-slate-400 uppercase tracking-wider">
++                      <th className="py-3 px-4">Usuário</th>
++                      <th className="py-3 px-4">E-mail</th>
++                      <th className="py-3 px-4">Perfil</th>
++                      <th className="py-3 px-4">Empresa (TenantId)</th>
++                    </tr>
++                  </thead>
++                  <tbody className="divide-y divide-nexus-border text-slate-200">
++                    {users.map(u => (
++                      <tr key={u.id} className="hover:bg-slate-800/40 transition-colors">
++                        <td className="py-3 px-4 font-bold text-white">{u.name}</td>
++                        <td className="py-3 px-4 text-slate-300 font-mono text-[11px]">{u.email}</td>
++                        <td className="py-3 px-4 text-slate-300">{u.profileName}</td>
++                        <td className="py-3 px-4 text-slate-500 font-mono text-[10px]">
++                          {tenants.find(t => t.id === u.tenantId)?.name ?? u.tenantId}
++                        </td>
++                      </tr>
++                    ))}
++                  </tbody>
++                </table>
++              </div>
++            )}
++          </div>
++        )}
++      </div>
++
++      {/* Modal: Nova Empresa */}
++      {isTenantModalOpen && (
++        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
++          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md text-slate-100 shadow-2xl p-6 space-y-4">
++            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
++              <h3 className="font-bold text-base text-white flex items-center gap-2">
++                <Building2 className="w-5 h-5 text-blue-400" /> Nova Empresa
++              </h3>
++              <button onClick={() => setIsTenantModalOpen(false)} className="p-1 hover:bg-slate-800 rounded text-slate-400 cursor-pointer">
++                <X className="w-5 h-5" />
++              </button>
++            </div>
++
++            <form onSubmit={handleCreateTenant} className="space-y-4 text-xs">
++              <div>
++                <label className="text-slate-400 block mb-1">Nome da Empresa *</label>
++                <input
++                  type="text"
++                  value={tenantForm.tenantName}
++                  onChange={e => setTenantForm({ ...tenantForm, tenantName: e.target.value })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                  required
++                />
++              </div>
++              <div>
++                <label className="text-slate-400 block mb-1">Slug (identificador único) *</label>
++                <input
++                  type="text"
++                  placeholder="ex: minha-loja"
++                  value={tenantForm.tenantSlug}
++                  onChange={e => setTenantForm({ ...tenantForm, tenantSlug: e.target.value })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 font-mono"
++                  required
++                />
++              </div>
++              <div className="pt-2 border-t border-slate-800">
++                <p className="text-slate-400 mb-2">Administrador inicial dessa empresa</p>
++                <div className="space-y-3">
++                  <input
++                    type="text"
++                    placeholder="Nome do administrador"
++                    value={tenantForm.adminName}
++                    onChange={e => setTenantForm({ ...tenantForm, adminName: e.target.value })}
++                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                    required
++                  />
++                  <input
++                    type="email"
++                    placeholder="E-mail do administrador"
++                    value={tenantForm.adminEmail}
++                    onChange={e => setTenantForm({ ...tenantForm, adminEmail: e.target.value })}
++                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                    required
++                  />
++                  <input
++                    type="password"
++                    placeholder="Senha inicial"
++                    value={tenantForm.adminPassword}
++                    onChange={e => setTenantForm({ ...tenantForm, adminPassword: e.target.value })}
++                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 font-mono"
++                    required
++                  />
++                </div>
++              </div>
++
++              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
++                <button type="button" onClick={() => setIsTenantModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl cursor-pointer">
++                  Cancelar
++                </button>
++                <button
++                  type="submit"
++                  disabled={savingTenant}
++                  className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl disabled:opacity-50 cursor-pointer"
++                >
++                  <Save className="w-4 h-4" />
++                  {savingTenant ? 'Criando...' : 'Criar Empresa'}
++                </button>
++              </div>
++            </form>
++          </div>
++        </div>
++      )}
++
++      {/* Modal: Novo Plano */}
++      {isPlanModalOpen && (
++        <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
++          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md text-slate-100 shadow-2xl p-6 space-y-4">
++            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
++              <h3 className="font-bold text-base text-white flex items-center gap-2">
++                <CreditCard className="w-5 h-5 text-blue-400" /> Novo Plano
++              </h3>
++              <button onClick={() => setIsPlanModalOpen(false)} className="p-1 hover:bg-slate-800 rounded text-slate-400 cursor-pointer">
++                <X className="w-5 h-5" />
++              </button>
++            </div>
++
++            <form onSubmit={handleCreatePlan} className="space-y-4 text-xs">
++              <div>
++                <label className="text-slate-400 block mb-1">Nome do Plano *</label>
++                <input
++                  type="text"
++                  value={planForm.name}
++                  onChange={e => setPlanForm({ ...planForm, name: e.target.value })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                  required
++                />
++              </div>
++              <div>
++                <label className="text-slate-400 block mb-1">Preço mensal (R$) *</label>
++                <input
++                  type="number"
++                  step="0.01"
++                  min="0"
++                  value={planForm.price}
++                  onChange={e => setPlanForm({ ...planForm, price: Number(e.target.value) })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                  required
++                />
++              </div>
++              <p className="text-slate-500">Limites (deixe em branco para ilimitado)</p>
++              <div className="grid grid-cols-3 gap-3">
++                <input
++                  type="number"
++                  placeholder="Usuários"
++                  value={planForm.maxUsers}
++                  onChange={e => setPlanForm({ ...planForm, maxUsers: e.target.value === '' ? '' : Number(e.target.value) })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                />
++                <input
++                  type="number"
++                  placeholder="Veículos"
++                  value={planForm.maxVehicles}
++                  onChange={e => setPlanForm({ ...planForm, maxVehicles: e.target.value === '' ? '' : Number(e.target.value) })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                />
++                <input
++                  type="number"
++                  placeholder="MB armazenamento"
++                  value={planForm.maxStorageMb}
++                  onChange={e => setPlanForm({ ...planForm, maxStorageMb: e.target.value === '' ? '' : Number(e.target.value) })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                />
++              </div>
++
++              <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
++                <button type="button" onClick={() => setIsPlanModalOpen(false)} className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl cursor-pointer">
++                  Cancelar
++                </button>
++                <button
++                  type="submit"
++                  disabled={savingPlan}
++                  className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl disabled:opacity-50 cursor-pointer"
++                >
++                  <Save className="w-4 h-4" />
++                  {savingPlan ? 'Criando...' : 'Criar Plano'}
++                </button>
++              </div>
++            </form>
++          </div>
++        </div>
++      )}
++    </MainLayout>
++  );
++}
+diff --git a/src/autonexus-web/src/pages/admin/TenantSettingsPage.tsx b/src/autonexus-web/src/pages/admin/TenantSettingsPage.tsx
+new file mode 100644
+index 0000000..675689e
+--- /dev/null
++++ b/src/autonexus-web/src/pages/admin/TenantSettingsPage.tsx
+@@ -0,0 +1,172 @@
++import React, { useEffect, useState } from 'react';
++import { tenantSettingsService, TenantSettings } from '../../services/tenantSettingsService';
++import { MainLayout } from '../../components/layout/MainLayout';
++import { Building2, Save, RefreshCw, CheckCircle2 } from 'lucide-react';
++
++interface TenantSettingsPageProps {
++  currentView?: string;
++  onNavigate?: (view: string) => void;
++}
++
++const emptySettings: TenantSettings = {
++  companyName: '',
++  logoUrl: '',
++  primaryColor: '#15171B',
++  timeZone: 'America/Sao_Paulo',
++  currency: 'BRL',
++};
++
++export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPageProps) {
++  const [form, setForm] = useState<TenantSettings>(emptySettings);
++  const [loading, setLoading] = useState(true);
++  const [saving, setSaving] = useState(false);
++  const [saved, setSaved] = useState(false);
++
++  const load = async () => {
++    setLoading(true);
++    try {
++      const data = await tenantSettingsService.get();
++      setForm(data);
++    } catch (err) {
++      console.error('Erro ao carregar configurações da empresa:', err);
++    } finally {
++      setLoading(false);
++    }
++  };
++
++  useEffect(() => {
++    load();
++  }, []);
++
++  const handleSave = async (e: React.FormEvent) => {
++    e.preventDefault();
++    setSaving(true);
++    setSaved(false);
++    try {
++      const updated = await tenantSettingsService.update(form);
++      setForm(updated);
++      setSaved(true);
++      setTimeout(() => setSaved(false), 2500);
++    } catch (err: any) {
++      alert(err.message || 'Erro ao salvar configurações.');
++    } finally {
++      setSaving(false);
++    }
++  };
++
++  return (
++    <MainLayout currentView={currentView} onNavigate={onNavigate}>
++      <div className="space-y-6 p-4 sm:p-6 w-full max-w-2xl">
++
++        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-nexus-border pb-4">
++          <div>
++            <h1 className="text-xl font-bold text-white flex items-center gap-2">
++              <Building2 className="w-6 h-6 text-blue-400" />
++              Minha Empresa
++            </h1>
++            <p className="text-xs text-nexus-text-muted mt-1">
++              Configurações próprias da sua empresa — nunca compartilhadas com outras empresas do sistema.
++            </p>
++          </div>
++          <button
++            onClick={load}
++            className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer"
++          >
++            <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
++          </button>
++        </div>
++
++        <div className="bg-nexus-card border border-nexus-border rounded-xl p-6">
++          {loading ? (
++            <div className="text-center text-slate-400 py-8">Carregando...</div>
++          ) : (
++            <form onSubmit={handleSave} className="space-y-4 text-xs">
++              <div>
++                <label className="text-slate-400 block mb-1">Nome da Empresa *</label>
++                <input
++                  type="text"
++                  value={form.companyName}
++                  onChange={e => setForm({ ...form, companyName: e.target.value })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                  required
++                />
++              </div>
++
++              <div>
++                <label className="text-slate-400 block mb-1">URL do Logo (opcional)</label>
++                <input
++                  type="text"
++                  placeholder="https://..."
++                  value={form.logoUrl ?? ''}
++                  onChange={e => setForm({ ...form, logoUrl: e.target.value || null })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                />
++              </div>
++
++              <div className="grid grid-cols-2 gap-4">
++                <div>
++                  <label className="text-slate-400 block mb-1">Cor Primária</label>
++                  <div className="flex items-center gap-2">
++                    <input
++                      type="color"
++                      value={form.primaryColor}
++                      onChange={e => setForm({ ...form, primaryColor: e.target.value })}
++                      className="h-9 w-9 rounded-lg border border-slate-800 bg-slate-950 cursor-pointer"
++                    />
++                    <input
++                      type="text"
++                      value={form.primaryColor}
++                      onChange={e => setForm({ ...form, primaryColor: e.target.value })}
++                      className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500 font-mono"
++                    />
++                  </div>
++                </div>
++                <div>
++                  <label className="text-slate-400 block mb-1">Moeda</label>
++                  <select
++                    value={form.currency}
++                    onChange={e => setForm({ ...form, currency: e.target.value })}
++                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                  >
++                    <option value="BRL">Real (BRL)</option>
++                    <option value="USD">Dólar (USD)</option>
++                    <option value="EUR">Euro (EUR)</option>
++                  </select>
++                </div>
++              </div>
++
++              <div>
++                <label className="text-slate-400 block mb-1">Fuso Horário</label>
++                <select
++                  value={form.timeZone}
++                  onChange={e => setForm({ ...form, timeZone: e.target.value })}
++                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
++                >
++                  <option value="America/Sao_Paulo">Brasília (America/Sao_Paulo)</option>
++                  <option value="America/Manaus">Manaus (America/Manaus)</option>
++                  <option value="America/Noronha">Fernando de Noronha</option>
++                </select>
++              </div>
++
++              <div className="flex items-center justify-end gap-3 pt-4 border-t border-slate-800">
++                {saved && (
++                  <span className="text-emerald-400 text-xs flex items-center gap-1 mr-auto">
++                    <CheckCircle2 className="w-4 h-4" /> Salvo com sucesso
++                  </span>
++                )}
++                <button
++                  type="submit"
++                  disabled={saving}
++                  className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl disabled:opacity-50 cursor-pointer"
++                >
++                  <Save className="w-4 h-4" />
++                  {saving ? 'Salvando...' : 'Salvar Configurações'}
++                </button>
++              </div>
++            </form>
++          )}
++        </div>
++      </div>
++    </MainLayout>
++  );
++}
+diff --git a/src/autonexus-web/src/services/subscriptionService.ts b/src/autonexus-web/src/services/subscriptionService.ts
+new file mode 100644
+index 0000000..4618ea5
+--- /dev/null
++++ b/src/autonexus-web/src/services/subscriptionService.ts
+@@ -0,0 +1,45 @@
++import { request } from './api';
++
++// 1=Trialing, 2=Active, 3=PastDue, 4=Canceled, 5=Suspended
++export const SubscriptionStatus: Record<number, string> = {
++  1: 'Em teste',
++  2: 'Ativa',
++  3: 'Pagamento pendente',
++  4: 'Cancelada',
++  5: 'Suspensa',
++};
++
++export interface TenantSubscription {
++  id: string;
++  tenantId: string;
++  planId: string;
++  planName: string;
++  status: number;
++  startDate: string;
++  endDate: string | null;
++}
++
++export interface Plan {
++  id: string;
++  name: string;
++  price: number;
++  isActive: boolean;
++  maxUsers: number | null;
++  maxVehicles: number | null;
++  maxStorageMb: number | null;
++}
++
++export const subscriptionService = {
++  getCurrent: async (): Promise<TenantSubscription | null> => {
++    try {
++      return await request<TenantSubscription>('/subscription');
++    } catch {
++      // Empresa ainda sem assinatura (404) — tela trata como "sem plano".
++      return null;
++    }
++  },
++
++  getAvailablePlans: async (): Promise<Plan[]> => {
++    return await request<Plan[]>('/subscription/plans');
++  },
++};
+diff --git a/src/autonexus-web/src/services/superAdminService.ts b/src/autonexus-web/src/services/superAdminService.ts
+new file mode 100644
+index 0000000..02d9dcb
+--- /dev/null
++++ b/src/autonexus-web/src/services/superAdminService.ts
+@@ -0,0 +1,81 @@
++import { request } from './api';
++import type { TenantSubscription, Plan } from './subscriptionService';
++
++export interface Tenant {
++  id: string;
++  name: string;
++  slug: string;
++  isActive: boolean;
++  createdAt: string;
++}
++
++export interface CreateTenantInput {
++  tenantName: string;
++  tenantSlug: string;
++  adminName: string;
++  adminEmail: string;
++  adminPassword: string;
++}
++
++export interface SuperAdminUser {
++  id: string;
++  name: string;
++  email: string;
++  profile: number;
++  profileName: string;
++  isActive: boolean;
++  createdAt: string;
++  tenantId: string;
++}
++
++export const superAdminService = {
++  getTenants: async (): Promise<Tenant[]> => {
++    return await request<Tenant[]>('/superadmin/tenants');
++  },
++
++  createTenant: async (data: CreateTenantInput): Promise<Tenant> => {
++    return await request<Tenant>('/superadmin/tenants', {
++      method: 'POST',
++      body: JSON.stringify(data),
++    });
++  },
++
++  activateTenant: async (tenantId: string): Promise<void> => {
++    await request<void>(`/superadmin/tenants/${tenantId}/activate`, { method: 'POST' });
++  },
++
++  deactivateTenant: async (tenantId: string): Promise<void> => {
++    await request<void>(`/superadmin/tenants/${tenantId}/deactivate`, { method: 'POST' });
++  },
++
++  getUsers: async (tenantId?: string): Promise<SuperAdminUser[]> => {
++    const query = tenantId ? `?tenantId=${tenantId}` : '';
++    return await request<SuperAdminUser[]>(`/superadmin/users${query}`);
++  },
++
++  getPlans: async (): Promise<Plan[]> => {
++    return await request<Plan[]>('/superadmin/plans');
++  },
++
++  createPlan: async (data: { name: string; price: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => {
++    return await request<Plan>('/superadmin/plans', {
++      method: 'POST',
++      body: JSON.stringify(data),
++    });
++  },
++
++  getSubscription: async (tenantId: string): Promise<TenantSubscription | null> => {
++    try {
++      return await request<TenantSubscription>(`/superadmin/tenants/${tenantId}/subscription`);
++    } catch {
++      return null;
++    }
++  },
++
++  assignPlan: async (tenantId: string, planId: string): Promise<TenantSubscription> => {
++    return await request<TenantSubscription>(`/superadmin/tenants/${tenantId}/subscription`, {
++      method: 'POST',
++      body: JSON.stringify({ planId }),
++    });
++  },
++};
+diff --git a/src/autonexus-web/src/services/tenantSettingsService.ts b/src/autonexus-web/src/services/tenantSettingsService.ts
+new file mode 100644
+index 0000000..7a1b08c
+--- /dev/null
++++ b/src/autonexus-web/src/services/tenantSettingsService.ts
+@@ -0,0 +1,22 @@
++import { request } from './api';
++
++export interface TenantSettings {
++  companyName: string;
++  logoUrl: string | null;
++  primaryColor: string;
++  timeZone: string;
++  currency: string;
++}
++
++export const tenantSettingsService = {
++  get: async (): Promise<TenantSettings> => {
++    return await request<TenantSettings>('/tenant-settings');
++  },
++
++  update: async (data: TenantSettings): Promise<TenantSettings> => {
++    return await request<TenantSettings>('/tenant-settings', {
++      method: 'PUT',
++      body: JSON.stringify(data),
++    });
++  },
++};
+diff --git a/src/autonexus-web/src/types/auth.ts b/src/autonexus-web/src/types/auth.ts
+index 4ec7498..167df7a 100644
+--- a/src/autonexus-web/src/types/auth.ts
++++ b/src/autonexus-web/src/types/auth.ts
+@@ -1,4 +1,5 @@
+ ﻿export const UserProfile = {
++  SuperAdmin: 0,
+   Admin: 1,
+   Vendedor: 2,
+   Cliente: 3,
+@@ -12,6 +13,7 @@ export interface LoginResponse {
+   email: string;
+   profile: UserProfile; 
+   profileName: string;
++  tenantId: string;
+ }
+ 
+ export interface User {
+@@ -20,4 +22,5 @@ export interface User {
+   email: string;
+   profile: UserProfile;
+   isActive: boolean;
++  tenantId: string;
+ }
+diff --git a/src/autonexus-web/src/utils/permissions.ts b/src/autonexus-web/src/utils/permissions.ts
+index c2b5af8..d5f16f4 100644
+--- a/src/autonexus-web/src/utils/permissions.ts
++++ b/src/autonexus-web/src/utils/permissions.ts
+@@ -1,15 +1,23 @@
+ export const UserProfileEnum = {
++  SuperAdmin: 0,
+   Admin: 1,
+   Seller: 2,
+   Customer: 3,
+ } as const;
+ 
+ export const canAccessView = (profile?: number, view?: string): boolean => {
+-  if (!profile || !view) return false;
++  if (profile === undefined || profile === null || !view) return false;
+   if (view === 'catalog') return true;
+-  // Administrador (1): Acesso total a todas as visões do sistema
++
++  // SuperAdmin (0): só acessa a área global do SaaS — nenhum módulo
++  // operacional de uma empresa específica (ele não pertence a nenhuma).
++  if (profile === UserProfileEnum.SuperAdmin) {
++    return view === 'superadmin';
++  }
++
++  // Administrador (1): Acesso total a todas as visões da própria empresa
+   if (profile === UserProfileEnum.Admin) {
+-    return true;
++    return view !== 'superadmin';
+   }
+ 
+   // Vendedor (2): Módulos operacionais de vendas, estoque e simulador
+@@ -20,7 +28,8 @@ export const canAccessView = (profile?: number, view?: string): boolean => {
+       'trades',
+       'simulator',
+       'reports',
+-      'catalog'
++      'catalog',
++      'subscription'
+     ];
+     return sellerAllowedViews.includes(view);
+   }

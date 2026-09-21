@@ -1,5 +1,6 @@
 using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
+using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
 
 namespace AutoNexus.Application.Services;
@@ -7,15 +8,18 @@ namespace AutoNexus.Application.Services;
 public class AuthService : IAuthService
 {
     private readonly IUserRepository _userRepository;
+    private readonly ITenantRepository _tenantRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
 
     public AuthService(
         IUserRepository userRepository,
+        ITenantRepository tenantRepository,
         IPasswordHasher passwordHasher,
         IJwtTokenGenerator jwtTokenGenerator)
     {
         _userRepository = userRepository;
+        _tenantRepository = tenantRepository;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
     }
@@ -32,6 +36,16 @@ public class AuthService : IAuthService
         var isPasswordValid = _passwordHasher.Verify(dto.Password, user.PasswordHash);
         if (!isPasswordValid)
             throw new UnauthorizedAccessException("Credenciais inválidas.");
+
+        // SuperAdmin não pertence a nenhum tenant (TenantId vazio de
+        // propósito) — só usuários normais de uma empresa precisam checar se
+        // a empresa continua ativa.
+        if (user.Profile != UserProfile.SuperAdmin)
+        {
+            var tenant = await _tenantRepository.GetByIdAsync(user.TenantId, cancellationToken);
+            if (tenant == null || !tenant.IsActive)
+                throw new UnauthorizedAccessException("Esta empresa está desativada. Fale com o suporte.");
+        }
 
         var token = _jwtTokenGenerator.GenerateToken(user);
 
@@ -51,6 +65,7 @@ public class AuthService : IAuthService
 
         var ProfileName = user.Profile switch
         {
+            Domain.Enums.UserProfile.SuperAdmin => "Super Admin",
             Domain.Enums.UserProfile.Admin => "Administrador",
             Domain.Enums.UserProfile.Vendedor => "Vendedor",
             _ => "Cliente"
