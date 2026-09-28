@@ -1,6 +1,6 @@
 ﻿namespace AutoNexus.Domain.Entities;
 
-public class FipeHistory : EntityBase
+public class FipeHistory : TenantOwnedEntityBase
 {
     public Guid VehicleId { get; private set; }
     public decimal FipeValue { get; private set; }

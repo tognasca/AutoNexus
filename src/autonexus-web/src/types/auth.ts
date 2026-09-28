@@ -1,4 +1,5 @@
 ﻿export const UserProfile = {
+  SuperAdmin: 0,
   Admin: 1,
   Vendedor: 2,
   Cliente: 3,
@@ -12,6 +13,7 @@ export interface LoginResponse {
   email: string;
   profile: UserProfile; 
   profileName: string;
+  tenantId: string;
 }
 
 export interface User {
@@ -20,4 +22,5 @@ export interface User {
   email: string;
   profile: UserProfile;
   isActive: boolean;
+  tenantId: string;
 }

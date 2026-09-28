@@ -66,7 +66,7 @@ export const vehicleService = {
 
   update: async (id: string, input: UpdateVehicleInput): Promise<VehicleSummary> => {
     return await request<VehicleSummary>(`/vehicles/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });
@@ -74,7 +74,7 @@ export const vehicleService = {
 
   updateVehicle: async (id: string, input: UpdateVehicleInput): Promise<VehicleSummary> => {
     return await request<VehicleSummary>(`/vehicles/${id}`, {
-      method: 'PUT',
+      method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     });

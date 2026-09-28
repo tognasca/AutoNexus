@@ -54,7 +54,8 @@ public class AuthService : IAuthService
             user.Id,
             user.Name,
             user.Email,
-            user.Profile
+            user.Profile,
+            user.TenantId
         );
     }
 

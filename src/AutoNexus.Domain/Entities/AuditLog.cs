@@ -1,6 +1,6 @@
 namespace AutoNexus.Domain.Entities;
 
-public class AuditLog : EntityBase
+public class AuditLog : TenantOwnedEntityBase
 {
     public Guid? UserId { get; private set; }
     public string Operation { get; private set; } = string.Empty;

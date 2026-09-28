@@ -2,7 +2,7 @@
 
 namespace AutoNexus.Domain.Entities;
 
-public class VehicleDocument : EntityBase
+public class VehicleDocument : TenantOwnedEntityBase
 {
     public Guid VehicleId { get; private set; }
     public Guid DocumentCategoryId { get; private set; }

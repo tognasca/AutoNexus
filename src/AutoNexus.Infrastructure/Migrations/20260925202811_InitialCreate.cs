@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
+#pragma warning disable CA1814 // Prefer jagged arrays over multidimensional
+
 namespace AutoNexus.Infrastructure.Migrations
 {
     /// <inheritdoc />
@@ -23,7 +25,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     details = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
                     executedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -45,7 +48,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     isActive = table.Column<bool>(type: "boolean", nullable: false),
                     isSandbox = table.Column<bool>(type: "boolean", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -64,7 +68,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     referenceDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     notes = table.Column<string>(type: "text", nullable: true),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -80,7 +85,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     description = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
                     isActive = table.Column<bool>(type: "boolean", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -96,11 +102,84 @@ namespace AutoNexus.Infrastructure.Migrations
                     description = table.Column<string>(type: "character varying(250)", maxLength: 250, nullable: true),
                     isActive = table.Column<bool>(type: "boolean", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_document_categories", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "plans",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    price = table.Column<decimal>(type: "numeric(10,2)", nullable: false),
+                    isActive = table.Column<bool>(type: "boolean", nullable: false),
+                    maxUsers = table.Column<int>(type: "integer", nullable: true),
+                    maxVehicles = table.Column<int>(type: "integer", nullable: true),
+                    maxStorageMb = table.Column<int>(type: "integer", nullable: true),
+                    createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_plans", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tenant_settings",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    companyName = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    logoUrl = table.Column<string>(type: "character varying(500)", maxLength: 500, nullable: true),
+                    primaryColor = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
+                    timeZone = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    currency = table.Column<string>(type: "character varying(10)", maxLength: 10, nullable: false),
+                    createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tenant_settings", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tenant_subscriptions",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    planId = table.Column<Guid>(type: "uuid", nullable: false),
+                    status = table.Column<int>(type: "integer", nullable: false),
+                    startDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    endDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tenant_subscriptions", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "tenants",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "character varying(200)", maxLength: 200, nullable: false),
+                    slug = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    isActive = table.Column<bool>(type: "boolean", nullable: false),
+                    createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_tenants", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -114,7 +193,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     profile = table.Column<int>(type: "integer", nullable: false),
                     isActive = table.Column<bool>(type: "boolean", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -135,6 +215,20 @@ namespace AutoNexus.Infrastructure.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_vehicle_types", x => x.id);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "VehicleBrands",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    order = table.Column<int>(type: "integer", nullable: false),
+                    isActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VehicleBrands", x => x.id);
                 });
 
             migrationBuilder.CreateTable(
@@ -163,7 +257,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     soldByUserId = table.Column<Guid>(type: "uuid", nullable: true),
                     soldAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -182,6 +277,26 @@ namespace AutoNexus.Infrastructure.Migrations
                 });
 
             migrationBuilder.CreateTable(
+                name: "VehicleModels",
+                columns: table => new
+                {
+                    id = table.Column<Guid>(type: "uuid", nullable: false),
+                    vehicleBrandId = table.Column<Guid>(type: "uuid", nullable: false),
+                    name = table.Column<string>(type: "text", nullable: false),
+                    isActive = table.Column<bool>(type: "boolean", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_VehicleModels", x => x.id);
+                    table.ForeignKey(
+                        name: "FK_VehicleModels_VehicleBrands_vehicleBrandId",
+                        column: x => x.vehicleBrandId,
+                        principalTable: "VehicleBrands",
+                        principalColumn: "id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
                 name: "BuyerAccessLinks",
                 columns: table => new
                 {
@@ -193,7 +308,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     createdByUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     buyerName = table.Column<string>(type: "text", nullable: true),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -219,7 +335,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     responsibleUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -251,7 +368,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     acceptedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     termVersion = table.Column<string>(type: "text", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -276,7 +394,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     consultationDate = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                     source = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: true),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -308,7 +427,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     responsibleUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     notes = table.Column<string>(type: "character varying(2000)", maxLength: 2000, nullable: true),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -341,8 +461,10 @@ namespace AutoNexus.Infrastructure.Migrations
                     fileSize = table.Column<long>(type: "bigint", nullable: false),
                     uploadedByUserId = table.Column<Guid>(type: "uuid", nullable: false),
                     notes = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: true),
+                    showInCatalog = table.Column<bool>(type: "boolean", nullable: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -374,7 +496,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     order = table.Column<int>(type: "integer", nullable: false, defaultValue: 0),
                     isMain = table.Column<bool>(type: "boolean", nullable: false, defaultValue: false),
                     createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
-                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
+                    updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true),
+                    tenantId = table.Column<Guid>(type: "uuid", nullable: false, defaultValue: new Guid("00000000-0000-0000-0000-000000000001"))
                 },
                 constraints: table =>
                 {
@@ -387,6 +510,32 @@ namespace AutoNexus.Infrastructure.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.InsertData(
+                table: "plans",
+                columns: new[] { "id", "createdAt", "isActive", "maxStorageMb", "maxUsers", "maxVehicles", "name", "price", "updatedAt" },
+                values: new object[,]
+                {
+                    { new Guid("00000000-0000-0000-0000-0000000000f1"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, 500, 2, 10, "Free", 0m, null },
+                    { new Guid("00000000-0000-0000-0000-0000000000f2"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, 2000, 5, 50, "Basic", 99m, null },
+                    { new Guid("00000000-0000-0000-0000-0000000000f3"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, 10000, 20, 500, "Professional", 299m, null },
+                    { new Guid("00000000-0000-0000-0000-0000000000f4"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, null, null, null, "Enterprise", 999m, null }
+                });
+
+            migrationBuilder.InsertData(
+                table: "tenant_settings",
+                columns: new[] { "id", "companyName", "createdAt", "currency", "logoUrl", "primaryColor", "tenantId", "timeZone", "updatedAt" },
+                values: new object[] { new Guid("00000000-0000-0000-0000-0000000000b1"), "Empresa Padrão", new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), "BRL", null, "#15171B", new Guid("00000000-0000-0000-0000-000000000001"), "America/Sao_Paulo", null });
+
+            migrationBuilder.InsertData(
+                table: "tenant_subscriptions",
+                columns: new[] { "id", "createdAt", "endDate", "planId", "startDate", "status", "tenantId", "updatedAt" },
+                values: new object[] { new Guid("00000000-0000-0000-0000-0000000000a1"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), null, new Guid("00000000-0000-0000-0000-0000000000f1"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), 2, new Guid("00000000-0000-0000-0000-000000000001"), null });
+
+            migrationBuilder.InsertData(
+                table: "tenants",
+                columns: new[] { "id", "createdAt", "isActive", "name", "slug", "updatedAt" },
+                values: new object[] { new Guid("00000000-0000-0000-0000-000000000001"), new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc), true, "Empresa Padrão", "default", null });
+
             migrationBuilder.CreateIndex(
                 name: "IX_audit_logs_executedAt",
                 table: "audit_logs",
@@ -398,9 +547,34 @@ namespace AutoNexus.Infrastructure.Migrations
                 column: "resource");
 
             migrationBuilder.CreateIndex(
+                name: "IX_audit_logs_tenantId",
+                table: "audit_logs",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BankConfigs_tenantId",
+                table: "BankConfigs",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_BuyerAccessLinks_tenantId",
+                table: "BuyerAccessLinks",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_BuyerAccessLinks_vehicleId",
                 table: "BuyerAccessLinks",
                 column: "vehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_CompanyDocuments_tenantId",
+                table: "CompanyDocuments",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_cost_categories_tenantId",
+                table: "cost_categories",
+                column: "tenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_costs_costCategoryId",
@@ -408,9 +582,24 @@ namespace AutoNexus.Infrastructure.Migrations
                 column: "costCategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_costs_tenantId",
+                table: "costs",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_costs_vehicleId",
                 table: "costs",
                 column: "vehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_document_categories_tenantId",
+                table: "document_categories",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ElectronicAcceptances_tenantId",
+                table: "ElectronicAcceptances",
+                column: "tenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_ElectronicAcceptances_vehicleId",
@@ -418,9 +607,31 @@ namespace AutoNexus.Infrastructure.Migrations
                 column: "vehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_fipe_histories_tenantId",
+                table: "fipe_histories",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_fipe_histories_vehicleId_referenceMonth_referenceYear",
                 table: "fipe_histories",
                 columns: new[] { "vehicleId", "referenceMonth", "referenceYear" });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tenant_settings_tenantId",
+                table: "tenant_settings",
+                column: "tenantId",
+                unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tenant_subscriptions_tenantId",
+                table: "tenant_subscriptions",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_tenants_slug",
+                table: "tenants",
+                column: "slug",
+                unique: true);
 
             migrationBuilder.CreateIndex(
                 name: "IX_trades_deliveredVehicleId",
@@ -433,10 +644,20 @@ namespace AutoNexus.Infrastructure.Migrations
                 column: "receivedVehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_trades_tenantId",
+                table: "trades",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_users_email",
                 table: "users",
                 column: "email",
                 unique: true);
+
+            migrationBuilder.CreateIndex(
+                name: "IX_users_tenantId",
+                table: "users",
+                column: "tenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_vehicle_documents_documentCategoryId",
@@ -444,14 +665,29 @@ namespace AutoNexus.Infrastructure.Migrations
                 column: "documentCategoryId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_vehicle_documents_tenantId",
+                table: "vehicle_documents",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_vehicle_documents_vehicleId",
                 table: "vehicle_documents",
                 column: "vehicleId");
 
             migrationBuilder.CreateIndex(
+                name: "IX_vehicle_photos_tenantId",
+                table: "vehicle_photos",
+                column: "tenantId");
+
+            migrationBuilder.CreateIndex(
                 name: "IX_vehicle_photos_vehicleId",
                 table: "vehicle_photos",
                 column: "vehicleId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_VehicleModels_vehicleBrandId",
+                table: "VehicleModels",
+                column: "vehicleBrandId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_vehicles_brand",
@@ -477,6 +713,11 @@ namespace AutoNexus.Infrastructure.Migrations
                 name: "IX_vehicles_status",
                 table: "vehicles",
                 column: "status");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_vehicles_tenantId",
+                table: "vehicles",
+                column: "tenantId");
 
             migrationBuilder.CreateIndex(
                 name: "IX_vehicles_vehicleTypeId",
@@ -509,6 +750,18 @@ namespace AutoNexus.Infrastructure.Migrations
                 name: "fipe_histories");
 
             migrationBuilder.DropTable(
+                name: "plans");
+
+            migrationBuilder.DropTable(
+                name: "tenant_settings");
+
+            migrationBuilder.DropTable(
+                name: "tenant_subscriptions");
+
+            migrationBuilder.DropTable(
+                name: "tenants");
+
+            migrationBuilder.DropTable(
                 name: "trades");
 
             migrationBuilder.DropTable(
@@ -518,6 +771,9 @@ namespace AutoNexus.Infrastructure.Migrations
                 name: "vehicle_photos");
 
             migrationBuilder.DropTable(
+                name: "VehicleModels");
+
+            migrationBuilder.DropTable(
                 name: "cost_categories");
 
             migrationBuilder.DropTable(
@@ -525,6 +781,9 @@ namespace AutoNexus.Infrastructure.Migrations
 
             migrationBuilder.DropTable(
                 name: "vehicles");
+
+            migrationBuilder.DropTable(
+                name: "VehicleBrands");
 
             migrationBuilder.DropTable(
                 name: "users");

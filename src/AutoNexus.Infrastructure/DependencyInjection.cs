@@ -20,27 +20,31 @@ public static class DependencyInjection
         services.AddDbContext<AutoNexusDbContext>(options =>
             options.UseNpgsql(connectionString));
 
+        // Multi-tenancy: ITenantContext precisa de acesso ao HttpContext para
+        // ler o claim "tenant_id" do usuário autenticado (ver TenantContext).
+        services.AddHttpContextAccessor();
+        services.AddScoped<ITenantContext, TenantContext>();
+
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ILookupRepository, LookupRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ITenantRepository, TenantRepository>();
+        services.AddScoped<IPlanRepository, PlanRepository>();
+        services.AddScoped<ITenantSubscriptionRepository, TenantSubscriptionRepository>();
+        services.AddScoped<ITenantSettingRepository, TenantSettingRepository>();
         services.AddScoped<ITradeRepository, TradeRepository>();
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IBuyerLinkRepository, BuyerLinkRepository>();
         services.AddScoped<IAcceptanceRepository, AcceptanceRepository>();
-        services.AddScoped<IBankConfigRepository, BankConfigRepository>();
-        services.AddScoped<IPlanRepository, PlanRepository>();
-        services.AddScoped<ITenantSubscriptionRepository, TenantSubscriptionRepository>();
-        services.AddScoped<ITenantSettingRepository, TenantSettingRepository>();
-        services.AddScoped<ITenantContext, TenantContext>();
+        services.AddScoped<IBankConfigRepository, BankConfigRepository>(); // Registrado aqui
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IBankAdapter, SantanderBankAdapter>();
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
-        services.AddHttpContextAccessor();
+        
 
         return services;
     }

@@ -2,7 +2,7 @@ using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Domain.Entities;
 
-public class Trade : EntityBase
+public class Trade : TenantOwnedEntityBase
 {
     public Guid ReceivedVehicleId { get; private set; }
     public Guid DeliveredVehicleId { get; private set; }

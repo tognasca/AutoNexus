@@ -237,7 +237,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
 
   const handleSetMainPhoto = async (photoId: string) => {
     try {
-      await request(`/vehicles/${form.id}/photos/${photoId}/main`, { method: 'PUT' });
+      await request(`/vehicles/${form.id}/photos/${photoId}/main`, { method: 'PATCH' });
       const updated = await vehicleService.getById(form.id);
       setPhotos(updated.photos || []);
     } catch (err: any) {

@@ -1,6 +1,7 @@
 using System.Text;
 using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
+using AutoNexus.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -31,7 +32,33 @@ public class PublicCatalogController : ControllerBase
         var vehicles = await _vehicleService.GetByListAsync(cancellationToken);
         if (vehicles == null) return Ok(new List<object>());
 
-        return Ok(vehicles);
+        // IMPORTANTE: nunca repassar aqui campos internos do veículo
+        // (purchaseValue, plate, custos, margem). Este endpoint é público
+        // e sem autenticação — qualquer campo incluído abaixo fica visível
+        // para qualquer visitante do site.
+        var publicVehicles = vehicles.Select(v => new
+        {
+            id = v.Id,
+            vehicleTypeName = v.VehicleTypeName,
+            brand = v.Brand,
+            model = v.Model,
+            version = v.Version,
+            manufacturingYear = v.ManufacturingYear,
+            modelYear = v.ModelYear,
+            mileage = v.Mileage,
+            color = v.Color,
+            fuel = v.Fuel?.ToString(),
+            transmission = v.Transmission?.ToString(),
+            status = v.Status.ToString(),
+            // Nunca cair para PurchaseValue aqui: um veículo sem preço
+            // anunciado simplesmente não deve mostrar preço nenhum.
+            listedValue = v.ListedValue,
+            saleValue = v.SaleValue,
+            mainPhotoUrl = v.MainPhotoUrl,
+            createdAt = v.CreatedAt
+        });
+
+        return Ok(publicVehicles);
     }
 
     [HttpGet("catalog/{id:guid}")]
@@ -43,12 +70,19 @@ public class PublicCatalogController : ControllerBase
             return NotFound(new { message = "Veículo não encontrado no estoque." });
         }
 
+        // Veículos em preparação ou em processo interno de troca ainda não
+        // devem aparecer publicamente — tratamos como "não encontrado" para
+        // não revelar estoque que ainda não foi publicado.
+        if (vehicle.Status == VehicleStatus.InPreparation || vehicle.Status == VehicleStatus.EmTroca)
+        {
+            return NotFound(new { message = "Veículo não encontrado no estoque." });
+        }
+
         // Filtra fotos e documentos marcados com ShowInCatalog = true
         var publicPhotos = vehicle.Photos?
             .Select(p => new {
                 id = p.Id,
                 url = p.StoragePath,
-                storagePath = p.StoragePath,
                 isMain = p.IsMain
             }).ToList();
 
@@ -59,25 +93,29 @@ public class PublicCatalogController : ControllerBase
                 name = d.Name,
                 documentType = d.CategoryName,
                 fileUrl = d.StoragePath,
-                filePath = d.StoragePath,
                 createdAt = d.CreatedAt
             }).ToList();
 
+        // IMPORTANTE: assim como no endpoint de listagem, nunca incluir aqui
+        // purchaseValue, plate, chassis, renavam, custos (Costs) ou
+        // documentos com ShowInCatalog = false — são dados internos/PII que
+        // nunca devem ser enviados ao frontend público.
         var detail = new {
             id = vehicle.Id,
+            vehicleTypeName = vehicle.VehicleTypeName,
             brand = vehicle.Brand,
             model = vehicle.Model,
             version = vehicle.Version,
             manufacturingYear = vehicle.ManufacturingYear,
             modelYear = vehicle.ModelYear,
-            plate = vehicle.Plate,
             mileage = vehicle.Mileage,
             color = vehicle.Color,
-            fuel = (int?)vehicle.Fuel,
-            transmission = (int?)vehicle.Transmission,
-            status = (int)vehicle.Status,
-            listedValue = vehicle.ListedValue ?? vehicle.PurchaseValue,
-            purchaseValue = vehicle.PurchaseValue,
+            fuel = vehicle.Fuel?.ToString(),
+            transmission = vehicle.Transmission?.ToString(),
+            status = vehicle.Status.ToString(),
+            listedValue = vehicle.ListedValue,
+            saleValue = vehicle.SaleValue,
+            fipeValue = vehicle.LatestFipeValue,
             notes = vehicle.Notes,
             mainPhotoUrl = vehicle.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? vehicle.Photos?.FirstOrDefault()?.StoragePath,
             photos = publicPhotos,

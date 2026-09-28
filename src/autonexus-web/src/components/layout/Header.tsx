@@ -7,6 +7,7 @@ export function Header() {
 
   const getProfileName = (profile?: number) => {
     switch (profile) {
+      case 0: return 'Super Admin';
       case 1: return 'Admin';
       case 2: return 'Vendedor';
       case 3: return 'Cliente';

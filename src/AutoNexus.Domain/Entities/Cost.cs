@@ -1,6 +1,6 @@
 namespace AutoNexus.Domain.Entities;
 
-public class Cost : EntityBase
+public class Cost : TenantOwnedEntityBase
 {
     public Guid VehicleId { get; private set; }
     public Guid CostCategoryId { get; private set; }

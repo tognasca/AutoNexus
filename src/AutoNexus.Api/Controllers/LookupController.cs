@@ -25,6 +25,27 @@ public class LookupsController : ControllerBase
         return Ok(types);
     }
 
+    // Faltava: o repositório (GetBrandsAsync/GetModelsByBrandAsync) já existia,
+    // mas ninguém tinha exposto essas duas rotas aqui — o frontend
+    // (lookupService.ts) já esperava exatamente esses caminhos.
+    [HttpGet("brands")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetBrands(CancellationToken cancellationToken)
+    {
+        var brands = await _lookupRepository.GetBrandsAsync(true, cancellationToken);
+        var dtos = brands.Select(b => new LookupItemDto(b.Id, b.Name, null));
+        return Ok(dtos);
+    }
+
+    [HttpGet("brands/{brandId:guid}/models")]
+    [AllowAnonymous]
+    public async Task<IActionResult> GetModelsByBrand(Guid brandId, CancellationToken cancellationToken)
+    {
+        var models = await _lookupRepository.GetModelsByBrandAsync(brandId, true, cancellationToken);
+        var dtos = models.Select(m => new LookupItemDto(m.Id, m.Name, null));
+        return Ok(dtos);
+    }
+
     [HttpGet("cost-categories")]
     [Authorize]
     public async Task<IActionResult> GetCostCategories(CancellationToken cancellationToken)

@@ -1,6 +1,6 @@
 ﻿using System;
 namespace AutoNexus.Domain.Entities;
-public class CompanyDocument : EntityBase
+public class CompanyDocument : TenantOwnedEntityBase
 {
     public string Title { get; private set; } = string.Empty;
     public string Category { get; private set; } = string.Empty;

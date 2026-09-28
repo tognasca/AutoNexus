@@ -34,7 +34,11 @@ public class JwtTokenGenerator : IJwtTokenGenerator
             new Claim(JwtRegisteredClaimNames.Email, user.Email),
             new Claim(JwtRegisteredClaimNames.Name, user.Name),
             new Claim(ClaimTypes.Role, user.Profile.ToString()),
-            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+            // Multi-tenancy: ITenantContext (Infrastructure) lê este claim para
+            // resolver o tenant de toda a requisição — nunca um valor vindo do
+            // frontend. Ver AutoNexus.Infrastructure.Services.TenantContext.
+            new Claim("tenant_id", user.TenantId.ToString())
         };
 
         var token = new JwtSecurityToken(
