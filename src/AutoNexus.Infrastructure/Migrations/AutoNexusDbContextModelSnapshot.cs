@@ -59,6 +59,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("resourceId");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -72,6 +78,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("ExecutedAt");
 
                     b.HasIndex("Resource");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("audit_logs", (string)null);
                 });
@@ -127,11 +135,19 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("name");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("BankConfigs");
                 });
@@ -163,6 +179,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("isRevoked");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<string>("Token")
                         .IsRequired()
                         .HasColumnType("text")
@@ -177,6 +199,8 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("vehicleId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleId");
 
@@ -216,6 +240,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("referenceDate");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<string>("Title")
                         .IsRequired()
                         .HasColumnType("text")
@@ -226,6 +256,8 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("updatedAt");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("CompanyDocuments");
                 });
@@ -264,6 +296,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("responsibleUserId");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -280,6 +318,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CostCategoryId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleId");
 
@@ -312,11 +352,19 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("cost_categories", (string)null);
                 });
@@ -347,11 +395,19 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("document_categories", (string)null);
                 });
@@ -390,6 +446,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("text")
                         .HasColumnName("ipAddress");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<string>("TermVersion")
                         .IsRequired()
                         .HasColumnType("text")
@@ -404,6 +466,8 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("vehicleId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleId");
 
@@ -443,6 +507,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(100)")
                         .HasColumnName("source");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -452,6 +522,8 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("vehicleId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleId", "ReferenceMonth", "ReferenceYear");
 
@@ -487,11 +559,12 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("name");
 
                     b.Property<decimal>("Price")
-                        .HasColumnType("numeric")
+                        .HasColumnType("decimal(10,2)")
                         .HasColumnName("price");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -500,7 +573,50 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Plans");
+                    b.ToTable("plans", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000f1"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MaxStorageMb = 500,
+                            MaxUsers = 2,
+                            MaxVehicles = 10,
+                            Name = "Free",
+                            Price = 0m
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000f2"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MaxStorageMb = 2000,
+                            MaxUsers = 5,
+                            MaxVehicles = 50,
+                            Name = "Basic",
+                            Price = 99m
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000f3"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            MaxStorageMb = 10000,
+                            MaxUsers = 20,
+                            MaxVehicles = 500,
+                            Name = "Professional",
+                            Price = 299m
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000f4"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "Enterprise",
+                            Price = 999m
+                        });
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Tenant", b =>
@@ -520,12 +636,14 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
                     b.Property<string>("Slug")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("slug");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -534,7 +652,20 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Tenants");
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("tenants", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-000000000001"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            Name = "Empresa Padrão",
+                            Slug = "default"
+                        });
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
@@ -546,7 +677,8 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.Property<string>("CompanyName")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("companyName");
 
                     b.Property<DateTime>("CreatedAt")
@@ -555,25 +687,31 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.Property<string>("Currency")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
                         .HasColumnName("currency");
 
                     b.Property<string>("LogoUrl")
-                        .HasColumnType("text")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
                         .HasColumnName("logoUrl");
 
                     b.Property<string>("PrimaryColor")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
                         .HasColumnName("primaryColor");
 
                     b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
                         .HasColumnName("tenantId");
 
                     b.Property<string>("TimeZone")
                         .IsRequired()
-                        .HasColumnType("text")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
                         .HasColumnName("timeZone");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -582,7 +720,22 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TenantSettings");
+                    b.HasIndex("TenantId")
+                        .IsUnique();
+
+                    b.ToTable("tenant_settings", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000b1"),
+                            CompanyName = "Empresa Padrão",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Currency = "BRL",
+                            PrimaryColor = "#15171B",
+                            TenantId = new Guid("00000000-0000-0000-0000-000000000001"),
+                            TimeZone = "America/Sao_Paulo"
+                        });
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSubscription", b =>
@@ -613,7 +766,9 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("status");
 
                     b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
                         .HasColumnName("tenantId");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -622,7 +777,20 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("TenantSubscriptions");
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("tenant_subscriptions", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000a1"),
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            PlanId = new Guid("00000000-0000-0000-0000-0000000000f1"),
+                            StartDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Status = 2,
+                            TenantId = new Guid("00000000-0000-0000-0000-000000000001")
+                        });
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Trade", b =>
@@ -691,6 +859,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("responsibleUserId");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime>("TradeDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("tradeDate");
@@ -704,6 +878,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("DeliveredVehicleId");
 
                     b.HasIndex("ReceivedVehicleId");
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("trades", (string)null);
                 });
@@ -746,7 +922,9 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("profile");
 
                     b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
                         .HasColumnName("tenantId");
 
                     b.Property<DateTime?>("UpdatedAt")
@@ -757,6 +935,8 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("TenantId");
 
                     b.ToTable("users", (string)null);
                 });
@@ -850,6 +1030,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("status");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<int?>("Transmission")
                         .HasColumnType("integer")
                         .HasColumnName("transmission");
@@ -878,6 +1064,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("SoldByUserId");
 
                     b.HasIndex("Status");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleTypeId");
 
@@ -961,6 +1149,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("storagePath");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -976,6 +1170,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("DocumentCategoryId");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleId");
 
@@ -1054,6 +1250,12 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(1000)")
                         .HasColumnName("storagePath");
 
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -1063,6 +1265,8 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("vehicleId");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleId");
 

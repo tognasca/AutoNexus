@@ -15,6 +15,8 @@ public class VehicleSummaryDto
     public string? Plate { get; set; }
     public int Mileage { get; set; }
     public string? Color { get; set; }
+    public FuelType? Fuel { get; set; }
+    public TransmissionType? Transmission { get; set; }
     public VehicleStatus Status { get; set; }
     public decimal PurchaseValue { get; set; }
     public decimal? ListedValue { get; set; }

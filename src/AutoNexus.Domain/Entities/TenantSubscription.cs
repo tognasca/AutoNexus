@@ -2,6 +2,12 @@ using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Domain.Entities;
 
+/// <summary>
+/// Vínculo entre um Tenant e um Plan. Ainda não há cobrança de verdade (ver
+/// requisito 10 do documento original) — isso só registra qual plano cada
+/// empresa está usando e o status, preparado para futuramente plugar um
+/// gateway (Stripe, Mercado Pago etc.) sem precisar redesenhar isso.
+/// </summary>
 public class TenantSubscription : TenantOwnedEntityBase
 {
     public Guid PlanId { get; private set; }
@@ -11,11 +17,8 @@ public class TenantSubscription : TenantOwnedEntityBase
 
     protected TenantSubscription() { }
 
-    public TenantSubscription(Guid planId, SubscriptionStatus status = SubscriptionStatus.Active)
+    public TenantSubscription(Guid planId, SubscriptionStatus status = SubscriptionStatus.Trialing)
     {
-        if (planId == Guid.Empty)
-            throw new ArgumentException("Plano é obrigatório.", nameof(planId));
-
         PlanId = planId;
         Status = status;
         StartDate = DateTime.UtcNow;
@@ -23,9 +26,6 @@ public class TenantSubscription : TenantOwnedEntityBase
 
     public void ChangePlan(Guid planId)
     {
-        if (planId == Guid.Empty)
-            throw new ArgumentException("Plano é obrigatório.", nameof(planId));
-
         PlanId = planId;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -33,15 +33,19 @@ public class TenantSubscription : TenantOwnedEntityBase
     public void Activate()
     {
         Status = SubscriptionStatus.Active;
-        if (EndDate.HasValue)
-            EndDate = null;
         UpdatedAt = DateTime.UtcNow;
     }
 
-    public void Deactivate()
+    public void Suspend()
     {
-        Status = SubscriptionStatus.Cancelled;
-        EndDate ??= DateTime.UtcNow;
+        Status = SubscriptionStatus.Suspended;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void Cancel()
+    {
+        Status = SubscriptionStatus.Canceled;
+        EndDate = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 }

@@ -27,7 +27,8 @@ public class VehicleRepository : IVehicleRepository
                 .Include(v => v.Photos)
                 .Include(v => v.Costs)
                 .ThenInclude(c => c.CostCategory)
-                .Include(v => v.Documents); // <-- Carrega os documentos cadastrados
+                .Include(v => v.Documents) // <-- Carrega os documentos cadastrados
+                .Include(v => v.FipeHistories);
         }
 
         return await query.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
@@ -168,7 +169,6 @@ public class VehicleRepository : IVehicleRepository
     public async Task AddPhotoAsync(VehiclePhoto photo, CancellationToken cancellationToken = default)
     {
         await _context.VehiclePhotos.AddAsync(photo, cancellationToken);
-        await _context.SaveChangesAsync(cancellationToken);
     }
 
 

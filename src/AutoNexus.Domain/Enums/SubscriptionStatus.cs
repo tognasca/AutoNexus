@@ -2,9 +2,9 @@ namespace AutoNexus.Domain.Enums;
 
 public enum SubscriptionStatus
 {
-    Trialing = 0,
-    Active = 1,
-    Paused = 2,
-    Cancelled = 3,
-    Expired = 4
+    Trialing = 1,
+    Active = 2,
+    PastDue = 3,
+    Canceled = 4,
+    Suspended = 5
 }

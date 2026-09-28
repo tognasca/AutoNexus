@@ -68,7 +68,8 @@ public record VehicleDetailDto(
     DateTime? UpdatedAt,
     IEnumerable<VehiclePhotoDto> Photos,
     IEnumerable<VehicleCostDto> Costs,
-    IEnumerable<VehicleDocumentDto>? Documents = null
+    IEnumerable<VehicleDocumentDto>? Documents = null,
+    decimal? LatestFipeValue = null
 );
 
 public record CreateVehicleDto(

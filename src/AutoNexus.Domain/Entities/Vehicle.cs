@@ -2,7 +2,7 @@ using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Domain.Entities;
 
-public class Vehicle : EntityBase
+public class Vehicle : TenantOwnedEntityBase
 {
     public Guid VehicleTypeId { get; private set; }
     public string Brand { get; private set; } = string.Empty;

@@ -128,61 +128,6 @@ public class VehiclesController : ControllerBase
         return Ok(vehicle.Photos);
     }
 
-    [HttpPost("{id:guid}/photos")]
-    public async Task<IActionResult> UploadPhotos(Guid id, [FromForm] IFormFileCollection files)
-    {
-        if (files == null || files.Count == 0) return BadRequest("Nenhum arquivo enviado.");
-
-        var uploadDir = Path.Combine(_environment.ContentRootPath, "uploads", "vehicles");
-        if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
-
-        var photoDtos = new List<VehiclePhotoDto>();
-
-        foreach (var file in files)
-        {
-            var extension = Path.GetExtension(file.FileName);
-            if (string.IsNullOrWhiteSpace(extension))
-            {
-                extension = file.ContentType switch
-                {
-                    "image/png" => ".png",
-                    "image/webp" => ".webp",
-                    _ => ".jpg"
-                };
-            }
-
-            var fileName = $"{Guid.NewGuid()}{extension}";
-            var filePath = Path.Combine(uploadDir, fileName);
-            var relativePath = Path.Combine("uploads", "vehicles", fileName).Replace("\\", "/");
-
-            using (var stream = new FileStream(filePath, FileMode.Create))
-            {
-                await file.CopyToAsync(stream);
-            }
-
-            var photo = new VehiclePhoto(id, fileName, file.FileName ?? fileName, relativePath,file.Length,0,false);
-                       await _vehicleService.AddPhotoAsync(photo);
-
-            photoDtos.Add(new VehiclePhotoDto(photo.Id, photo.FileName, photo.StoragePath, photo.IsMain, photo.Order));
-        }
-
-        return Ok(photoDtos);
-    }
-
-    [HttpPut("{id:guid}/photos/{photoId:guid}/main")]
-    public async Task<IActionResult> SetMainPhoto(Guid id, Guid photoId, CancellationToken cancellationToken)
-    {
-        await _vehicleService.SetMainPhotoAsync(id, photoId, cancellationToken);
-        return Ok(new { message = "Foto principal definida com sucesso." });
-    }
-
-    [HttpDelete("{id:guid}/photos/{photoId:guid}")]
-    public async Task<IActionResult> DeletePhoto(Guid id, Guid photoId, CancellationToken cancellationToken)
-    {
-        await _vehicleService.DeletePhotoAsync(id, photoId, cancellationToken);
-        return NoContent();
-    }
-
     [HttpGet("documents/{fileName}")]
     [AllowAnonymous]
     public IActionResult GetDocumentFile(string fileName)

@@ -18,7 +18,7 @@ public class LocalStorageService : IStorageService
 
     public async Task<string> SaveFileAsync(Stream fileStream, string fileName, string folder, CancellationToken cancellationToken = default)
     {
-        var root = GetWebRootPath();
+        var root = GetUploadsRoot();
 
         // Isola fisicamente os arquivos de cada empresa: novo upload sempre
         // cai em /uploads/tenants/{tenantId}/{folder}/... Isso é só para
@@ -36,7 +36,7 @@ public class LocalStorageService : IStorageService
             ? _tenantContext.TenantId.ToString()
             : "shared";
 
-        var targetDirectory = Path.Combine(root, "uploads", "tenants", tenantSegment, folder);
+        var targetDirectory = Path.Combine(root, "tenants", tenantSegment, folder);
         if (!Directory.Exists(targetDirectory))
         {
             Directory.CreateDirectory(targetDirectory);
@@ -58,9 +58,7 @@ public class LocalStorageService : IStorageService
     {
         if (string.IsNullOrWhiteSpace(relativePath)) return Task.CompletedTask;
 
-        var root = GetWebRootPath();
-        var sanitized = relativePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
-        var fullPath = Path.Combine(root, sanitized);
+        var fullPath = ResolveStoredPath(relativePath);
 
         if (File.Exists(fullPath))
         {
@@ -72,9 +70,7 @@ public class LocalStorageService : IStorageService
 
     public async Task<byte[]> GetFileBytesAsync(string relativePath, CancellationToken cancellationToken = default)
     {
-        var root = GetWebRootPath();
-        var sanitized = relativePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
-        var fullPath = Path.Combine(root, sanitized);
+        var fullPath = ResolveStoredPath(relativePath);
 
         if (!File.Exists(fullPath))
             throw new FileNotFoundException("Arquivo não encontrado no servidor.", fullPath);
@@ -84,15 +80,13 @@ public class LocalStorageService : IStorageService
 
     public async Task<byte[]> CreateZipAsync(IEnumerable<(string RelativePath, string EntryName)> files, CancellationToken cancellationToken = default)
     {
-        var root = GetWebRootPath();
         using var memoryStream = new MemoryStream();
 
         using (var archive = new ZipArchive(memoryStream, ZipArchiveMode.Create, true))
         {
             foreach (var (relativePath, entryName) in files)
             {
-                var sanitized = relativePath.TrimStart('/').Replace("/", Path.DirectorySeparatorChar.ToString());
-                var fullPath = Path.Combine(root, sanitized);
+                var fullPath = ResolveStoredPath(relativePath);
 
                 if (File.Exists(fullPath))
                 {
@@ -107,8 +101,29 @@ public class LocalStorageService : IStorageService
         return memoryStream.ToArray();
     }
 
-    private string GetWebRootPath()
+    private string GetUploadsRoot()
     {
-        return _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+        var uploadsRoot = Path.Combine(_environment.ContentRootPath, "uploads");
+        if (!Directory.Exists(uploadsRoot))
+        {
+            Directory.CreateDirectory(uploadsRoot);
+        }
+
+        return uploadsRoot;
+    }
+
+    private string ResolveStoredPath(string relativePath)
+    {
+        var sanitized = relativePath
+            .TrimStart('/')
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
+
+        if (sanitized.StartsWith("uploads" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            sanitized = sanitized["uploads".Length..].TrimStart(Path.DirectorySeparatorChar);
+        }
+
+        return Path.Combine(GetUploadsRoot(), sanitized);
     }
 }

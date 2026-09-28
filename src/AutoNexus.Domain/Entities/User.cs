@@ -2,14 +2,13 @@ using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Domain.Entities;
 
-public class User : EntityBase
+public class User : TenantOwnedEntityBase
 {
     public string Name { get; private set; } = string.Empty;
     public string Email { get; private set; } = string.Empty;
     public string PasswordHash { get; private set; } = string.Empty;
     public UserProfile Profile { get; private set; }
     public bool IsActive { get; private set; }
-    public Guid TenantId { get; internal set; }
 
     public User(string name, string email, string passwordHash, UserProfile profile)
     {

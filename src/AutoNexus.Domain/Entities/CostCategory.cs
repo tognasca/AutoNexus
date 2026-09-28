@@ -1,6 +1,6 @@
 namespace AutoNexus.Domain.Entities;
 
-public class CostCategory : EntityBase
+public class CostCategory : TenantOwnedEntityBase
 {
     public string Name { get; private set; } = string.Empty;
     public string? Description { get; private set; }

@@ -1,39 +1,36 @@
-using System.Security.Claims;
 using AutoNexus.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 
 namespace AutoNexus.Infrastructure.Services;
 
+/// <summary>
+/// Implementação real de ITenantContext. Registrada como Scoped — uma
+/// instância por requisição HTTP (ou por escopo de DI criado manualmente,
+/// como no seed de inicialização, onde não existe HttpContext).
+///
+/// O TenantId é lido exclusivamente do claim "tenant_id" do token JWT já
+/// autenticado por ASP.NET Core (ou seja, já validado quanto à assinatura e
+/// expiração antes de chegar aqui). Isso é proposital: o TenantId nunca deve
+/// vir de um header, query string ou corpo enviados livremente pelo cliente.
+/// </summary>
 public class TenantContext : ITenantContext
 {
-    private readonly IHttpContextAccessor _httpContextAccessor;
+    public Guid TenantId { get; }
+    public bool HasTenant { get; }
 
     public TenantContext(IHttpContextAccessor httpContextAccessor)
     {
-        _httpContextAccessor = httpContextAccessor;
-    }
+        var claimValue = httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
 
-    public bool HasTenant => TenantId != Guid.Empty;
-
-    public Guid TenantId
-    {
-        get
+        if (!string.IsNullOrEmpty(claimValue) && Guid.TryParse(claimValue, out var parsedTenantId))
         {
-            var httpContext = _httpContextAccessor.HttpContext;
-            if (httpContext == null)
-                return Guid.Empty;
-
-            var rawClaim = httpContext.User?.Claims
-                .FirstOrDefault(c =>
-                    c.Type == "tenantId" ||
-                    c.Type == "TenantId" ||
-                    c.Type == ClaimTypes.GroupSid ||
-                    c.Type == ClaimTypes.NameIdentifier);
-
-            if (rawClaim == null)
-                return Guid.Empty;
-
-            return Guid.TryParse(rawClaim.Value, out var tenantId) ? tenantId : Guid.Empty;
+            TenantId = parsedTenantId;
+            HasTenant = true;
+        }
+        else
+        {
+            TenantId = Guid.Empty;
+            HasTenant = false;
         }
     }
 }

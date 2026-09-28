@@ -1,6 +1,6 @@
 ﻿namespace AutoNexus.Domain.Entities;
 
-public class BuyerAccessLink : EntityBase
+public class BuyerAccessLink : TenantOwnedEntityBase
 {
     public Guid VehicleId { get; private set; }
     public string Token { get; private set; } = string.Empty;

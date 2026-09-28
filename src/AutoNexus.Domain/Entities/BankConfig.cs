@@ -2,7 +2,7 @@ using System;
 
 namespace AutoNexus.Domain.Entities;
 
-public class BankConfig : EntityBase
+public class BankConfig : TenantOwnedEntityBase
 {
     public string BankCode { get; private set; } = string.Empty;
     public string Name { get; private set; } = string.Empty;

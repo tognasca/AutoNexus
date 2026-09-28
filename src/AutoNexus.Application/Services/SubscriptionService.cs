@@ -18,8 +18,7 @@ public class SubscriptionService : ISubscriptionService
     public async Task<TenantSubscriptionDto?> GetCurrentAsync(CancellationToken cancellationToken = default)
     {
         var subscription = await _subscriptionRepository.GetCurrentAsync(cancellationToken);
-        if (subscription == null)
-            return null;
+        if (subscription == null) return null;
 
         var plan = await _planRepository.GetByIdAsync(subscription.PlanId, cancellationToken);
         return new TenantSubscriptionDto(

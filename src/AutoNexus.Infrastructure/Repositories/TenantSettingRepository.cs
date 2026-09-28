@@ -14,28 +14,18 @@ public class TenantSettingRepository : ITenantSettingRepository
         _context = context;
     }
 
-    public async Task<TenantSetting?> GetCurrentAsync(CancellationToken cancellationToken = default)
+    public Task<TenantSetting?> GetCurrentAsync(CancellationToken cancellationToken = default)
+        => _context.TenantSettings.FirstOrDefaultAsync(cancellationToken);
+
+    public async Task AddAsync(TenantSetting settings, CancellationToken cancellationToken = default)
+        => await _context.TenantSettings.AddAsync(settings, cancellationToken);
+
+    public async Task AddForTenantAsync(TenantSetting settings, Guid tenantId, CancellationToken cancellationToken = default)
     {
-        var currentTenantId = _context.TenantSettings
-            .Select(s => s.TenantId)
-            .FirstOrDefault();
-
-        if (currentTenantId == Guid.Empty)
-            return null;
-
-        return await _context.TenantSettings
-            .FirstOrDefaultAsync(s => s.TenantId == currentTenantId, cancellationToken);
+        settings.TenantId = tenantId;
+        await _context.TenantSettings.AddAsync(settings, cancellationToken);
     }
 
-    public async Task AddAsync(TenantSetting setting, CancellationToken cancellationToken = default)
-        => await _context.TenantSettings.AddAsync(setting, cancellationToken);
-
-    public async Task AddForTenantAsync(TenantSetting setting, Guid tenantId, CancellationToken cancellationToken = default)
-    {
-        setting.TenantId = tenantId;
-        await _context.TenantSettings.AddAsync(setting, cancellationToken);
-    }
-
-    public void Update(TenantSetting setting)
-        => _context.TenantSettings.Update(setting);
+    public void Update(TenantSetting settings)
+        => _context.TenantSettings.Update(settings);
 }

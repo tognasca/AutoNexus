@@ -86,6 +86,11 @@ public static class DbInitializer
                 new("Transporte", "Frete e guincho"),
                 new("Outro", "Outros custos operacionais")
             };
+            // Fora de uma requisição HTTP não há tenant autenticado, então o
+            // AutoNexusDbContext não preenche TenantId sozinho (ver StampTenantId) —
+            // atribuímos explicitamente ao tenant padrão. O setter é internal e
+            // só acessível dentro de AutoNexus.Infrastructure (mesmo assembly).
+            costCategories.ForEach(c => c.TenantId = Tenant.DefaultTenantId);
             await context.CostCategories.AddRangeAsync(costCategories);
         }
 
@@ -102,6 +107,7 @@ public static class DbInitializer
                 new("Comprovantes", "Comprovantes diversos"),
                 new("Outros", "Demais documentos anexos")
             };
+            docCategories.ForEach(d => d.TenantId = Tenant.DefaultTenantId);
             await context.DocumentCategories.AddRangeAsync(docCategories);
         }
 
@@ -110,6 +116,7 @@ public static class DbInitializer
         {
             var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123456", workFactor: 12);
             var adminUser = new User("Administrador", "admin@autonexus.com", adminPasswordHash, UserProfile.Admin);
+            adminUser.TenantId = Tenant.DefaultTenantId;
             await context.Users.AddAsync(adminUser);
         }
 
@@ -137,6 +144,7 @@ public static class DbInitializer
         new("bv", "Banco BV", 1.79m, "https://api.bv.com.br/sandbox", "SANDBOX_KEY_BV", "SANDBOX_SECRET", "STORE_123", true),
         new("bradesco", "Bradesco Financiamentos", 1.62m, "https://api.bradesco.com.br/sandbox", "SANDBOX_KEY_BRADESCO", "SANDBOX_SECRET", "STORE_123", true)
     };
+            defaultBanks.ForEach(b => b.TenantId = Tenant.DefaultTenantId);
 
             await context.Set<BankConfig>().AddRangeAsync(defaultBanks);
             await context.SaveChangesAsync();

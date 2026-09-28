@@ -1,6 +1,6 @@
 ﻿namespace AutoNexus.Domain.Entities;
 
-public class ElectronicAcceptance : EntityBase
+public class ElectronicAcceptance : TenantOwnedEntityBase
 {
     public Guid VehicleId { get; private set; }
     public Guid? BuyerAccessLinkId { get; private set; }

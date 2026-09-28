@@ -83,4 +83,42 @@ public class SuperAdminController : ControllerBase
         var users = await _superAdminService.GetUsersAsync(tenantId, cancellationToken);
         return Ok(users);
     }
+
+    [HttpGet("plans")]
+    public async Task<IActionResult> GetPlans(CancellationToken cancellationToken)
+    {
+        var plans = await _superAdminService.GetPlansAsync(cancellationToken);
+        return Ok(plans);
+    }
+
+    [HttpPost("plans")]
+    public async Task<IActionResult> CreatePlan([FromBody] CreatePlanDto dto, CancellationToken cancellationToken)
+    {
+        var plan = await _superAdminService.CreatePlanAsync(dto, cancellationToken);
+        return CreatedAtAction(nameof(GetPlans), new { }, plan);
+    }
+
+    [HttpGet("tenants/{tenantId:guid}/subscription")]
+    public async Task<IActionResult> GetSubscription(Guid tenantId, CancellationToken cancellationToken)
+    {
+        var subscription = await _superAdminService.GetSubscriptionAsync(tenantId, cancellationToken);
+        if (subscription == null)
+            return NotFound(new { message = "Esta empresa ainda não tem assinatura." });
+
+        return Ok(subscription);
+    }
+
+    [HttpPost("tenants/{tenantId:guid}/subscription")]
+    public async Task<IActionResult> AssignPlan(Guid tenantId, [FromBody] AssignPlanDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            var subscription = await _superAdminService.AssignPlanAsync(tenantId, dto, cancellationToken);
+            return Ok(subscription);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return NotFound(new { message = ex.Message });
+        }
+    }
 }

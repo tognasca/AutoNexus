@@ -25,6 +25,9 @@ public class TenantSettingService : ITenantSettingService
     {
         var settings = await _settingRepository.GetCurrentAsync(cancellationToken);
 
+        // Empresa sem configurações ainda (não deveria acontecer para
+        // tenants criados pelo fluxo normal do SuperAdmin, que já cria isso
+        // junto — mas cobrimos o caso mesmo assim, em vez de quebrar a tela).
         if (settings == null)
         {
             if (!_tenantContext.HasTenant)

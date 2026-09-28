@@ -11,14 +11,18 @@ export default defineConfig({
     port: 3000,
     proxy: {
       '/api': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        timeout: 120_000,
+        proxyTimeout: 120_000
       },
       '/uploads': {
-        target: 'http://localhost:5001',
+        target: 'http://localhost:5000',
         changeOrigin: true,
-        secure: false
+        secure: false,
+        timeout: 120_000,
+        proxyTimeout: 120_000
       }
     }
   }

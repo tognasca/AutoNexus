@@ -44,6 +44,8 @@ public class VehicleService : IVehicleService
             Plate = v.Plate,
             Mileage = v.Mileage,
             Color = v.Color,
+            Fuel = v.Fuel,
+            Transmission = v.Transmission,
             Status = v.Status,
             PurchaseValue = v.PurchaseValue,
             ListedValue = v.ListedValue,
@@ -70,6 +72,8 @@ public class VehicleService : IVehicleService
             Plate = v.Plate,
             Mileage = v.Mileage,
             Color = v.Color,
+            Fuel = v.Fuel,
+            Transmission = v.Transmission,
             Status = v.Status,
             PurchaseValue = v.PurchaseValue,
             ListedValue = v.ListedValue,
@@ -83,6 +87,10 @@ public class VehicleService : IVehicleService
     {
         var v = await _vehicleRepository.GetByIdAsync(id, includeDetails: true, cancellationToken);
         if (v == null) return null;
+
+        var latestFipeValue = v.FipeHistories?
+            .OrderByDescending(f => f.ConsultationDate)
+            .FirstOrDefault()?.FipeValue;
 
         return new VehicleDetailDto(
             v.Id,
@@ -110,7 +118,8 @@ public class VehicleService : IVehicleService
             v.UpdatedAt,
             v.Photos.Select(p => new VehiclePhotoDto(p.Id, p.FileName, p.StoragePath, p.IsMain, p.Order)),
             v.Costs.Select(c => new VehicleCostDto(c.Id, c.CostCategoryId, c.CostCategory?.Name ?? string.Empty, c.Description, c.Value, c.CostDate)),
-            v.Documents?.Select(d => new VehicleDocumentDto(d.Id, d.DocumentCategoryId, d.DocumentCategory?.Name ?? "Laudo", d.Name, d.FileName, d.StoragePath, d.ShowInCatalog, d.CreatedAt))
+            v.Documents?.Select(d => new VehicleDocumentDto(d.Id, d.DocumentCategoryId, d.DocumentCategory?.Name ?? "Laudo", d.Name, d.FileName, d.StoragePath, d.ShowInCatalog, d.CreatedAt)),
+            latestFipeValue
         );
     }
 

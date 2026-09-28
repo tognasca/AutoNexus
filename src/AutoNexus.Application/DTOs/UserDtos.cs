@@ -9,5 +9,5 @@ public record UserDto(
     string ProfileName,
     bool IsActive,
     DateTime CreatedAt,
-    Guid TenantId
+    Guid TenantId = default
 );

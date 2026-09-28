@@ -9,7 +9,10 @@ import {
   Building2,
   Users,
   Award,
-  FolderOpen
+  FolderOpen,
+  Settings,
+  CreditCard,
+  ShieldCheck
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -158,6 +161,49 @@ export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps)
           >
             <FolderOpen size={18} />
             Docs Empresa (Admin)
+          </button>
+        )}
+
+        {canAccessView(profile, 'tenant-settings') && (
+          <button
+            onClick={() => onNavigate?.('tenant-settings')}
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
+              currentView === 'tenant-settings'
+                ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+          >
+            <Settings size={18} />
+            Minha Empresa
+          </button>
+        )}
+
+        {canAccessView(profile, 'subscription') && (
+          <button
+            onClick={() => onNavigate?.('subscription')}
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
+              currentView === 'subscription'
+                ? 'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30 shadow-sm'
+                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+          >
+            <CreditCard size={18} />
+            Minha Assinatura
+          </button>
+        )}
+
+        {/* MÓDULO EXCLUSIVO SUPERADMIN */}
+        {canAccessView(profile, 'superadmin') && (
+          <button
+            onClick={() => onNavigate?.('superadmin')}
+            className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium transition-all cursor-pointer text-left ${
+              currentView === 'superadmin'
+                ? 'bg-amber-500/15 text-amber-400 border border-amber-500/30 shadow-sm'
+                : 'text-slate-400 hover:bg-nexus-border/60 hover:text-white'
+            }`}
+          >
+            <ShieldCheck size={18} />
+            Painel SuperAdmin
           </button>
         )}
       </nav>

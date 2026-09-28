@@ -66,6 +66,12 @@ public class SuperAdminService : ISuperAdminService
 
         var passwordHash = _passwordHasher.Hash(dto.AdminPassword);
         var adminUser = new User(dto.AdminName, dto.AdminEmail, passwordHash, UserProfile.Admin);
+
+        // AddForTenantAsync (não AddAsync): tudo que é criado aqui pertence ao
+        // tenant recém-criado acima, nunca ao "tenant" do SuperAdmin logado
+        // (que não tem tenant nenhum). Ver comentário nas interfaces dos
+        // repositórios. Sem isso, empresa nova nasceria sem ninguém capaz de
+        // entrar nela, sem configurações e sem plano.
         await _userRepository.AddForTenantAsync(adminUser, tenant.Id, cancellationToken);
 
         var settings = new TenantSetting(dto.TenantName);
@@ -97,6 +103,13 @@ public class SuperAdminService : ISuperAdminService
         tenant.Deactivate();
         _tenantRepository.Update(tenant);
         await _unitOfWork.CommitAsync(cancellationToken);
+
+        // Bloqueio de acesso de fato: AuthService.LoginAsync já checa
+        // Tenant.IsActive antes de emitir token (ver etapa 6), então a partir
+        // daqui ninguém dessa empresa consegue mais fazer um NOVO login.
+        // Token já emitido antes disso continua válido até expirar (JWT sem
+        // blocklist) — limitação conhecida, documentada, não resolvida nesta
+        // etapa.
     }
 
     public async Task<List<UserDto>> GetUsersAsync(Guid? tenantId, CancellationToken cancellationToken = default)
