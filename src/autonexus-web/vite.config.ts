@@ -9,16 +9,24 @@ export default defineConfig({
   ],
   server: {
     port: 3000,
+    allowedHosts: [
+      'ademartognasca.com.br',
+      'www.ademartognasca.com.br',
+      '.ademartognasca.com.br'
+    ],
+    hmr: {
+      clientPort: 443 // Hot reload seguro através do túnel Cloudflare
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000', // 127.0.0.1 resolve o 502
         changeOrigin: true,
         secure: false,
         timeout: 120_000,
         proxyTimeout: 120_000
       },
       '/uploads': {
-        target: 'http://localhost:5000',
+        target: 'http://127.0.0.1:5000',
         changeOrigin: true,
         secure: false,
         timeout: 120_000,

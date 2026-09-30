@@ -59,15 +59,18 @@ builder.Services.AddAuthorization();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks(); // Diagnóstico de Saúde da Aplicação
-
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowFrontend", policy =>
     {
-        policy.WithOrigins("http://localhost:3000")
-              .AllowAnyHeader()
-              .AllowAnyMethod()
-              .AllowCredentials();
+        policy.WithOrigins(
+            "https://ademartognasca.com.br",
+            "https://www.ademartognasca.com.br",
+            "http://localhost:3000"
+        )
+        .AllowAnyHeader()
+        .AllowAnyMethod()
+        .AllowCredentials();
     });
 });
 
