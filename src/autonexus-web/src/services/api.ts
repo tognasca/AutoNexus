@@ -1,81 +1,38 @@
-﻿export async function request<T = any>(
-  endpoint: string,
-  options: RequestInit = {}
-): Promise<T> {
+﻿const API_BASE_URL = '/api';
 
+export async function request<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('autonexus_token');
 
-  const headers = new Headers(options.headers);
+  const isFormData = typeof FormData !== 'undefined' && options.body instanceof FormData;
+  const headers: Record<string, string> = {
+    ...(isFormData ? {} : { 'Content-Type': 'application/json' }),
+    ...(options.headers as Record<string, string>),
+  };
 
   if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
+    headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // NÃO definir Content-Type quando body for FormData.
-  if (!(options.body instanceof FormData)) {
-    headers.set('Content-Type', 'application/json');
-  }
-
-  const response = await fetch(`/api${endpoint}`, {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,
-    headers
+    headers,
   });
 
+  if (response.status === 401) {
+    localStorage.removeItem('autonexus_token');
+    localStorage.removeItem('autonexus_user');
+    window.location.reload();
+    throw new Error('Sessão expirada. Faça login novamente.');
+  }
+
   if (!response.ok) {
-
-    let message = `Erro HTTP ${response.status}`;
-
-    try {
-      const contentType =
-        response.headers.get('content-type') || '';
-
-      if (contentType.includes('application/json')) {
-
-        const data = await response.json();
-
-        message =
-          data?.message ||
-          data?.title ||
-          data?.detail ||
-          data?.error ||
-          message;
-
-      } else {
-
-        const text = await response.text();
-
-        if (text.trim()) {
-          message = text;
-        }
-      }
-
-    } catch {
-      // mantém mensagem HTTP
-    }
-
-    console.error('❌ API Error:', {
-      status: response.status,
-      statusText: response.statusText,
-      endpoint,
-      message
-    });
-
-    throw new Error(message);
+    const errorData = await response.json().catch(() => ({ message: 'Erro desconhecido na requisição.' }));
+    throw new Error(errorData.message || `Erro ${response.status}: ${response.statusText}`);
   }
 
   if (response.status === 204) {
-    return undefined as T;
+    return {} as T;
   }
 
-  const text = await response.text();
-
-  if (!text) {
-    return undefined as T;
-  }
-
-  try {
-    return JSON.parse(text) as T;
-  } catch {
-    return text as T;
-  }
+  return response.json();
 }

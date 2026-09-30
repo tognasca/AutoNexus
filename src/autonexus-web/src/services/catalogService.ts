@@ -40,19 +40,28 @@ export interface PublicVehicleDetail {
   createdAt?: string;
 }
 
-export const getPhotoUrl = (path?: string): string => {
-  if (!path) return '';
-  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+export function getPhotoUrl(input?: string | null): string {
+  if (!input) return '';
+  
+  let url = input.trim().replace(/\\/g, '/');
 
-  const normalized = path.replace(/\\/g, '/');
-  const cleanPath = normalized.startsWith('/') ? normalized : `/${normalized}`;
+  // Se vier URL absoluta (http://...:5000/uploads/...), extrai só o /uploads/...
+  if (/^https?:\/\//i.test(url)) {
+    try {
+      const parsed = new URL(url);
+      return parsed.pathname + parsed.search;
+    } catch {
+      const withoutProtocol = url.replace(/^https?:\/\//i, '');
+      const slashIndex = withoutProtocol.indexOf('/');
+      if (slashIndex !== -1) return withoutProtocol.substring(slashIndex);
+      return '';
+    }
+  }
 
-  const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-  const apiBase = import.meta.env.VITE_API_URL || `http://${host}:5000/api`;
-  const baseUrl = apiBase.replace(/\/api\/?$/, ''); // http://localhost:5000
-
-  return `${baseUrl}${cleanPath}`;
-};
+  // Garante barra inicial
+  if (!url.startsWith('/')) url = '/' + url;
+  return url;
+}
 
 export const catalogService = {
   getPublicCatalog: async (): Promise<any[]> => {
