@@ -104,10 +104,10 @@ export function VehiclePhotosModal({
 
       if (Array.isArray(response)) {
         data = response;
-      } else if (Array.isArray(response?.photos)) {
-        data = response.photos;
-      } else if (Array.isArray(response?.data)) {
-        data = response.data;
+      // } else if (Array.isArray(response?.photos)) {
+      //   data = response.photos;
+      // } else if (Array.isArray(response?.data)) {
+      //   data = response.data;
       }
 
       data.sort((a, b) => {
