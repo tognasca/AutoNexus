@@ -84,6 +84,13 @@ public class SuperAdminController : ControllerBase
         return Ok(users);
     }
 
+    [HttpGet("audit-logs")]
+    public async Task<IActionResult> GetAuditLogs([FromQuery] Guid? tenantId, CancellationToken cancellationToken)
+    {
+        var logs = await _superAdminService.GetAuditLogsAsync(tenantId, cancellationToken);
+        return Ok(logs);
+    }
+
     [HttpGet("plans")]
     public async Task<IActionResult> GetPlans(CancellationToken cancellationToken)
     {
