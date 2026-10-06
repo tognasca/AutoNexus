@@ -24,4 +24,13 @@ public interface ITenantContext
     /// cuidado e nunca fica true a partir de dado enviado pelo cliente.
     /// </summary>
     bool HasTenant { get; }
+
+    /// <summary>
+    /// Id do usuário autenticado na requisição atual, lido do claim "sub"
+    /// do JWT. Null fora de uma requisição autenticada (seed, requisições
+    /// anônimas). Usado principalmente para auditoria (ver AuditLogService) —
+    /// evita ter que passar "quem fez a ação" manualmente por toda cadeia de
+    /// chamadas de serviço.
+    /// </summary>
+    Guid? UserId { get; }
 }

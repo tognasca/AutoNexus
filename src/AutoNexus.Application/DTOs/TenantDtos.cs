@@ -16,6 +16,17 @@ public record CreateTenantDto(string Name, string Slug);
 /// nela (o cadastro normal de usuários exige já estar autenticado como Admin
 /// daquela empresa).
 /// </summary>
+public record AuditLogDto(
+    Guid Id,
+    Guid TenantId,
+    Guid? UserId,
+    string Operation,
+    string Resource,
+    string? ResourceId,
+    string? Details,
+    DateTime ExecutedAt
+);
+
 public record CreateTenantWithAdminDto(
     string TenantName,
     string TenantSlug,

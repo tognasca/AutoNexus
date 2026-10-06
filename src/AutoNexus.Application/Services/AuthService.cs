@@ -11,17 +11,23 @@ public class AuthService : IAuthService
     private readonly ITenantRepository _tenantRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IJwtTokenGenerator _jwtTokenGenerator;
+    private readonly IAuditLogService _auditLogService;
+    private readonly IUnitOfWork _unitOfWork;
 
     public AuthService(
         IUserRepository userRepository,
         ITenantRepository tenantRepository,
         IPasswordHasher passwordHasher,
-        IJwtTokenGenerator jwtTokenGenerator)
+        IJwtTokenGenerator jwtTokenGenerator,
+        IAuditLogService auditLogService,
+        IUnitOfWork unitOfWork)
     {
         _userRepository = userRepository;
         _tenantRepository = tenantRepository;
         _passwordHasher = passwordHasher;
         _jwtTokenGenerator = jwtTokenGenerator;
+        _auditLogService = auditLogService;
+        _unitOfWork = unitOfWork;
     }
 
     public async Task<LoginResponseDto> LoginAsync(LoginRequestDto dto, CancellationToken cancellationToken = default)
@@ -48,6 +54,14 @@ public class AuthService : IAuthService
         }
 
         var token = _jwtTokenGenerator.GenerateToken(user);
+
+        // LogForTenantAsync (não LogAsync): a própria requisição de login
+        // ainda não tem o token que está sendo gerado agora, então não há
+        // tenant "ambiente" no ITenantContext — o tenant e o usuário aqui já
+        // são conhecidos diretamente (acabamos de autenticar), por isso são
+        // passados explicitamente.
+        await _auditLogService.LogForTenantAsync(user.TenantId, user.Id, "Login", "User", user.Id.ToString(), cancellationToken: cancellationToken);
+        await _unitOfWork.CommitAsync(cancellationToken);
 
         return new LoginResponseDto(
             token,

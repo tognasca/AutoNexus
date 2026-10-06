@@ -1,4 +1,4 @@
-﻿using AutoNexus.Application.Interfaces;
+using AutoNexus.Application.Interfaces;
 using AutoNexus.Application.Services;
 using AutoNexus.Domain.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +27,7 @@ public static class DependencyInjection
         services.AddScoped<IAiDescriptionService, AiDescriptionService>();
         services.AddScoped<IFeedExportService, FeedExportService>();
         services.AddScoped<ISuperAdminService, SuperAdminService>();
+        services.AddScoped<IAuditLogService, AuditLogService>();
         services.AddScoped<ITenantSettingService, TenantSettingService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         return services;

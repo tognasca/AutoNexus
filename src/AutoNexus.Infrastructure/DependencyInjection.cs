@@ -1,4 +1,4 @@
-﻿using AutoNexus.Application.Interfaces;
+using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
 using AutoNexus.Infrastructure.Integrations.Adapters;
@@ -30,6 +30,7 @@ public static class DependencyInjection
         services.AddScoped<ILookupRepository, LookupRepository>();
         services.AddScoped<IUserRepository, UserRepository>();
         services.AddScoped<ITenantRepository, TenantRepository>();
+        services.AddScoped<IAuditLogRepository, AuditLogRepository>();
         services.AddScoped<IPlanRepository, PlanRepository>();
         services.AddScoped<ITenantSubscriptionRepository, TenantSubscriptionRepository>();
         services.AddScoped<ITenantSettingRepository, TenantSettingRepository>();

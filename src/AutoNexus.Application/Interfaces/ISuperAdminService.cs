@@ -14,4 +14,6 @@ public interface ISuperAdminService
     Task<PlanDto> CreatePlanAsync(CreatePlanDto dto, CancellationToken cancellationToken = default);
     Task<TenantSubscriptionDto?> GetSubscriptionAsync(Guid tenantId, CancellationToken cancellationToken = default);
     Task<TenantSubscriptionDto> AssignPlanAsync(Guid tenantId, AssignPlanDto dto, CancellationToken cancellationToken = default);
+
+    Task<List<AuditLogDto>> GetAuditLogsAsync(Guid? tenantId = null, CancellationToken cancellationToken = default);
 }

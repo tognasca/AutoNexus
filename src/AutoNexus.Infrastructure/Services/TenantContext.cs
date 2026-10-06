@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using AutoNexus.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 
@@ -17,10 +18,12 @@ public class TenantContext : ITenantContext
 {
     public Guid TenantId { get; }
     public bool HasTenant { get; }
+    public Guid? UserId { get; }
 
     public TenantContext(IHttpContextAccessor httpContextAccessor)
     {
-        var claimValue = httpContextAccessor.HttpContext?.User?.FindFirst("tenant_id")?.Value;
+        var user = httpContextAccessor.HttpContext?.User;
+        var claimValue = user?.FindFirst("tenant_id")?.Value;
 
         if (!string.IsNullOrEmpty(claimValue) && Guid.TryParse(claimValue, out var parsedTenantId))
         {
@@ -32,5 +35,11 @@ public class TenantContext : ITenantContext
             TenantId = Guid.Empty;
             HasTenant = false;
         }
+
+        // "sub" do JWT é mapeado automaticamente para ClaimTypes.NameIdentifier
+        // pelo handler padrão do ASP.NET Core — mesmo claim que o resto do
+        // projeto já usa (ver AuthController/UsersController).
+        var userIdClaim = user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        UserId = Guid.TryParse(userIdClaim, out var parsedUserId) ? parsedUserId : null;
     }
 }

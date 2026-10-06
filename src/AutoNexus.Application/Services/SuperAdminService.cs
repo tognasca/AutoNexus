@@ -15,6 +15,9 @@ public class SuperAdminService : ISuperAdminService
     private readonly ITenantSettingRepository _settingRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuditLogService _auditLogService;
+    private readonly IAuditLogRepository _auditLogRepository;
+    private readonly ITenantContext _tenantContext;
 
     public SuperAdminService(
         ITenantRepository tenantRepository,
@@ -23,7 +26,10 @@ public class SuperAdminService : ISuperAdminService
         ITenantSubscriptionRepository subscriptionRepository,
         ITenantSettingRepository settingRepository,
         IPasswordHasher passwordHasher,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAuditLogService auditLogService,
+        IAuditLogRepository auditLogRepository,
+        ITenantContext tenantContext)
     {
         _tenantRepository = tenantRepository;
         _userRepository = userRepository;
@@ -32,6 +38,9 @@ public class SuperAdminService : ISuperAdminService
         _settingRepository = settingRepository;
         _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
+        _auditLogService = auditLogService;
+        _auditLogRepository = auditLogRepository;
+        _tenantContext = tenantContext;
     }
 
     public async Task<List<TenantDto>> GetAllTenantsAsync(CancellationToken cancellationToken = default)
@@ -80,6 +89,12 @@ public class SuperAdminService : ISuperAdminService
         var subscription = new TenantSubscription(freePlan.Id, SubscriptionStatus.Trialing);
         await _subscriptionRepository.AddForTenantAsync(subscription, tenant.Id, cancellationToken);
 
+        // LogForTenantAsync: quem executa é o SuperAdmin (sem tenant próprio),
+        // mas o evento pertence ao tenant recém-criado.
+        await _auditLogService.LogForTenantAsync(
+            tenant.Id, _tenantContext.UserId, "CriarEmpresa", "Tenant", tenant.Id.ToString(),
+            $"Empresa '{tenant.Name}' criada pelo SuperAdmin, admin inicial: {dto.AdminEmail}", cancellationToken);
+
         await _unitOfWork.CommitAsync(cancellationToken);
 
         return ToDto(tenant);
@@ -92,6 +107,10 @@ public class SuperAdminService : ISuperAdminService
 
         tenant.Activate();
         _tenantRepository.Update(tenant);
+
+        await _auditLogService.LogForTenantAsync(
+            tenant.Id, _tenantContext.UserId, "AtivarEmpresa", "Tenant", tenant.Id.ToString(), cancellationToken: cancellationToken);
+
         await _unitOfWork.CommitAsync(cancellationToken);
     }
 
@@ -102,6 +121,10 @@ public class SuperAdminService : ISuperAdminService
 
         tenant.Deactivate();
         _tenantRepository.Update(tenant);
+
+        await _auditLogService.LogForTenantAsync(
+            tenant.Id, _tenantContext.UserId, "DesativarEmpresa", "Tenant", tenant.Id.ToString(), cancellationToken: cancellationToken);
+
         await _unitOfWork.CommitAsync(cancellationToken);
 
         // Bloqueio de acesso de fato: AuthService.LoginAsync já checa
@@ -169,8 +192,20 @@ public class SuperAdminService : ISuperAdminService
             _subscriptionRepository.Update(subscription);
         }
 
+        await _auditLogService.LogForTenantAsync(
+            tenantId, _tenantContext.UserId, "AlterarPlano", "TenantSubscription", subscription.Id.ToString(),
+            $"Plano alterado para '{plan.Name}'", cancellationToken);
+
         await _unitOfWork.CommitAsync(cancellationToken);
         return ToDto(subscription, plan.Name);
+    }
+
+    public async Task<List<AuditLogDto>> GetAuditLogsAsync(Guid? tenantId = null, CancellationToken cancellationToken = default)
+    {
+        var logs = await _auditLogRepository.GetAllAcrossTenantsAsync(tenantId, take: 200, cancellationToken: cancellationToken);
+        return logs.Select(l => new AuditLogDto(
+            l.Id, l.TenantId, l.UserId, l.Operation, l.Resource, l.ResourceId, l.Details, l.ExecutedAt
+        )).ToList();
     }
 
     private static string ProfileName(UserProfile profile) => profile switch

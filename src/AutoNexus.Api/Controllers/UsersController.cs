@@ -16,15 +16,18 @@ public class UsersController : ControllerBase
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IAuditLogService _auditLogService;
 
     public UsersController(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IAuditLogService auditLogService)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
+        _auditLogService = auditLogService;
     }
 
     [HttpGet]
@@ -65,6 +68,12 @@ public class UsersController : ControllerBase
         var user = new User(dto.Name, dto.Email, passwordHash, dto.Profile);
 
         await _userRepository.AddAsync(user, cancellationToken);
+
+        // LogAsync (não LogForTenantAsync): esta requisição já é de um Admin
+        // autenticado dentro do próprio tenant, então o contexto ambiente
+        // (ITenantContext) já resolve tenant e usuário sozinho.
+        await _auditLogService.LogAsync("CriarUsuario", "User", user.Id.ToString(), $"Usuário '{user.Name}' ({user.Email}) criado", cancellationToken);
+
         await _unitOfWork.CommitAsync(cancellationToken);
 
         return Ok(new UserDto(
