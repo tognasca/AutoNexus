@@ -6,5 +6,6 @@ public enum SubscriptionStatus
     Active = 2,
     PastDue = 3,
     Canceled = 4,
-    Suspended = 5
+    Suspended = 5,
+    Expired = 6
 }

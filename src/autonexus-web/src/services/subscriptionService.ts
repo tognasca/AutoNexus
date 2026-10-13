@@ -7,6 +7,7 @@ export const SubscriptionStatus: Record<number, string> = {
   3: 'Pagamento pendente',
   4: 'Cancelada',
   5: 'Suspensa',
+  6: 'Expirada',
 };
 
 export interface TenantSubscription {
@@ -17,6 +18,12 @@ export interface TenantSubscription {
   status: number;
   startDate: string;
   endDate: string | null;
+  billingCycle?: number;
+  trialEndsAt?: string | null;
+  currentPeriodEnd?: string | null;
+  cancelledAt?: string | null;
+  paymentMethod?: number | null;
+  paymentProvider?: string | null;
 }
 
 export interface Plan {
@@ -27,6 +34,8 @@ export interface Plan {
   maxUsers: number | null;
   maxVehicles: number | null;
   maxStorageMb: number | null;
+  annualPrice: number | null;
+  trialDays: number;
 }
 
 export const subscriptionService = {

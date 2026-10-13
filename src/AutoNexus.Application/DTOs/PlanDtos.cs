@@ -9,7 +9,9 @@ public record PlanDto(
     bool IsActive,
     int? MaxUsers,
     int? MaxVehicles,
-    int? MaxStorageMb
+    int? MaxStorageMb,
+    decimal? AnnualPrice = null,
+    int TrialDays = 0
 );
 
 public record CreatePlanDto(
@@ -17,7 +19,9 @@ public record CreatePlanDto(
     decimal Price,
     int? MaxUsers,
     int? MaxVehicles,
-    int? MaxStorageMb
+    int? MaxStorageMb,
+    decimal? AnnualPrice = null,
+    int TrialDays = 0
 );
 
 public record TenantSubscriptionDto(
@@ -27,7 +31,23 @@ public record TenantSubscriptionDto(
     string PlanName,
     SubscriptionStatus Status,
     DateTime StartDate,
-    DateTime? EndDate
+    DateTime? EndDate,
+    BillingCycle BillingCycle = BillingCycle.Monthly,
+    DateTime? TrialEndsAt = null,
+    DateTime? CurrentPeriodEnd = null,
+    DateTime? CancelledAt = null,
+    PaymentMethodType? PaymentMethod = null,
+    string? PaymentProvider = null
+);
+
+public record UpdatePlanDto(
+    string Name,
+    decimal Price,
+    decimal? AnnualPrice,
+    int TrialDays,
+    int? MaxUsers,
+    int? MaxVehicles,
+    int? MaxStorageMb
 );
 
 public record AssignPlanDto(Guid PlanId);

@@ -105,6 +105,17 @@ public class SuperAdminController : ControllerBase
         return CreatedAtAction(nameof(GetPlans), new { }, plan);
     }
 
+    [HttpPut("plans/{planId:guid}")]
+    public async Task<IActionResult> UpdatePlan(Guid planId, [FromBody] UpdatePlanDto dto, CancellationToken cancellationToken)
+    {
+        try
+        {
+            return Ok(await _superAdminService.UpdatePlanAsync(planId, dto, cancellationToken));
+        }
+        catch (KeyNotFoundException ex) { return NotFound(new { message = ex.Message }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
     [HttpGet("tenants/{tenantId:guid}/subscription")]
     public async Task<IActionResult> GetSubscription(Guid tenantId, CancellationToken cancellationToken)
     {

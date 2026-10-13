@@ -17,13 +17,16 @@ public class UsersController : ControllerBase
     private readonly IPasswordHasher _passwordHasher;
     private readonly IUnitOfWork _unitOfWork;
     private readonly IAuditLogService _auditLogService;
+    private readonly IPlanLimitService _planLimitService;
 
     public UsersController(
         IUserRepository userRepository,
         IPasswordHasher passwordHasher,
         IUnitOfWork unitOfWork,
-        IAuditLogService auditLogService)
+        IAuditLogService auditLogService,
+        IPlanLimitService planLimitService)
     {
+        _planLimitService = planLimitService;
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
         _unitOfWork = unitOfWork;
@@ -58,6 +61,8 @@ public class UsersController : ControllerBase
         // Checagem global (não só do tenant atual): o e-mail é único no banco
         // inteiro, então a validação amigável também precisa ser global —
         // ver EmailExistsAsync.
+        await _planLimitService.EnsureCanAddUserAsync(cancellationToken);
+
         var emailExists = await _userRepository.EmailExistsAsync(dto.Email, cancellationToken);
         if (emailExists)
         {

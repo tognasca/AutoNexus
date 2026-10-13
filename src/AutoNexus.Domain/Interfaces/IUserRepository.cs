@@ -15,6 +15,9 @@ public interface IUserRepository
     /// Create acaba falhando com erro de banco em vez de uma mensagem
     /// amigável quando duas empresas tentam usar o mesmo e-mail.
     /// </summary>
+    /// <summary>Quantidade de usuários do tenant atual (respeita o filtro global) — usado para limites de plano.</summary>
+    Task<int> CountAsync(CancellationToken cancellationToken = default);
+
     Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 

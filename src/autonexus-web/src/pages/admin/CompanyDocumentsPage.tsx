@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useState, useRef } from 'react';
 import { companyDocumentService, CompanyDocument } from '../../services/companyDocumentService';
+import { downloadFile } from '../../services/api';
 import { formatCurrency, formatDate, formatDateTime } from '../../utils/formatters';
 import { CurrencyInput } from '../../components/ui/CurrencyInput';
 import { MainLayout } from '../../components/layout/MainLayout';
@@ -91,6 +92,16 @@ export function CompanyDocumentsPage({ currentView, onNavigate }: CompanyDocumen
     }
   };
 
+  const handleDownload = async (id: string, docTitle: string) => {
+    try {
+      // Download autenticado (passa pelo [Authorize] do backend) — antes
+      // disso era um link direto e estático, acessível sem login.
+      await downloadFile(`/company-documents/${id}/file`, docTitle);
+    } catch {
+      alert('Erro ao baixar documento.');
+    }
+  };
+
   return (
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       {/* Container Full Width */}
@@ -172,15 +183,13 @@ export function CompanyDocumentsPage({ currentView, onNavigate }: CompanyDocumen
                       </td>
                       <td className="py-3.5 px-4 text-center">
                         <div className="flex items-center justify-center gap-2">
-                          <a
-                            href={d.fileUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="p-1.5 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-lg transition-colors"
+                          <button
+                            onClick={() => handleDownload(d.id, d.title)}
+                            className="p-1.5 bg-slate-800 hover:bg-blue-600 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"
                             title="Baixar / Visualizar Documento"
                           >
                             <Download className="w-3.5 h-3.5" />
-                          </a>
+                          </button>
                           <button
                             onClick={() => handleDelete(d.id, d.title)}
                             className="p-1.5 bg-slate-800 hover:bg-rose-600 text-slate-300 hover:text-white rounded-lg transition-colors cursor-pointer"

@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
@@ -94,6 +94,12 @@ export function LoginPage() {
             )}
           </button>
         </form>
+
+        <div className="mt-6 text-center text-xs text-slate-400 space-x-3">
+          <a href="/cadastro" className="text-blue-400 hover:underline font-semibold">Criar conta (7 dias grátis)</a>
+          <span>•</span>
+          <a href="/precos" className="text-blue-400 hover:underline">Ver planos</a>
+        </div>
 
         <div className="mt-8 pt-6 border-t border-nexus-border/60 text-center">
           <p className="text-[11px] text-slate-500">

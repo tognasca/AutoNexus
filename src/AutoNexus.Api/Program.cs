@@ -1,14 +1,33 @@
-﻿using System.Text;
+using System.Text;
+using System.Threading.RateLimiting;
 using AutoNexus.Application;
 using AutoNexus.Infrastructure;
 using AutoNexus.Infrastructure.Data;
 using AutoNexus.Infrastructure.Data.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Variáveis de ambiente de produção com os nomes definidos pelo negócio
+// (nunca valores no código): mapeadas para a configuração da aplicação.
+var envToConfig = new Dictionary<string, string>
+{
+    ["MERCADOPAGO_ACCESS_TOKEN"] = "MercadoPago:AccessToken",
+    ["MERCADOPAGO_WEBHOOK_SECRET"] = "MercadoPago:WebhookSecret",
+    ["RESEND_API_KEY"] = "Resend:ApiKey",
+    ["RESEND_FROM_EMAIL"] = "Resend:FromEmail",
+    ["RESEND_FROM_NAME"] = "Resend:FromName",
+    ["APPLICATION_URL"] = "Application:Url"
+};
+foreach (var (envName, configKey) in envToConfig)
+{
+    var envValue = Environment.GetEnvironmentVariable(envName);
+    if (!string.IsNullOrWhiteSpace(envValue)) builder.Configuration[configKey] = envValue;
+}
 
 var wwwrootFolder = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
 if (!Directory.Exists(wwwrootFolder))
@@ -56,6 +75,38 @@ builder.Services.Configure<FormOptions>(options =>
 });
 
 builder.Services.AddAuthorization();
+
+// Limita tentativas de login por IP — antes não havia nenhuma proteção
+// contra força bruta. 5 tentativas por minuto é suficiente para uso legítimo
+// (ninguém erra a senha 6 vezes em 60s) e já dificulta bastante um ataque
+// automatizado. Aplicado só no endpoint de login (ver [EnableRateLimiting]
+// no AuthController), não afeta o resto da API.
+builder.Services.AddRateLimiter(options =>
+{
+    options.AddFixedWindowLimiter("login", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 5;
+        limiterOptions.Window = TimeSpan.FromMinutes(1);
+        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
+        limiterOptions.QueueLimit = 0;
+    });
+    options.AddFixedWindowLimiter("signup", limiterOptions =>
+    {
+        limiterOptions.PermitLimit = 10;
+        limiterOptions.Window = TimeSpan.FromHours(1);
+        limiterOptions.QueueLimit = 0;
+    });
+    options.OnRejected = async (context, cancellationToken) =>
+    {
+        context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
+        await context.HttpContext.Response.WriteAsJsonAsync(
+            new { message = "Muitas tentativas. Aguarde um instante e tente novamente." },
+            cancellationToken);
+    };
+});
+
+builder.Services.AddHostedService<AutoNexus.Api.Workers.BillingMaintenanceWorker>();
+
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks(); // Diagnóstico de Saúde da Aplicação
@@ -108,7 +159,11 @@ if (!app.Environment.IsDevelopment())
 
 app.UseCors("AllowFrontend");
 
+app.UseRateLimiter();
+
 app.UseAuthentication();
+app.UseMiddleware<AutoNexus.Api.Middleware.PlanLimitExceptionMiddleware>();
+app.UseMiddleware<AutoNexus.Api.Middleware.SubscriptionAccessMiddleware>();
 app.UseAuthorization();
 
 app.MapHealthChecks("/health"); // Mapeamento da rota pública /health

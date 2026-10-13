@@ -1,4 +1,4 @@
-﻿using System.Diagnostics;
+using System.Diagnostics;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
@@ -14,6 +14,11 @@ public class VehicleRepository : IVehicleRepository
     public VehicleRepository(AutoNexusDbContext context)
     {
         _context = context;
+    }
+
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Vehicles.CountAsync(cancellationToken);
     }
 
     public async Task<Vehicle?> GetByIdAsync(Guid id, bool includeDetails = false, CancellationToken cancellationToken = default)

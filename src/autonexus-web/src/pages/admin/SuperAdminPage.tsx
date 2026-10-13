@@ -3,13 +3,14 @@ import {
   superAdminService,
   Tenant,
   SuperAdminUser,
+  AuditLogEntry,
 } from '../../services/superAdminService';
 import type { Plan } from '../../services/subscriptionService';
 import { formatDateTime } from '../../utils/formatters';
 import { MainLayout } from '../../components/layout/MainLayout';
 import {
   ShieldCheck, Building2, Users, CreditCard, Plus, X, Save,
-  CheckCircle2, XCircle, RefreshCw, Power,
+  CheckCircle2, XCircle, RefreshCw, Power, ScrollText,
 } from 'lucide-react';
 
 interface SuperAdminPageProps {
@@ -17,7 +18,7 @@ interface SuperAdminPageProps {
   onNavigate?: (view: string) => void;
 }
 
-type Tab = 'tenants' | 'plans' | 'users';
+type Tab = 'tenants' | 'plans' | 'users' | 'audit';
 
 const emptyTenantForm = {
   tenantName: '',
@@ -30,6 +31,8 @@ const emptyTenantForm = {
 const emptyPlanForm = {
   name: '',
   price: 0,
+  annualPrice: '' as number | '',
+  trialDays: 0,
   maxUsers: '' as number | '',
   maxVehicles: '' as number | '',
   maxStorageMb: '' as number | '',
@@ -41,6 +44,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
   const [tenants, setTenants] = useState<Tenant[]>([]);
   const [plans, setPlans] = useState<Plan[]>([]);
   const [users, setUsers] = useState<SuperAdminUser[]>([]);
+  const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
@@ -50,18 +54,21 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
   const [isPlanModalOpen, setIsPlanModalOpen] = useState(false);
   const [planForm, setPlanForm] = useState(emptyPlanForm);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [editingPlanId, setEditingPlanId] = useState<string | null>(null);
 
   const loadAll = async () => {
     setLoading(true);
     try {
-      const [tenantsData, plansData, usersData] = await Promise.all([
+      const [tenantsData, plansData, usersData, auditLogsData] = await Promise.all([
         superAdminService.getTenants(),
         superAdminService.getPlans(),
         superAdminService.getUsers(),
+        superAdminService.getAuditLogs(),
       ]);
       setTenants(tenantsData);
       setPlans(plansData);
       setUsers(usersData);
+      setAuditLogs(auditLogsData);
     } catch (err) {
       console.error('Erro ao carregar painel SuperAdmin:', err);
     } finally {
@@ -108,14 +115,22 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
     e.preventDefault();
     setSavingPlan(true);
     try {
-      await superAdminService.createPlan({
+      const payload = {
         name: planForm.name,
         price: Number(planForm.price),
+        annualPrice: planForm.annualPrice === '' ? null : Number(planForm.annualPrice),
+        trialDays: Number(planForm.trialDays) || 0,
         maxUsers: planForm.maxUsers === '' ? null : Number(planForm.maxUsers),
         maxVehicles: planForm.maxVehicles === '' ? null : Number(planForm.maxVehicles),
         maxStorageMb: planForm.maxStorageMb === '' ? null : Number(planForm.maxStorageMb),
-      });
+      };
+      if (editingPlanId) {
+        await superAdminService.updatePlan(editingPlanId, payload);
+      } else {
+        await superAdminService.createPlan(payload);
+      }
       setIsPlanModalOpen(false);
+      setEditingPlanId(null);
       setPlanForm(emptyPlanForm);
       await loadAll();
     } catch (err: any) {
@@ -129,6 +144,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
     { key: 'tenants', label: 'Empresas', icon: <Building2 className="w-4 h-4" /> },
     { key: 'plans', label: 'Planos', icon: <CreditCard className="w-4 h-4" /> },
     { key: 'users', label: 'Usuários', icon: <Users className="w-4 h-4" /> },
+    { key: 'audit', label: 'Auditoria', icon: <ScrollText className="w-4 h-4" /> },
   ];
 
   return (
@@ -239,7 +255,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
           <div className="space-y-4">
             <div className="flex justify-end">
               <button
-                onClick={() => setIsPlanModalOpen(true)}
+                onClick={() => { setEditingPlanId(null); setPlanForm(emptyPlanForm); setIsPlanModalOpen(true); }}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-lg text-xs transition-colors cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
@@ -252,13 +268,29 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
                 <div key={plan.id} className="bg-nexus-card border border-nexus-border rounded-xl p-4 text-xs">
                   <p className="text-sm font-bold text-white">{plan.name}</p>
                   <p className="text-lg font-bold text-blue-400 mt-1">
-                    {plan.price === 0 ? 'Grátis' : `R$ ${plan.price.toFixed(2)}/mês`}
+                    {plan.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/mês
                   </p>
                   <ul className="mt-3 space-y-1 text-slate-400">
+                    <li>{plan.annualPrice ? `${plan.annualPrice.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}/ano` : 'Sem opção anual'}</li>
+                    <li>{plan.trialDays > 0 ? `${plan.trialDays} dias de trial` : 'Sem trial'}</li>
+                    {!plan.isActive && <li className="text-amber-400">Inativo (legado)</li>}
                     <li>{plan.maxUsers ? `Até ${plan.maxUsers} usuários` : 'Usuários ilimitados'}</li>
                     <li>{plan.maxVehicles ? `Até ${plan.maxVehicles} veículos` : 'Veículos ilimitados'}</li>
                     <li>{plan.maxStorageMb ? `${(plan.maxStorageMb / 1000).toFixed(1)} GB` : 'Armazenamento ilimitado'}</li>
                   </ul>
+                  <button
+                    onClick={() => {
+                      setEditingPlanId(plan.id);
+                      setPlanForm({
+                        name: plan.name, price: plan.price, annualPrice: plan.annualPrice ?? '', trialDays: plan.trialDays,
+                        maxUsers: plan.maxUsers ?? '', maxVehicles: plan.maxVehicles ?? '', maxStorageMb: plan.maxStorageMb ?? '',
+                      });
+                      setIsPlanModalOpen(true);
+                    }}
+                    className="mt-3 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-[11px] font-medium cursor-pointer"
+                  >
+                    Editar
+                  </button>
                 </div>
               ))}
             </div>
@@ -292,6 +324,46 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
                         <td className="py-3 px-4 text-slate-500 font-mono text-[10px]">
                           {tenants.find(t => t.id === u.tenantId)?.name ?? u.tenantId}
                         </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* --- ABA AUDITORIA --- */}
+        {tab === 'audit' && (
+          <div className="bg-nexus-card border border-nexus-border rounded-xl overflow-hidden">
+            {loading ? (
+              <div className="p-8 text-center text-slate-400">Carregando...</div>
+            ) : auditLogs.length === 0 ? (
+              <div className="p-8 text-center text-slate-400">Nenhum evento registrado ainda.</div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead>
+                    <tr className="border-b border-nexus-border bg-slate-950/60 text-slate-400 uppercase tracking-wider">
+                      <th className="py-3 px-4">Quando</th>
+                      <th className="py-3 px-4">Empresa</th>
+                      <th className="py-3 px-4">Ação</th>
+                      <th className="py-3 px-4">Recurso</th>
+                      <th className="py-3 px-4">Detalhes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-nexus-border text-slate-200">
+                    {auditLogs.map(log => (
+                      <tr key={log.id} className="hover:bg-slate-800/40 transition-colors">
+                        <td className="py-3 px-4 text-slate-400 whitespace-nowrap">{formatDateTime(log.executedAt)}</td>
+                        <td className="py-3 px-4 text-slate-300">
+                          {tenants.find(t => t.id === log.tenantId)?.name ?? '—'}
+                        </td>
+                        <td className="py-3 px-4 font-bold text-white">{log.operation}</td>
+                        <td className="py-3 px-4 text-slate-400">
+                          {log.resource}{log.resourceId ? ` #${log.resourceId.slice(0, 8)}` : ''}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500">{log.details ?? '—'}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -391,7 +463,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
           <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md text-slate-100 shadow-2xl p-6 space-y-4">
             <div className="flex justify-between items-center border-b border-slate-800 pb-3">
               <h3 className="font-bold text-base text-white flex items-center gap-2">
-                <CreditCard className="w-5 h-5 text-blue-400" /> Novo Plano
+                <CreditCard className="w-5 h-5 text-blue-400" /> {editingPlanId ? 'Editar Plano' : 'Novo Plano'}
               </h3>
               <button onClick={() => setIsPlanModalOpen(false)} className="p-1 hover:bg-slate-800 rounded text-slate-400 cursor-pointer">
                 <X className="w-5 h-5" />
@@ -420,6 +492,20 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
                   required
                 />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-slate-400 block mb-1">Preço anual (R$)</label>
+                  <input type="number" step="0.01" min="0" value={planForm.annualPrice}
+                    onChange={e => setPlanForm({ ...planForm, annualPrice: e.target.value === '' ? '' : Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500" />
+                </div>
+                <div>
+                  <label className="text-slate-400 block mb-1">Dias de trial</label>
+                  <input type="number" min="0" value={planForm.trialDays}
+                    onChange={e => setPlanForm({ ...planForm, trialDays: Number(e.target.value) })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500" />
+                </div>
               </div>
               <p className="text-slate-500">Limites (deixe em branco para ilimitado)</p>
               <div className="grid grid-cols-3 gap-3">
@@ -456,7 +542,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
                   className="inline-flex items-center gap-2 px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white font-bold rounded-xl disabled:opacity-50 cursor-pointer"
                 >
                   <Save className="w-4 h-4" />
-                  {savingPlan ? 'Criando...' : 'Criar Plano'}
+                  {savingPlan ? 'Salvando...' : editingPlanId ? 'Salvar Plano' : 'Criar Plano'}
                 </button>
               </div>
             </form>

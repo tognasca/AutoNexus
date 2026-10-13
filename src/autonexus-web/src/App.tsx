@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { canAccessView, UserProfileEnum } from './utils/permissions';
 import { LoginPage } from './pages/LoginPage';
@@ -16,6 +16,9 @@ import { PublicCatalogPage } from './pages/PublicCatalogPage';
 import { TenantSettingsPage } from './pages/admin/TenantSettingsPage';
 import { SubscriptionPage } from './pages/admin/SubscriptionPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
+import { PricingPage } from './pages/public/PricingPage';
+import { SignupPage } from './pages/public/SignupPage';
+import { LegalPage } from './pages/public/LegalPage';
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -41,6 +44,21 @@ function AppContent() {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
+
+  // Quando o backend responde 402 (assinatura necessária), leva o cliente direto para a tela de assinatura.
+  useEffect(() => {
+    const goToSubscription = () => setCurrentView('subscription');
+    window.addEventListener('autonexus:subscription-required', goToSubscription);
+    return () => window.removeEventListener('autonexus:subscription-required', goToSubscription);
+  }, []);
+
+  // Páginas públicas (sem login): planos, cadastro e documentos legais
+  const publicPath = window.location.pathname;
+  if (publicPath === '/precos') return <PricingPage />;
+  if (publicPath === '/cadastro') return <SignupPage />;
+  if (publicPath === '/termos') return <LegalPage slug="termos" />;
+  if (publicPath === '/privacidade') return <LegalPage slug="privacidade" />;
+  if (publicPath === '/cookies') return <LegalPage slug="cookies" />;
 
   // 1. Se a URL do navegador for /catalogo, renderiza a vitrine pública direto (sem exigir login)
   if (isPublicCatalogRoute) {

@@ -13,12 +13,12 @@ namespace AutoNexus.Api.Controllers;
 public class VehicleDocumentsController : ControllerBase
 {
     private readonly IVehicleService _vehicleService;
-    private readonly IWebHostEnvironment _environment;
+    private readonly IStorageService _storageService;
 
-    public VehicleDocumentsController(IVehicleService vehicleService, IWebHostEnvironment environment)
+    public VehicleDocumentsController(IVehicleService vehicleService, IStorageService storageService)
     {
         _vehicleService = vehicleService;
-        _environment = environment;
+        _storageService = storageService;
     }
 
     [HttpGet]
@@ -37,7 +37,8 @@ public class VehicleDocumentsController : ControllerBase
         [FromForm] Guid categoryId,
         [FromForm] string? name,
         [FromForm] bool showInCatalog,
-        [FromForm] IFormFile file)
+        [FromForm] IFormFile file,
+        CancellationToken cancellationToken)
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "Arquivo não enviado." });
@@ -46,28 +47,16 @@ public class VehicleDocumentsController : ControllerBase
         if (vehicle == null)
             return NotFound(new { message = "Veículo não encontrado." });
 
-        var uploadDir = Path.Combine(_environment.ContentRootPath, "uploads", "documents");
-        if (!Directory.Exists(uploadDir)) Directory.CreateDirectory(uploadDir);
-
-        var extension = Path.GetExtension(file.FileName);
-        if (string.IsNullOrWhiteSpace(extension))
+        // IStorageService isola o arquivo em /uploads/tenants/{tenantId}/... —
+        // antes isso gravava direto em uploads/documents (pasta compartilhada,
+        // sem isolamento por empresa). Arquivos já enviados antes desta
+        // correção continuam funcionando normalmente (o caminho deles já está
+        // salvo em StoragePath no banco); só uploads novos usam a pasta correta.
+        string relativePath;
+        using (var stream = file.OpenReadStream())
         {
-            extension = file.ContentType switch
-            {
-                "image/png" => ".png",
-                "image/webp" => ".webp",
-                "application/pdf" => ".pdf",
-                _ => ".jpg"
-            };
-        }
-
-        var storedFileName = $"{Guid.NewGuid()}{extension}";
-        var filePath = Path.Combine(uploadDir, storedFileName);
-        var relativePath = Path.Combine("uploads", "documents", storedFileName).Replace("\\", "/");
-
-        using (var stream = new FileStream(filePath, FileMode.Create))
-        {
-            await file.CopyToAsync(stream);
+            relativePath = await _storageService.SaveFileAsync(
+                stream, file.FileName, $"vehicles/{vehicleId}/documents", cancellationToken);
         }
 
         var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value
@@ -84,7 +73,7 @@ public class VehicleDocumentsController : ControllerBase
             vehicleId,
             categoryId,
             docName,
-            file.FileName ?? storedFileName,
+            string.IsNullOrWhiteSpace(file.FileName) ? Path.GetFileName(relativePath) : file.FileName,
             relativePath,
             file.ContentType ?? "image/jpeg",
             file.Length,
@@ -126,5 +115,30 @@ public class VehicleDocumentsController : ControllerBase
     {
         await _vehicleService.DeleteDocumentAsync(vehicleId, documentId, cancellationToken);
         return NoContent();
+    }
+
+    // Download autenticado de verdade: antes disso, o único jeito de abrir um
+    // documento era a URL estática em /uploads (servida sem nenhuma
+    // autorização por app.UseStaticFiles() no Program.cs — qualquer um que
+    // soubesse/adivinhasse a URL baixava, logado ou não). Esta rota passa
+    // pelo [Authorize] do controller e confirma, via GetDocumentFileAsync,
+    // que o documento realmente pertence a um veículo do tenant autenticado
+    // antes de ler o arquivo do disco.
+    [HttpGet("{documentId:guid}/file")]
+    public async Task<IActionResult> DownloadDocument([FromRoute] Guid vehicleId, [FromRoute] Guid documentId, CancellationToken cancellationToken)
+    {
+        var file = await _vehicleService.GetDocumentFileAsync(vehicleId, documentId, cancellationToken);
+        if (file == null)
+            return NotFound(new { message = "Documento não encontrado." });
+
+        try
+        {
+            var bytes = await _storageService.GetFileBytesAsync(file.StoragePath, cancellationToken);
+            return File(bytes, string.IsNullOrWhiteSpace(file.ContentType) ? "application/octet-stream" : file.ContentType, file.FileName);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "Arquivo não encontrado no servidor." });
+        }
     }
 }

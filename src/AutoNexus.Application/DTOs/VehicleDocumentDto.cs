@@ -10,3 +10,10 @@ public record VehicleDocumentDto(
     bool ShowInCatalog,
     DateTime CreatedAt
 );
+
+/// <summary>Dados mínimos para servir o arquivo de um documento via download autenticado.</summary>
+public record VehicleDocumentFileDto(
+    string FileName,
+    string ContentType,
+    string StoragePath
+);
