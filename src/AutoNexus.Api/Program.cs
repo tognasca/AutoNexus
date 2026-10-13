@@ -7,7 +7,6 @@ using AutoNexus.Infrastructure.Data.Seeds;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
-using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -137,18 +136,18 @@ if (app.Environment.IsDevelopment())
 {
     app.MapOpenApi();
 }
-// Garantir que a pasta /uploads exista e seja servida
-var uploadsDirectory = Path.Combine(builder.Environment.ContentRootPath, "uploads");
-if (!Directory.Exists(uploadsDirectory))
-{
-    Directory.CreateDirectory(uploadsDirectory);
-}
+// // Garantir que a pasta /uploads exista e seja servida
+// var uploadsDirectory = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+// if (!Directory.Exists(uploadsDirectory))
+// {
+//     Directory.CreateDirectory(uploadsDirectory);
+// }
 
-app.UseStaticFiles(new StaticFileOptions
-{
-    FileProvider = new PhysicalFileProvider(uploadsDirectory),
-    RequestPath = "/uploads"
-});
+// app.UseStaticFiles(new StaticFileOptions
+// {
+//     FileProvider = new PhysicalFileProvider(uploadsDirectory),
+//     RequestPath = "/uploads"
+// });
 
 app.UseStaticFiles(); // Suporte a wwwroot se existir
 

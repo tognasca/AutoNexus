@@ -116,7 +116,20 @@ public class VehicleDocumentsController : ControllerBase
         await _vehicleService.DeleteDocumentAsync(vehicleId, documentId, cancellationToken);
         return NoContent();
     }
+    [Authorize]
+    [HttpGet("~/api/vehicle-photos/{photoId:guid}/content")]
+    public async Task<IActionResult> GetPhotoContent(
+        Guid photoId,
+        CancellationToken cancellationToken)
+    {
+        // Buscar a foto usando uma consulta com filtro de tenant.
+        // Validar que o usuário possui um tenant autenticado.
+        // Ler os bytes usando IStorageService.
+        // Retornar File(bytes, mimeType).
 
+        throw new NotImplementedException(
+            "Implementar conforme o repositório de fotos do projeto.");
+    }
     // Download autenticado de verdade: antes disso, o único jeito de abrir um
     // documento era a URL estática em /uploads (servida sem nenhuma
     // autorização por app.UseStaticFiles() no Program.cs — qualquer um que
