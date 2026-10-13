@@ -66,9 +66,13 @@ public class SuperAdminService : ISuperAdminService
         if (emailExists)
             throw new InvalidOperationException("Já existe um usuário cadastrado com este e-mail.");
 
+        // Plano inicial = o plano ativo de menor preço (Starter, no catálogo
+        // atual) — sem depender de um nome fixo no código.
         var freePlan = (await _planRepository.GetAllAsync(cancellationToken))
-            .FirstOrDefault(p => p.Name == "Free")
-            ?? throw new InvalidOperationException("Plano Free não está cadastrado — verifique o seed de planos.");
+            .Where(p => p.IsActive)
+            .OrderBy(p => p.Price)
+            .FirstOrDefault()
+            ?? throw new InvalidOperationException("Nenhum plano ativo cadastrado — verifique o seed de planos.");
 
         var tenant = new Tenant(dto.TenantName, dto.TenantSlug);
         await _tenantRepository.AddAsync(tenant, cancellationToken);
@@ -86,7 +90,7 @@ public class SuperAdminService : ISuperAdminService
         var settings = new TenantSetting(dto.TenantName);
         await _settingRepository.AddForTenantAsync(settings, tenant.Id, cancellationToken);
 
-        var subscription = new TenantSubscription(freePlan.Id, SubscriptionStatus.Trialing);
+        var subscription = new TenantSubscription(freePlan.Id, SubscriptionStatus.Trialing, BillingCycle.Monthly, freePlan.TrialDays);
         await _subscriptionRepository.AddForTenantAsync(subscription, tenant.Id, cancellationToken);
 
         // LogForTenantAsync: quem executa é o SuperAdmin (sem tenant próprio),
@@ -158,8 +162,19 @@ public class SuperAdminService : ISuperAdminService
 
     public async Task<PlanDto> CreatePlanAsync(CreatePlanDto dto, CancellationToken cancellationToken = default)
     {
-        var plan = new Plan(dto.Name, dto.Price, dto.MaxUsers, dto.MaxVehicles, dto.MaxStorageMb);
+        var plan = new Plan(dto.Name, dto.Price, dto.MaxUsers, dto.MaxVehicles, dto.MaxStorageMb, dto.AnnualPrice, dto.TrialDays);
         await _planRepository.AddAsync(plan, cancellationToken);
+        await _unitOfWork.CommitAsync(cancellationToken);
+        return ToDto(plan);
+    }
+
+    public async Task<PlanDto> UpdatePlanAsync(Guid planId, UpdatePlanDto dto, CancellationToken cancellationToken = default)
+    {
+        var plan = await _planRepository.GetByIdAsync(planId, cancellationToken)
+            ?? throw new KeyNotFoundException("Plano não encontrado.");
+
+        plan.Update(dto.Name, dto.Price, dto.AnnualPrice, dto.TrialDays, dto.MaxUsers, dto.MaxVehicles, dto.MaxStorageMb);
+        _planRepository.Update(plan);
         await _unitOfWork.CommitAsync(cancellationToken);
         return ToDto(plan);
     }
@@ -219,16 +234,8 @@ public class SuperAdminService : ISuperAdminService
     private static TenantDto ToDto(Tenant tenant) =>
         new(tenant.Id, tenant.Name, tenant.Slug, tenant.IsActive, tenant.CreatedAt);
 
-    private static PlanDto ToDto(Plan plan) =>
-        new(plan.Id, plan.Name, plan.Price, plan.IsActive, plan.MaxUsers, plan.MaxVehicles, plan.MaxStorageMb);
+    private static PlanDto ToDto(Plan plan) => BillingMapper.ToDto(plan);
 
-    private static TenantSubscriptionDto ToDto(TenantSubscription subscription, string planName) => new(
-        subscription.Id,
-        subscription.TenantId,
-        subscription.PlanId,
-        planName,
-        subscription.Status,
-        subscription.StartDate,
-        subscription.EndDate
-    );
+    private static TenantSubscriptionDto ToDto(TenantSubscription subscription, string planName) =>
+        BillingMapper.ToDto(subscription, planName);
 }

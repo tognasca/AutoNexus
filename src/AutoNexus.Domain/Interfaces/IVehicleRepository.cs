@@ -1,4 +1,4 @@
-﻿using AutoNexus.Domain.Entities;
+using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Domain.Interfaces;
@@ -20,6 +20,9 @@ public interface IVehicleRepository
         int? minYear = null,
         int? maxYear = null,
         CancellationToken cancellationToken = default);
+    /// <summary>Quantidade de veículos do tenant atual (respeita o filtro global) — usado para limites de plano.</summary>
+    Task<int> CountAsync(CancellationToken cancellationToken = default);
+
     Task AddAsync(Vehicle vehicle, CancellationToken cancellationToken = default);
     Task UpdateAsync(Vehicle vehicle, CancellationToken cancellationToken = default);
     void Update(Vehicle vehicle);

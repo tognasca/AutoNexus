@@ -59,4 +59,14 @@ public class CompanyDocumentService : ICompanyDocumentService
         _repository.Delete(doc);
         await _unitOfWork.CommitAsync(cancellationToken);
     }
+
+    public async Task<CompanyDocumentFileDto?> GetFileAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        // GetByIdAsync já aplica o filtro global de tenant — documento de
+        // outra empresa simplesmente não é encontrado.
+        var doc = await _repository.GetByIdAsync(id, cancellationToken);
+        if (doc == null) return null;
+
+        return new CompanyDocumentFileDto(doc.Title, doc.FileUrl);
+    }
 }

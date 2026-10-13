@@ -33,6 +33,10 @@ public class AutoNexusDbContext : DbContext
     public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
     public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
     public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
+    public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<WebhookEvent> WebhookEvents => Set<WebhookEvent>();
+    public DbSet<LegalDocument> LegalDocuments => Set<LegalDocument>();
+    public DbSet<UserConsent> UserConsents => Set<UserConsent>();
     public DbSet<Plan> Plans => Set<Plan>();
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
     public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();

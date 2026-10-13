@@ -29,6 +29,11 @@ public class UserRepository : IUserRepository
         return await _context.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower().Trim(), cancellationToken);
     }
 
+    public async Task<int> CountAsync(CancellationToken cancellationToken = default)
+    {
+        return await _context.Users.CountAsync(cancellationToken);
+    }
+
     public async Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users.IgnoreQueryFilters()

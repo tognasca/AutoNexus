@@ -16,7 +16,18 @@ public class TenantSubscriptionConfiguration : IEntityTypeConfiguration<TenantSu
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.StartDate).IsRequired();
         builder.Property(x => x.EndDate);
+        builder.Property(x => x.BillingCycle).HasConversion<int>().IsRequired();
+        builder.Property(x => x.TrialEndsAt);
+        builder.Property(x => x.CurrentPeriodEnd);
+        builder.Property(x => x.CancelledAt);
+        builder.Property(x => x.TrialReminderSentAt);
+        builder.Property(x => x.ExternalSubscriptionId).HasMaxLength(200);
+        builder.Property(x => x.PaymentProvider).HasMaxLength(50);
         builder.Property(x => x.CreatedAt).IsRequired();
+
+        builder.HasIndex(x => x.PlanId);
+        builder.HasIndex(x => x.Status);
+        builder.HasIndex(x => x.ExternalSubscriptionId);
         builder.Property(x => x.UpdatedAt);
 
         // Assinatura inicial do tenant padrão (o mesmo que já existia antes
@@ -30,6 +41,7 @@ public class TenantSubscriptionConfiguration : IEntityTypeConfiguration<TenantSu
             TenantId = Tenant.DefaultTenantId,
             PlanId = PlanConfiguration.FreePlanId,
             Status = SubscriptionStatus.Active,
+            BillingCycle = BillingCycle.Monthly,
             StartDate = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
             EndDate = (DateTime?)null,
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),

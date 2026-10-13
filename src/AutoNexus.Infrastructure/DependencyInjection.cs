@@ -1,4 +1,4 @@
-using AutoNexus.Application.Interfaces;
+﻿using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
 using AutoNexus.Infrastructure.Integrations.Adapters;
@@ -45,7 +45,14 @@ public static class DependencyInjection
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
-        
+
+        // Billing / SaaS comercial
+        services.AddScoped<IPaymentRepository, PaymentRepository>();
+        services.AddScoped<IWebhookEventRepository, WebhookEventRepository>();
+        services.AddScoped<ILegalDocumentRepository, LegalDocumentRepository>();
+        services.AddScoped<IUserConsentRepository, UserConsentRepository>();
+        services.AddHttpClient<IPaymentProvider, MercadoPagoPaymentProvider>();
+        services.AddHttpClient<IEmailService, ResendEmailService>();
 
         return services;
     }

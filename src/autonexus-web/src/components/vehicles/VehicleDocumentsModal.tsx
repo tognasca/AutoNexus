@@ -13,7 +13,7 @@ import {
   Check, 
   ShieldCheck 
 } from 'lucide-react';
-import { request } from '../../services/api';
+import { request, downloadFile } from '../../services/api';
 import type { VehicleSummary } from '../../types/vehicle';
 
 interface VehicleDocument {
@@ -235,6 +235,18 @@ export function VehicleDocumentsModal({
     }
   };
 
+  const handleDownloadDocument = async (doc: VehicleDocument) => {
+    if (!vehicle) return;
+    try {
+      setError(null);
+      // Download autenticado (passa pelo [Authorize] do backend) — antes
+      // disso era um link direto e estático, acessível sem login.
+      await downloadFile(`/vehicles/${vehicle.id}/documents/${doc.id}/file`, doc.fileName);
+    } catch (err: any) {
+      setError(err.message || 'Erro ao baixar documento.');
+    }
+  };
+
   const handleDeleteDocument = async (docId: string) => {
     if (!vehicle) return;
     if (!confirm('Deseja realmente remover este documento?')) return;
@@ -427,8 +439,6 @@ export function VehicleDocumentsModal({
             ) : (
               <div className="space-y-2">
                 {documents.map((doc) => {
-                  const fileUrl = getFullDocumentUrl(doc.storagePath);
-
                   return (
                     <div
                       key={doc.id}
@@ -463,15 +473,14 @@ export function VehicleDocumentsModal({
                           <span className="hidden sm:inline">{doc.showInCatalog ? 'Público' : 'Privado'}</span>
                         </button>
 
-                        <a
-                          href={fileUrl}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          onClick={() => handleDownloadDocument(doc)}
                           className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-200 rounded-lg transition-colors cursor-pointer"
                           title="Visualizar / Download"
                         >
                           <Download size={15} />
-                        </a>
+                        </button>
 
                         <button
                           type="button"

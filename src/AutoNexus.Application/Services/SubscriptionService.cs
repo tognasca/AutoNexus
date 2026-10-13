@@ -21,15 +21,7 @@ public class SubscriptionService : ISubscriptionService
         if (subscription == null) return null;
 
         var plan = await _planRepository.GetByIdAsync(subscription.PlanId, cancellationToken);
-        return new TenantSubscriptionDto(
-            subscription.Id,
-            subscription.TenantId,
-            subscription.PlanId,
-            plan?.Name ?? "—",
-            subscription.Status,
-            subscription.StartDate,
-            subscription.EndDate
-        );
+        return BillingMapper.ToDto(subscription, plan?.Name ?? "—");
     }
 
     public async Task<List<PlanDto>> GetAvailablePlansAsync(CancellationToken cancellationToken = default)
@@ -37,7 +29,7 @@ public class SubscriptionService : ISubscriptionService
         var plans = await _planRepository.GetAllAsync(cancellationToken);
         return plans
             .Where(p => p.IsActive)
-            .Select(p => new PlanDto(p.Id, p.Name, p.Price, p.IsActive, p.MaxUsers, p.MaxVehicles, p.MaxStorageMb))
+            .Select(p => BillingMapper.ToDto(p))
             .ToList();
     }
 }

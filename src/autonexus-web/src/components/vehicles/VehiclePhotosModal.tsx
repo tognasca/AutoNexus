@@ -96,7 +96,7 @@ export function VehiclePhotosModal({
       setLoadingPhotos(true);
       setError(null);
 
-      const response = await request(`/vehicles/${vehicle.id}/photos`, {
+      const response = await request<any>(`/vehicles/${vehicle.id}/photos`, {
         method: 'GET'
       });
 
@@ -104,10 +104,10 @@ export function VehiclePhotosModal({
 
       if (Array.isArray(response)) {
         data = response;
-      // } else if (Array.isArray(response?.photos)) {
-      //   data = response.photos;
-      // } else if (Array.isArray(response?.data)) {
-      //   data = response.data;
+      } else if (Array.isArray(response?.photos)) {
+        data = response.photos;
+      } else if (Array.isArray(response?.data)) {
+        data = response.data;
       }
 
       data.sort((a, b) => {

@@ -28,6 +28,13 @@ public static class DependencyInjection
         services.AddScoped<IFeedExportService, FeedExportService>();
         services.AddScoped<ISuperAdminService, SuperAdminService>();
         services.AddScoped<IAuditLogService, AuditLogService>();
+        services.AddScoped<ITenantNotifier, TenantNotifier>();
+        services.AddScoped<IPlanLimitService, PlanLimitService>();
+        services.AddScoped<ISubscriptionAccessService, SubscriptionAccessService>();
+        services.AddScoped<IBillingService, BillingService>();
+        services.AddScoped<IBillingMaintenanceService, BillingMaintenanceService>();
+        services.AddScoped<ISignupService, SignupService>();
+        services.AddScoped<ILegalService, LegalService>();
         services.AddScoped<ITenantSettingService, TenantSettingService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
         return services;

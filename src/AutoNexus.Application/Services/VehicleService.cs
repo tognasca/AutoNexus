@@ -13,13 +13,16 @@ public class VehicleService : IVehicleService
     private readonly IDocumentRepository _documentRepository;
     private readonly ILookupRepository _lookupRepository;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly IPlanLimitService _planLimitService;
 
     public VehicleService(
         IVehicleRepository vehicleRepository,
         IDocumentRepository documentRepository,
         ILookupRepository lookupRepository,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        IPlanLimitService planLimitService)
     {
+        _planLimitService = planLimitService;
         _vehicleRepository = vehicleRepository;
         _documentRepository = documentRepository;
         _lookupRepository = lookupRepository;
@@ -163,6 +166,9 @@ public class VehicleService : IVehicleService
 
     public async Task<Guid> CreateAsync(CreateVehicleDto dto, CancellationToken cancellationToken = default)
     {
+        // Limite do plano (MaxVehicles) — verificação central, ver PlanLimitService.
+        await _planLimitService.EnsureCanAddVehicleAsync(cancellationToken);
+
         var vehicleType = await _lookupRepository.GetVehicleTypeByIdAsync(dto.VehicleTypeId, cancellationToken)
             ?? throw new ArgumentException("Tipo de veículo inválido.");
 
@@ -341,6 +347,20 @@ public class VehicleService : IVehicleService
             await _vehicleRepository.UpdateAsync(vehicle, cancellationToken);
             await _unitOfWork.CommitAsync(cancellationToken);
         }
+    }
+
+    public async Task<VehicleDocumentFileDto?> GetDocumentFileAsync(Guid vehicleId, Guid documentId, CancellationToken cancellationToken = default)
+    {
+        // GetByIdAsync já aplica o filtro global de tenant — um vehicleId de
+        // outra empresa simplesmente não é encontrado (null), nunca vaza
+        // o documento de outro tenant.
+        var vehicle = await _vehicleRepository.GetByIdAsync(vehicleId, true, cancellationToken);
+        if (vehicle == null) return null;
+
+        var doc = vehicle.Documents.FirstOrDefault(d => d.Id == documentId);
+        if (doc == null) return null;
+
+        return new VehicleDocumentFileDto(doc.FileName, doc.MimeType, doc.StoragePath);
     }
 
     // --- GESTÃO DE CUSTOS ---

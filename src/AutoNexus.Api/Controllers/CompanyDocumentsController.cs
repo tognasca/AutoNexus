@@ -6,6 +6,7 @@ using AutoNexus.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.StaticFiles;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -15,10 +16,13 @@ namespace AutoNexus.Api.Controllers;
 public class CompanyDocumentsController : ControllerBase
 {
     private readonly ICompanyDocumentService _service;
+    private readonly IStorageService _storageService;
+    private static readonly FileExtensionContentTypeProvider ContentTypeProvider = new();
 
-    public CompanyDocumentsController(ICompanyDocumentService service)
+    public CompanyDocumentsController(ICompanyDocumentService service, IStorageService storageService)
     {
         _service = service;
+        _storageService = storageService;
     }
 
     [HttpGet]
@@ -94,6 +98,32 @@ public class CompanyDocumentsController : ControllerBase
         catch (Exception ex)
         {
             return BadRequest(new { message = ex.Message });
+        }
+    }
+
+    // Download autenticado — antes disso o único acesso era a URL estática
+    // em /uploads, sem nenhuma verificação de autorização. Documentos da
+    // empresa (CNPJ, licenças, contratos) são sensíveis, então essa rota
+    // passa pelo [Authorize(Roles = "Admin,1")] do controller.
+    [HttpGet("{id:guid}/file")]
+    public async Task<IActionResult> Download(Guid id, CancellationToken cancellationToken)
+    {
+        var file = await _service.GetFileAsync(id, cancellationToken);
+        if (file == null)
+            return NotFound(new { message = "Documento não encontrado." });
+
+        try
+        {
+            var bytes = await _storageService.GetFileBytesAsync(file.StoragePath, cancellationToken);
+            if (!ContentTypeProvider.TryGetContentType(file.StoragePath, out var contentType))
+            {
+                contentType = "application/octet-stream";
+            }
+            return File(bytes, contentType, file.FileName);
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "Arquivo não encontrado no servidor." });
         }
     }
 }

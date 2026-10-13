@@ -27,6 +27,13 @@ public interface IVehicleService
     Task ToggleDocumentCatalogAsync(Guid vehicleId, Guid documentId, CancellationToken cancellationToken = default);
     Task DeleteDocumentAsync(Guid vehicleId, Guid documentId, CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Usado pelo endpoint de download autenticado (ver VehicleDocumentsController).
+    /// Retorna null se o documento não existir OU não pertencer ao veículo/tenant
+    /// informado — o filtro global de tenant já garante isso via GetByIdAsync.
+    /// </summary>
+    Task<VehicleDocumentFileDto?> GetDocumentFileAsync(Guid vehicleId, Guid documentId, CancellationToken cancellationToken = default);
+
     // Gestão de Custos
     Task AddCostAsync(Guid vehicleId, Guid costCategoryId, string description, decimal value, DateTime costDate, CancellationToken cancellationToken = default);
     Task DeleteCostAsync(Guid vehicleId, Guid costId, CancellationToken cancellationToken = default);

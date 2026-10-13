@@ -1244,3 +1244,7 @@ Quando houver conflito entre uma implementação sugerida e este documento:
 5. Aplicar a alteração somente após definição.
 
 **Objetivo principal: construir exatamente o sistema especificado, sem achismo, sem escopo inventado e sem refatoração desnecessária.**
+
+
+## SaaS / Billing
+Veja [BILLING.md](BILLING.md): planos, assinatura, trial, Mercado Pago, webhooks, Resend, LGPD e variáveis de ambiente.

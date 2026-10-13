@@ -28,6 +28,17 @@ export interface SuperAdminUser {
   tenantId: string;
 }
 
+export interface AuditLogEntry {
+  id: string;
+  tenantId: string;
+  userId: string | null;
+  operation: string;
+  resource: string;
+  resourceId: string | null;
+  details: string | null;
+  executedAt: string;
+}
+
 export const superAdminService = {
   getTenants: async (): Promise<Tenant[]> => {
     return await request<Tenant[]>('/superadmin/tenants');
@@ -57,7 +68,11 @@ export const superAdminService = {
     return await request<Plan[]>('/superadmin/plans');
   },
 
-  createPlan: async (data: { name: string; price: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => {
+  updatePlan: async (id: string, data: { name: string; price: number; annualPrice: number | null; trialDays: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => {
+    return await request<Plan>(`/superadmin/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) });
+  },
+
+  createPlan: async (data: { name: string; price: number; annualPrice?: number | null; trialDays?: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => {
     return await request<Plan>('/superadmin/plans', {
       method: 'POST',
       body: JSON.stringify(data),
@@ -70,6 +85,11 @@ export const superAdminService = {
     } catch {
       return null;
     }
+  },
+
+  getAuditLogs: async (tenantId?: string): Promise<AuditLogEntry[]> => {
+    const query = tenantId ? `?tenantId=${tenantId}` : '';
+    return await request<AuditLogEntry[]>(`/superadmin/audit-logs${query}`);
   },
 
   assignPlan: async (tenantId: string, planId: string): Promise<TenantSubscription> => {

@@ -21,6 +21,19 @@ public class TenantSubscriptionRepository : ITenantSubscriptionRepository
         => _context.TenantSubscriptions.IgnoreQueryFilters()
             .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
 
+    public Task<TenantSubscription?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
+        => _context.TenantSubscriptions.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.Id == id, cancellationToken);
+
+    public Task<TenantSubscription?> GetByExternalSubscriptionIdAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
+        => _context.TenantSubscriptions.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(s => s.ExternalSubscriptionId == externalSubscriptionId, cancellationToken);
+
+    public Task<List<TenantSubscription>> GetTrialingAsync(CancellationToken cancellationToken = default)
+        => _context.TenantSubscriptions.IgnoreQueryFilters()
+            .Where(s => s.Status == Domain.Enums.SubscriptionStatus.Trialing && s.TrialEndsAt != null)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(TenantSubscription subscription, CancellationToken cancellationToken = default)
         => await _context.TenantSubscriptions.AddAsync(subscription, cancellationToken);
 

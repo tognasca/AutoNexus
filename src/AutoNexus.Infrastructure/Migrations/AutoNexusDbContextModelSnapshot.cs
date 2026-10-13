@@ -530,12 +530,174 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("fipe_histories", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.LegalDocument", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Content")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("content");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isActive");
+
+                    b.Property<DateTime>("PublishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("publishedAt");
+
+                    b.Property<int>("Type")
+                        .HasColumnType("integer")
+                        .HasColumnName("type");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedAt");
+
+                    b.Property<int>("Version")
+                        .HasColumnType("integer")
+                        .HasColumnName("version");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Type", "Version")
+                        .IsUnique();
+
+                    b.ToTable("legal_documents", (string)null);
+
+                    b.HasData(
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000c1"),
+                            Content = "# Termos de Uso — AutoNexus\n\n**[RASCUNHO ESTRUTURAL — PENDENTE DE REVISÃO JURÍDICA. NÃO USAR COMO TERMO FINAL.]**\n\n1. Identificação do prestador de serviço\n[Razão social], inscrita no CNPJ sob o nº [CNPJ], com sede em [endereço completo] (\"AutoNexus\" ou \"nós\"), disponibiliza a plataforma AutoNexus (\"Plataforma\") como um serviço de software como serviço (SaaS) para gestão de compra, venda e troca de veículos.\n\n2. Aceite\nAo criar uma conta ou utilizar a Plataforma, você (\"Cliente\" ou \"Usuário\") declara ter lido, compreendido e aceitado estes Termos de Uso e a Política de Privacidade vigente.\n\n3. Cadastro e conta\n3.1. O Cliente é responsável pela veracidade das informações fornecidas no cadastro da empresa e dos usuários.\n3.2. O Cliente é responsável por manter a confidencialidade das credenciais de acesso de seus usuários.\n\n4. Planos, preços e pagamento\n4.1. O uso da Plataforma é condicionado à contratação de um plano pago, podendo haver período de teste gratuito (trial) conforme indicado no momento da contratação.\n4.2. Os valores vigentes de cada plano são exibidos na página de preços da Plataforma e podem ser alterados mediante aviso prévio.\n4.3. Os pagamentos são processados por gateway de pagamento terceirizado([gateway de pagamento]). O AutoNexus não armazena dados completos de cartão de crédito.\n\n5. Cancelamento\n5.1. O Cliente pode cancelar sua assinatura a qualquer momento através do painel da conta.\n5.2. O cancelamento não gera reembolso automático de período já pago, ressalvadas as hipóteses legais aplicáveis (ex.: direito de arrependimento em até 7 dias, art. 49 do CDC).\n\n6. Dados do Cliente\n6.1. Os dados inseridos pelo Cliente na Plataforma (veículos, clientes, documentos, etc.) permanecem de propriedade do Cliente.\n6.2. Em caso de cancelamento, os dados são mantidos pelo período descrito na Política de Privacidade antes de eventual exclusão/anonimização.\n\n7. Limitação de responsabilidade\n[A ser definido com apoio jurídico — cláusula padrão de limitação de responsabilidade proporcional ao valor pago, exclusão de danos indiretos, etc.]\n\n8. Foro\nFica eleito o foro da comarca de [cidade/UF] para dirimir eventuais controvérsias oriundas destes Termos, com renúncia a qualquer outro, por mais privilegiado que seja.\n\n9. Contato\nDúvidas sobre estes Termos podem ser enviadas para [e-mail de contato].\n\nVersão 1 — [data de publicação real a definir]",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            PublishedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Type = 1,
+                            Version = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000c2"),
+                            Content = "# Política de Privacidade — AutoNexus\n\n**[RASCUNHO ESTRUTURAL — PENDENTE DE REVISÃO JURÍDICA. NÃO USAR COMO POLÍTICA FINAL.]**\n\nEsta Política de Privacidade descreve como o AutoNexus coleta, usa, armazena e protege dados pessoais, em conformidade com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).\n\n1. Controlador de dados\n[Razão social], CNPJ [CNPJ]. Encarregado de Dados (DPO): [nome/e-mail do encarregado — a definir].\n\n2. Dados coletados\n2.1. Dados de cadastro: nome, e-mail, telefone, dados da empresa (razão social, CNPJ, endereço).\n2.2. Dados de uso: veículos cadastrados, clientes, documentos, histórico de navegação na Plataforma.\n2.3. Dados de pagamento: processados pelo gateway de pagamento — o AutoNexus não armazena número completo de cartão de crédito.\n\n3. Finalidade do tratamento\nPrestação do serviço contratado, comunicação sobre a conta e cobrança, cumprimento de obrigações legais/regulatórias, prevenção a fraude e melhoria da Plataforma.\n\n4. Base legal\nExecução de contrato (art. 7º, V, LGPD), cumprimento de obrigação legal (art. 7º, II) e, quando aplicável, consentimento (art. 7º, I).\n\n5. Compartilhamento de dados\nDados podem ser compartilhados com: gateway de pagamento ([Mercado Pago]), provedor de e-mail transacional ([Resend]), provedores de infraestrutura (hospedagem/banco de dados), e autoridades quando exigido por lei.\n\n6. Direitos do titular\nNos termos do art. 18 da LGPD, o titular pode solicitar: confirmação de tratamento, acesso, correção, anonimização/eliminação, portabilidade, informação sobre compartilhamento, e revogação de consentimento. Solicitações podem ser enviadas para [e-mail de contato do encarregado].\n\n7. Retenção e eliminação\nDados são mantidos enquanto a conta estiver ativa e pelo prazo adicional necessário para cumprimento de obrigações legais/fiscais após o cancelamento. Após esse prazo, podem ser anonimizados ou eliminados mediante solicitação do titular, observadas as exceções legais.\n\n8. Segurança\nAdotamos medidas técnicas e organizacionais para proteger os dados, incluindo isolamento lógico entre empresas clientes (multi-tenancy) e controle de acesso por autenticação.\n\n9. Cookies\nVeja a Política de Cookies para detalhes sobre o uso de cookies e tecnologias similares.\n\n10. Alterações\nEsta política pode ser atualizada; a versão vigente estará sempre disponível na Plataforma, com indicação da data/versão.\n\nVersão 1 — [data de publicação real a definir]",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            PublishedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Type = 2,
+                            Version = 1
+                        },
+                        new
+                        {
+                            Id = new Guid("00000000-0000-0000-0000-0000000000c3"),
+                            Content = "# Política de Cookies — AutoNexus\n\n**[RASCUNHO ESTRUTURAL — PENDENTE DE REVISÃO JURÍDICA.]**\n\n1. O que são cookies\nPequenos arquivos armazenados no navegador do usuário para permitir o funcionamento e a melhoria da Plataforma.\n\n2. Cookies utilizados\n2.1. Essenciais: necessários para autenticação e funcionamento básico (ex.: manter a sessão do usuário logado). Não podem ser desativados sem comprometer o funcionamento da Plataforma.\n2.2. Desempenho/analytics: [a definir caso sejam adicionadas ferramentas de analytics].\n\n3. Gerenciamento de cookies\nO usuário pode gerenciar/bloquear cookies diretamente nas configurações do navegador, ciente de que isso pode afetar o funcionamento da Plataforma.\n\n4. Alterações\nEsta política pode ser atualizada; a versão vigente estará sempre disponível na Plataforma.\n\nVersão 1 — [data de publicação real a definir]",
+                            CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            IsActive = true,
+                            PublishedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
+                            Type = 3,
+                            Version = 1
+                        });
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.Payment", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("amount");
+
+                    b.Property<int?>("BillingCycle")
+                        .HasColumnType("integer")
+                        .HasColumnName("billingCycle");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .HasMaxLength(3)
+                        .HasColumnType("character varying(3)")
+                        .HasColumnName("currency");
+
+                    b.Property<string>("ExternalPaymentId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("externalPaymentId");
+
+                    b.Property<string>("FailureReason")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("failureReason");
+
+                    b.Property<int>("Method")
+                        .HasColumnType("integer")
+                        .HasColumnName("method");
+
+                    b.Property<DateTime?>("PaidAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("paidAt");
+
+                    b.Property<Guid?>("PlanId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("planId");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("provider");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer")
+                        .HasColumnName("status");
+
+                    b.Property<Guid>("SubscriptionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("subscriptionId");
+
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedAt");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ExternalPaymentId");
+
+                    b.HasIndex("SubscriptionId");
+
+                    b.HasIndex("TenantId");
+
+                    b.ToTable("payments", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.Plan", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<decimal?>("AnnualPrice")
+                        .HasColumnType("decimal(10,2)")
+                        .HasColumnName("annualPrice");
 
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
@@ -567,6 +729,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("decimal(10,2)")
                         .HasColumnName("price");
 
+                    b.Property<int>("TrialDays")
+                        .HasColumnType("integer")
+                        .HasColumnName("trialDays");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
@@ -579,43 +745,41 @@ namespace AutoNexus.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-0000000000f1"),
+                            AnnualPrice = 499.00m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
-                            MaxStorageMb = 500,
-                            MaxUsers = 2,
-                            MaxVehicles = 10,
-                            Name = "Free",
-                            Price = 0m
+                            Name = "Starter",
+                            Price = 49.90m,
+                            TrialDays = 7
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-0000000000f2"),
+                            AnnualPrice = 999.00m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
-                            MaxStorageMb = 2000,
-                            MaxUsers = 5,
-                            MaxVehicles = 50,
-                            Name = "Basic",
-                            Price = 99m
+                            Name = "Profissional",
+                            Price = 99.90m,
+                            TrialDays = 7
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-0000000000f3"),
+                            AnnualPrice = 1999.00m,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             IsActive = true,
-                            MaxStorageMb = 10000,
-                            MaxUsers = 20,
-                            MaxVehicles = 500,
-                            Name = "Professional",
-                            Price = 299m
+                            Name = "Premium",
+                            Price = 199.90m,
+                            TrialDays = 7
                         },
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-0000000000f4"),
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
-                            IsActive = true,
-                            Name = "Enterprise",
-                            Price = 999m
+                            IsActive = false,
+                            Name = "Enterprise (legado)",
+                            Price = 0m,
+                            TrialDays = 0
                         });
                 });
 
@@ -745,13 +909,39 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<int>("BillingCycle")
+                        .HasColumnType("integer")
+                        .HasColumnName("billingCycle");
+
+                    b.Property<DateTime?>("CancelledAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("cancelledAt");
+
                     b.Property<DateTime>("CreatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("createdAt");
 
+                    b.Property<DateTime?>("CurrentPeriodEnd")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("currentPeriodEnd");
+
                     b.Property<DateTime?>("EndDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("endDate");
+
+                    b.Property<string>("ExternalSubscriptionId")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("externalSubscriptionId");
+
+                    b.Property<int?>("PaymentMethod")
+                        .HasColumnType("integer")
+                        .HasColumnName("paymentMethod");
+
+                    b.Property<string>("PaymentProvider")
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("paymentProvider");
 
                     b.Property<Guid>("PlanId")
                         .HasColumnType("uuid")
@@ -771,11 +961,25 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
                         .HasColumnName("tenantId");
 
+                    b.Property<DateTime?>("TrialEndsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trialEndsAt");
+
+                    b.Property<DateTime?>("TrialReminderSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("trialReminderSentAt");
+
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("ExternalSubscriptionId");
+
+                    b.HasIndex("PlanId");
+
+                    b.HasIndex("Status");
 
                     b.HasIndex("TenantId");
 
@@ -785,6 +989,7 @@ namespace AutoNexus.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-0000000000a1"),
+                            BillingCycle = 1,
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             PlanId = new Guid("00000000-0000-0000-0000-0000000000f1"),
                             StartDate = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
@@ -939,6 +1144,57 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.ToTable("users", (string)null);
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.UserConsent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("AcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("acceptedAt");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<int>("DocumentType")
+                        .HasColumnType("integer")
+                        .HasColumnName("documentType");
+
+                    b.Property<int>("DocumentVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("documentVersion");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("ipAddress");
+
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedAt");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("userId");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("UserId");
+
+                    b.ToTable("user_consents", (string)null);
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>
@@ -1306,6 +1562,68 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("vehicle_types", (string)null);
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.WebhookEvent", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<string>("EventType")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("eventType");
+
+                    b.Property<string>("ExternalEventId")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("externalEventId");
+
+                    b.Property<DateTime?>("ProcessedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processedAt");
+
+                    b.Property<bool>("ProcessedSuccessfully")
+                        .HasColumnType("boolean")
+                        .HasColumnName("processedSuccessfully");
+
+                    b.Property<string>("ProcessingError")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("processingError");
+
+                    b.Property<string>("Provider")
+                        .IsRequired()
+                        .HasMaxLength(50)
+                        .HasColumnType("character varying(50)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("RawPayload")
+                        .HasColumnType("text")
+                        .HasColumnName("rawPayload");
+
+                    b.Property<DateTime>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("receivedAt");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedAt");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Provider", "ExternalEventId")
+                        .IsUnique();
+
+                    b.ToTable("webhook_events", (string)null);
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.BuyerAccessLink", b =>
