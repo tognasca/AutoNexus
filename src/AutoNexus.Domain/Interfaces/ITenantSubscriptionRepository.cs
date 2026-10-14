@@ -28,6 +28,9 @@ public interface ITenantSubscriptionRepository
     /// <summary>Uso do job de manutenção (sem tenant ambiente): todas as assinaturas em trial com data de término definida, de todos os tenants.</summary>
     Task<List<TenantSubscription>> GetTrialingAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Job de manutenção: assinaturas ativas SEM cobrança recorrente no gateway (Pix/Boleto) e com fim de período definido.</summary>
+    Task<List<TenantSubscription>> GetActiveManualRenewalAsync(CancellationToken cancellationToken = default);
+
     Task AddAsync(TenantSubscription subscription, CancellationToken cancellationToken = default);
 
     /// <summary>

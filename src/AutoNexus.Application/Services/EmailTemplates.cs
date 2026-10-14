@@ -71,6 +71,11 @@ public static class EmailTemplates
                 ? $"Sua assinatura foi cancelada. Você continua com acesso ao AutoNexus até <strong>{acessoAte:dd/MM/yyyy}</strong>, fim do período já pago."
                 : "Sua assinatura foi cancelada.");
 
+    public static (string Subject, string Html) RenovacaoManual(DateTime fimDoPeriodo, string checkoutUrl) =>
+        Wrap("Renove sua assinatura",
+            $"Seu período pago do AutoNexus termina em <strong>{fimDoPeriodo:dd/MM/yyyy}</strong>. Como o pagamento por Pix/boleto não renova sozinho, gere o pagamento do próximo período para não perder o acesso.",
+            "Renovar assinatura", checkoutUrl);
+
     public static (string Subject, string Html) Renovacao(string valorFormatado, DateTime proximaCobranca) =>
         Wrap("Assinatura renovada",
             $"Sua assinatura foi renovada com sucesso — <strong>{valorFormatado}</strong> cobrado. Próxima renovação em <strong>{proximaCobranca:dd/MM/yyyy}</strong>.");

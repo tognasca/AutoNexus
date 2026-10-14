@@ -34,6 +34,11 @@ public class TenantSubscriptionRepository : ITenantSubscriptionRepository
             .Where(s => s.Status == Domain.Enums.SubscriptionStatus.Trialing && s.TrialEndsAt != null)
             .ToListAsync(cancellationToken);
 
+    public Task<List<TenantSubscription>> GetActiveManualRenewalAsync(CancellationToken cancellationToken = default)
+        => _context.TenantSubscriptions.IgnoreQueryFilters()
+            .Where(s => s.Status == Domain.Enums.SubscriptionStatus.Active && s.ExternalSubscriptionId == null && s.CurrentPeriodEnd != null)
+            .ToListAsync(cancellationToken);
+
     public async Task AddAsync(TenantSubscription subscription, CancellationToken cancellationToken = default)
         => await _context.TenantSubscriptions.AddAsync(subscription, cancellationToken);
 

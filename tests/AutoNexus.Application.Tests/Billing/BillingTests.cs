@@ -1,0 +1,363 @@
+using System.Text.RegularExpressions;
+using AutoNexus.Application.Interfaces;
+using AutoNexus.Application.Services;
+using AutoNexus.Domain.Entities;
+using AutoNexus.Domain.Enums;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging.Abstractions;
+
+namespace AutoNexus.Application.Tests.Billing;
+
+internal static class TestConfig
+{
+    public static IConfiguration Create() => new ConfigurationBuilder()
+        .AddInMemoryCollection(new Dictionary<string, string?> { ["Application:Url"] = "https://app.test" })
+        .Build();
+}
+
+public class PlanAndSubscriptionEntityTests
+{
+    [Fact]
+    public void Plan_PriceForCycle_UsesAnnualPriceWhenAvailable()
+    {
+        var plan = new Plan("Starter", 49.90m, annualPrice: 499.00m, trialDays: 7);
+        Assert.Equal(49.90m, plan.GetPriceForCycle(BillingCycle.Monthly));
+        Assert.Equal(499.00m, plan.GetPriceForCycle(BillingCycle.Annual));
+    }
+
+    [Fact]
+    public void Plan_WithoutAnnualPrice_AnnualFallsBackToMonthly()
+    {
+        var plan = new Plan("Starter", 49.90m);
+        Assert.Equal(49.90m, plan.GetPriceForCycle(BillingCycle.Annual));
+    }
+
+    [Fact]
+    public void Subscription_WithTrial_SetsTrialEndAndReportsRemainingDays()
+    {
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
+        Assert.NotNull(sub.TrialEndsAt);
+        Assert.Equal(7, BillingMapper.TrialDaysRemaining(sub));
+    }
+
+    [Fact]
+    public void Subscription_RenewPeriod_ActivatesAndStoresPeriodEnd()
+    {
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
+        var end = DateTime.UtcNow.AddMonths(1);
+        sub.RenewPeriod(end);
+        Assert.Equal(SubscriptionStatus.Active, sub.Status);
+        Assert.Equal(end, sub.CurrentPeriodEnd);
+    }
+
+    [Fact]
+    public void Subscription_Cancel_KeepsAccessUntilPaidPeriodEnd()
+    {
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Active);
+        var end = DateTime.UtcNow.AddDays(10);
+        sub.RenewPeriod(end);
+        sub.Cancel();
+        Assert.Equal(SubscriptionStatus.Canceled, sub.Status);
+        Assert.Equal(end, sub.EndDate);
+        Assert.NotNull(sub.CancelledAt);
+    }
+}
+
+public class SubscriptionAccessTests
+{
+    private static (SubscriptionAccessService Service, FakeSubscriptionRepo Repo, FakeNotifier Notifier, FakeUow Uow) Build()
+    {
+        var repo = new FakeSubscriptionRepo();
+        var notifier = new FakeNotifier();
+        var uow = new FakeUow();
+        var service = new SubscriptionAccessService(repo, new FakeAudit(), notifier, new FakeTenantContext(), uow, TestConfig.Create());
+        return (service, repo, notifier, uow);
+    }
+
+    [Fact]
+    public void ExpireTrialIfNeeded_AfterTrialEnd_Expires_BeforeEnd_DoesNot()
+    {
+        var (service, _, _, _) = Build();
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
+
+        Assert.False(service.ExpireTrialIfNeeded(sub, DateTime.UtcNow.AddDays(3)));
+        Assert.Equal(SubscriptionStatus.Trialing, sub.Status);
+
+        Assert.True(service.ExpireTrialIfNeeded(sub, DateTime.UtcNow.AddDays(8)));
+        Assert.Equal(SubscriptionStatus.Expired, sub.Status);
+    }
+
+    [Fact]
+    public async Task Evaluate_TrialWithoutEndDate_IsAllowed()
+    {
+        var (service, repo, _, _) = Build();
+        repo.Items.Add(new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Trialing));
+        Assert.True((await service.EvaluateAsync()).Allowed);
+    }
+
+    [Fact]
+    public async Task Evaluate_ExpiredSubscription_IsBlocked()
+    {
+        var (service, repo, _, _) = Build();
+        repo.Items.Add(new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Expired));
+        var result = await service.EvaluateAsync();
+        Assert.False(result.Allowed);
+        Assert.False(string.IsNullOrWhiteSpace(result.Message));
+    }
+
+    [Fact]
+    public async Task Evaluate_CanceledButStillInPaidPeriod_IsAllowed()
+    {
+        var (service, repo, _, _) = Build();
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Active);
+        sub.RenewPeriod(DateTime.UtcNow.AddDays(10));
+        sub.Cancel();
+        repo.Items.Add(sub);
+        Assert.True((await service.EvaluateAsync()).Allowed);
+    }
+
+    [Fact]
+    public async Task Evaluate_ManualRenewalPeriodOver_IsBlocked()
+    {
+        var (service, repo, _, _) = Build();
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Active);
+        sub.RenewPeriod(DateTime.UtcNow.AddDays(-1));
+        repo.Items.Add(sub);
+        Assert.False((await service.EvaluateAsync()).Allowed);
+    }
+
+    [Fact]
+    public async Task Evaluate_TrialPastEnd_ExpiresPersistsAndNotifiesOnce()
+    {
+        var (service, repo, notifier, uow) = Build();
+        var sub = new TenantSubscription(Guid.NewGuid(), SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
+        typeof(TenantSubscription).GetProperty(nameof(TenantSubscription.TrialEndsAt))!.SetValue(sub, DateTime.UtcNow.AddDays(-1));
+        repo.Items.Add(sub);
+
+        var result = await service.EvaluateAsync();
+
+        Assert.False(result.Allowed);
+        Assert.Equal(SubscriptionStatus.Expired, sub.Status);
+        Assert.Equal(1, uow.Commits);
+        Assert.Single(notifier.Subjects);
+    }
+}
+
+public class PlanLimitTests
+{
+    private static PlanLimitService Build(Plan plan, int existingUsers)
+    {
+        var subs = new FakeSubscriptionRepo();
+        subs.Items.Add(new TenantSubscription(plan.Id, SubscriptionStatus.Active));
+        var plans = new FakePlanRepo();
+        plans.Items.Add(plan);
+        var users = new FakeUserRepo();
+        for (var i = 0; i < existingUsers; i++)
+            users.Items.Add(new User($"U{i}", $"u{i}@t.com", "h", UserProfile.Vendedor));
+        // Repositório de veículos não é usado nos testes de limite de usuários.
+        return new PlanLimitService(subs, plans, users, null!);
+    }
+
+    [Fact]
+    public async Task AddUser_AtPlanLimit_IsBlockedWithFriendlyMessage()
+    {
+        var service = Build(new Plan("Starter", 49.90m, maxUsers: 2), existingUsers: 2);
+        var ex = await Assert.ThrowsAsync<PlanLimitExceededException>(() => service.EnsureCanAddUserAsync());
+        Assert.Contains("Starter", ex.Message);
+    }
+
+    [Fact]
+    public async Task AddUser_BelowLimit_IsAllowed()
+    {
+        var service = Build(new Plan("Starter", 49.90m, maxUsers: 2), existingUsers: 1);
+        await service.EnsureCanAddUserAsync();
+    }
+
+    [Fact]
+    public async Task AddUser_PlanWithoutLimit_IsAlwaysAllowed()
+    {
+        var service = Build(new Plan("Premium", 199.90m), existingUsers: 500);
+        await service.EnsureCanAddUserAsync();
+    }
+}
+
+public class BillingWebhookTests
+{
+    private sealed class Ctx
+    {
+        public FakeSubscriptionRepo Subs = new();
+        public FakePlanRepo Plans = new();
+        public FakePaymentRepo Payments = new();
+        public FakeEventRepo Events = new();
+        public FakePaymentProvider Provider = new();
+        public FakeNotifier Notifier = new();
+        public FakeAudit Audit = new();
+        public BillingService Service = null!;
+        public TenantSubscription Sub = null!;
+        public Payment Payment = null!;
+        public Plan TargetPlan = null!;
+    }
+
+    private static Ctx Build()
+    {
+        var c = new Ctx();
+        var starter = new Plan("Starter", 49.90m, annualPrice: 499m, trialDays: 7);
+        c.TargetPlan = new Plan("Profissional", 99.90m, annualPrice: 999m, trialDays: 7);
+        c.Plans.Items.AddRange(new[] { starter, c.TargetPlan });
+
+        c.Sub = new TenantSubscription(starter.Id, SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
+        c.Subs.Items.Add(c.Sub);
+
+        c.Payment = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.Pix, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
+        c.Payment.SetExternalPaymentId("pay-1");
+        c.Payments.Items.Add(c.Payment);
+
+        c.Service = new BillingService(c.Subs, c.Plans, c.Payments, c.Events, new FakeUserRepo(), c.Provider, c.Audit,
+            c.Notifier, new FakeTenantContext(), new FakeUow(), TestConfig.Create(), NullLogger<BillingService>.Instance);
+        return c;
+    }
+
+    private static Task<WebhookProcessResult> Send(Ctx c) =>
+        c.Service.ProcessWebhookAsync("{}", new Dictionary<string, string>(), new Dictionary<string, string>());
+
+    [Fact]
+    public async Task Webhook_WithInvalidSignature_IsRejectedAndNothingChanges()
+    {
+        var c = Build();
+        c.Provider.ParseResult = new(false, null, null, null, null);
+
+        Assert.Equal(WebhookProcessResult.Invalid, await Send(c));
+        Assert.Empty(c.Events.Items);
+        Assert.Equal(PaymentStatus.Pending, c.Payment.Status);
+    }
+
+    [Fact]
+    public async Task Webhook_ApprovedPayment_ActivatesSubscriptionAndAppliesChosenPlan()
+    {
+        var c = Build();
+
+        Assert.Equal(WebhookProcessResult.Processed, await Send(c));
+
+        Assert.Equal(PaymentStatus.Approved, c.Payment.Status);
+        Assert.Equal(SubscriptionStatus.Active, c.Sub.Status);
+        Assert.Equal(c.TargetPlan.Id, c.Sub.PlanId);
+        Assert.True(c.Sub.CurrentPeriodEnd > DateTime.UtcNow.AddDays(28));
+        Assert.Equal(2, c.Notifier.Subjects.Count); // assinatura criada + pagamento aprovado
+        Assert.True(c.Events.Items.Single().ProcessedSuccessfully);
+    }
+
+    [Fact]
+    public async Task Webhook_SameEventDeliveredTwice_IsProcessedOnlyOnce()
+    {
+        var c = Build();
+        await Send(c);
+        var periodEnd = c.Sub.CurrentPeriodEnd;
+        var emails = c.Notifier.Subjects.Count;
+
+        Assert.Equal(WebhookProcessResult.Duplicate, await Send(c));
+
+        Assert.Equal(periodEnd, c.Sub.CurrentPeriodEnd);
+        Assert.Equal(emails, c.Notifier.Subjects.Count);
+        Assert.Single(c.Events.Items);
+    }
+
+    [Fact]
+    public async Task Webhook_NewEventForAlreadyApprovedPayment_DoesNotRenewTwice()
+    {
+        var c = Build();
+        await Send(c);
+        var periodEnd = c.Sub.CurrentPeriodEnd;
+        var emails = c.Notifier.Subjects.Count;
+
+        c.Provider.ParseResult = new(true, "payment", "evt-2", "pay-1", null);
+        await Send(c);
+
+        Assert.Equal(periodEnd, c.Sub.CurrentPeriodEnd);
+        Assert.Equal(emails, c.Notifier.Subjects.Count);
+    }
+
+    [Fact]
+    public async Task Webhook_RejectedPayment_MarksPaymentRejectedAndNotifies()
+    {
+        var c = Build();
+        c.Provider.PaymentInfo = new("pay-1", PaymentStatus.Rejected, "rejected", 99.90m, null, PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.Equal(PaymentStatus.Rejected, c.Payment.Status);
+        Assert.NotEqual(SubscriptionStatus.Active, c.Sub.Status);
+        Assert.Single(c.Notifier.Subjects);
+    }
+}
+
+public class PasswordServiceTests
+{
+    private static (PasswordService Service, FakeUserRepo Users, FakeEmail Email, User User) Build()
+    {
+        var users = new FakeUserRepo();
+        var user = new User("Maria", "maria@loja.com", "H:senhaantiga", UserProfile.Admin);
+        users.Items.Add(user);
+        var email = new FakeEmail();
+        var service = new PasswordService(users, new FakeHasher(), email, new FakeAudit(),
+            new FakeTenantContext { UserId = user.Id }, new FakeUow(), TestConfig.Create());
+        return (service, users, email, user);
+    }
+
+    [Fact]
+    public async Task RequestReset_UnknownEmail_SendsNothing_AndDoesNotThrow()
+    {
+        var (service, _, email, _) = Build();
+        await service.RequestResetAsync("naoexiste@loja.com");
+        Assert.Empty(email.Sent);
+    }
+
+    [Fact]
+    public async Task RequestReset_KnownEmail_SendsLink_AndStoresOnlyTheTokenHash()
+    {
+        var (service, _, email, user) = Build();
+
+        await service.RequestResetAsync("maria@loja.com");
+
+        var sent = Assert.Single(email.Sent);
+        var token = Regex.Match(sent.Html, "token=([A-Za-z0-9_-]+)").Groups[1].Value;
+        Assert.False(string.IsNullOrEmpty(token));
+        Assert.NotEqual(token, user.PasswordResetTokenHash);
+        Assert.Equal(PasswordService.HashToken(token), user.PasswordResetTokenHash);
+    }
+
+    [Fact]
+    public async Task Reset_ValidToken_ChangesPassword_AndTokenCannotBeReused()
+    {
+        var (service, _, email, user) = Build();
+        await service.RequestResetAsync("maria@loja.com");
+        var token = Regex.Match(email.Sent[0].Html, "token=([A-Za-z0-9_-]+)").Groups[1].Value;
+
+        await service.ResetAsync(token, "novasenha123");
+
+        Assert.Equal("H:novasenha123", user.PasswordHash);
+        Assert.Null(user.PasswordResetTokenHash);
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ResetAsync(token, "outrasenha123"));
+    }
+
+    [Fact]
+    public async Task Reset_ExpiredToken_IsRejected()
+    {
+        var (service, _, _, user) = Build();
+        user.SetPasswordResetToken(PasswordService.HashToken("tok"), DateTime.UtcNow.AddMinutes(-1));
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ResetAsync("tok", "novasenha123"));
+    }
+
+    [Fact]
+    public async Task Reset_ShortPassword_IsRejected()
+    {
+        var (service, _, _, _) = Build();
+        await Assert.ThrowsAsync<ArgumentException>(() => service.ResetAsync("tok", "123"));
+    }
+
+    [Fact]
+    public async Task Change_WrongCurrentPassword_IsRejected()
+    {
+        var (service, _, _, _) = Build();
+        await Assert.ThrowsAsync<InvalidOperationException>(() => service.ChangeAsync("errada", "novasenha123"));
+    }
+}

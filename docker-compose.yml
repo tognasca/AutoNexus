@@ -1,6 +1,4 @@
-version: '3.8'
-
-services:
+﻿services:
   postgres:
     image: postgres:16-alpine
     container_name: autonexus-db
@@ -8,11 +6,13 @@ services:
     environment:
       POSTGRES_DB: autonexus
       POSTGRES_USER: autonexus
-      POSTGRES_PASSWORD: AutoNexus@2025!
+      POSTGRES_PASSWORD: "AutoNexus@2025!"
     ports:
-      - "5433:5433"
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
 volumes:
   postgres_data:
+    external: true
+    name: f1b42594be5f2a13ceed0253215afda3e702ae4c840199bcaca9013f163c149e

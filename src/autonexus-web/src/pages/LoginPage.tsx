@@ -99,6 +99,8 @@ export function LoginPage() {
           <a href="/cadastro" className="text-blue-400 hover:underline font-semibold">Criar conta (7 dias grátis)</a>
           <span>•</span>
           <a href="/precos" className="text-blue-400 hover:underline">Ver planos</a>
+          <span>•</span>
+          <a href="/esqueci-senha" className="text-blue-400 hover:underline">Esqueci minha senha</a>
         </div>
 
         <div className="mt-8 pt-6 border-t border-nexus-border/60 text-center">

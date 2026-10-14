@@ -947,6 +947,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("planId");
 
+                    b.Property<DateTime?>("RenewalReminderSentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("renewalReminderSentAt");
+
                     b.Property<DateTime>("StartDate")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("startDate");
@@ -1122,6 +1126,15 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(500)")
                         .HasColumnName("passwordHash");
 
+                    b.Property<DateTime?>("PasswordResetExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("passwordResetExpiresAt");
+
+                    b.Property<string>("PasswordResetTokenHash")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("passwordResetTokenHash");
+
                     b.Property<int>("Profile")
                         .HasColumnType("integer")
                         .HasColumnName("profile");
@@ -1140,6 +1153,8 @@ namespace AutoNexus.Infrastructure.Migrations
 
                     b.HasIndex("Email")
                         .IsUnique();
+
+                    b.HasIndex("PasswordResetTokenHash");
 
                     b.HasIndex("TenantId");
 

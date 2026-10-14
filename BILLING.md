@@ -38,6 +38,18 @@ dotnet ef database update --project src/AutoNexus.Infrastructure --startup-proje
 Cria `payments`, `webhook_events`, `legal_documents`, `user_consents`, novas colunas em `plans` e `tenant_subscriptions`,
 e atualiza o catálogo (Free→Starter, Basic→Profissional, Professional→Premium; Enterprise fica inativo).
 
+## Recuperação e alteração de senha
+`/esqueci-senha` → e-mail com link (`/redefinir-senha?token=...`): token aleatório de 256 bits, uso único, validade de 1 hora, guardado só como hash;
+a resposta é a mesma exista o e-mail ou não. Usuário logado altera a senha em `POST /api/password/change`. Tentativas limitadas por IP.
+
+## Lembrete de renovação (Pix/Boleto)
+A rotina periódica envia e-mail 3 dias antes do fim do período pago (uma vez por período) para quem paga por Pix/Boleto (renovação manual).
+
+## Testes automatizados
+`tests/AutoNexus.Application.Tests/Billing`: regras de plano/assinatura, acesso (trial expirado, cancelado dentro do período pago),
+limites de plano, webhook (assinatura inválida rejeitada, evento duplicado processado uma vez, pagamento aprovado aplica o plano,
+recusado notifica) e recuperação de senha. Rode com `dotnet test`.
+
 ## Decisões técnicas (sem regra comercial definida — ajuste se precisar)
 - Acesso: Active/Trialing/PastDue liberados; Canceled até o fim do período pago; Expired/Suspended bloqueiam (HTTP 402) — dados preservados.
 - Trial com cartão já cadastrado: tolerância de 3 dias após o fim do trial para a 1ª cobrança confirmar.

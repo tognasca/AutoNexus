@@ -34,6 +34,12 @@ public class UserRepository : IUserRepository
         return await _context.Users.CountAsync(cancellationToken);
     }
 
+    public async Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default)
+    {
+        return await _context.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.PasswordResetTokenHash == tokenHash, cancellationToken);
+    }
+
     public async Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default)
     {
         return await _context.Users.IgnoreQueryFilters()
