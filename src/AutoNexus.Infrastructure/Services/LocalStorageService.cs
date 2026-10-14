@@ -113,50 +113,17 @@ public class LocalStorageService : IStorageService
     }
 
     private string ResolveStoredPath(string relativePath)
-{
-    if (string.IsNullOrWhiteSpace(relativePath))
-        throw new ArgumentException("Caminho do arquivo inválido.", nameof(relativePath));
-
-    var normalized = relativePath.Trim().Replace('\\', '/');
-
-    // Aceita caminhos legados como /uploads/arquivo.jpg
-    // e caminhos relativos como tenants/{tenantId}/arquivo.jpg.
-    if (normalized.StartsWith('/', StringComparison.Ordinal))
     {
-        if (!normalized.StartsWith("/uploads/", StringComparison.OrdinalIgnoreCase))
-            throw new UnauthorizedAccessException("Caminho de arquivo inválido.");
+        var sanitized = relativePath
+            .TrimStart('/')
+            .Replace('\\', Path.DirectorySeparatorChar)
+            .Replace('/', Path.DirectorySeparatorChar);
 
-        normalized = normalized["/uploads/".Length..];
+        if (sanitized.StartsWith("uploads" + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        {
+            sanitized = sanitized["uploads".Length..].TrimStart(Path.DirectorySeparatorChar);
+        }
+
+        return Path.Combine(GetUploadsRoot(), sanitized);
     }
-    else if (normalized.StartsWith("uploads/", StringComparison.OrdinalIgnoreCase))
-    {
-        normalized = normalized["uploads/".Length..];
-    }
-
-    if (string.IsNullOrWhiteSpace(normalized) ||
-        Path.IsPathRooted(normalized) ||
-        normalized.Contains(':') ||
-        normalized.Contains('\0'))
-    {
-        throw new UnauthorizedAccessException("Caminho de arquivo inválido.");
-    }
-
-    var root = Path.GetFullPath(GetUploadsRoot());
-    var candidate = Path.GetFullPath(
-        Path.Combine(root, normalized.Replace('/', Path.DirectorySeparatorChar)));
-
-    var rootPrefix = Path.EndsInDirectorySeparator(root)
-        ? root
-        : root + Path.DirectorySeparatorChar;
-
-    var comparison = OperatingSystem.IsWindows()
-        ? StringComparison.OrdinalIgnoreCase
-        : StringComparison.Ordinal;
-
-    // O arquivo deve permanecer dentro da pasta uploads.
-    if (!candidate.StartsWith(rootPrefix, comparison))
-        throw new UnauthorizedAccessException("Acesso ao caminho não permitido.");
-
-    return candidate;
-}
 }

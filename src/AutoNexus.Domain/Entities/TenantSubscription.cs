@@ -36,6 +36,9 @@ public class TenantSubscription : TenantOwnedEntityBase
     /// <summary>Quando o aviso de "trial terminando" foi enviado (evita reenviar a cada execução do job).</summary>
     public DateTime? TrialReminderSentAt { get; private set; }
 
+    /// <summary>Quando o lembrete de renovação (Pix/Boleto, renovação manual) foi enviado para o período atual.</summary>
+    public DateTime? RenewalReminderSentAt { get; private set; }
+
     protected TenantSubscription() { }
 
     // billingCycle e trialDays entram no final, depois dos parâmetros já
@@ -116,6 +119,12 @@ public class TenantSubscription : TenantOwnedEntityBase
     public void SetPaymentMethod(PaymentMethodType method)
     {
         PaymentMethod = method;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void MarkRenewalReminderSent()
+    {
+        RenewalReminderSentAt = DateTime.UtcNow;
         UpdatedAt = DateTime.UtcNow;
     }
 

@@ -8,6 +8,7 @@ namespace AutoNexus.Application.Services;
 public class BillingMaintenanceService : IBillingMaintenanceService
 {
     private const int ReminderDaysBefore = 2;
+    private const int ManualRenewalReminderDays = 3;
 
     private readonly ITenantSubscriptionRepository _subs;
     private readonly ISubscriptionAccessService _access;
@@ -42,6 +43,19 @@ public class BillingMaintenanceService : IBillingMaintenanceService
                 _subs.Update(s);
                 var days = Math.Max(1, (int)Math.Ceiling((s.TrialEndsAt.Value - now).TotalDays));
                 outbox.Add((s.TenantId, EmailTemplates.TrialProximoDoFim(days, s.TrialEndsAt.Value, url)));
+            }
+        }
+
+        // Renovação manual (Pix/Boleto): avisa 3 dias antes do fim do período pago, uma vez por período.
+        foreach (var s in await _subs.GetActiveManualRenewalAsync(ct))
+        {
+            var end = s.CurrentPeriodEnd!.Value;
+            var alreadySentForThisPeriod = s.RenewalReminderSentAt.HasValue && s.RenewalReminderSentAt.Value > end.AddDays(-ManualRenewalReminderDays - 1);
+            if (end > now && end - now <= TimeSpan.FromDays(ManualRenewalReminderDays) && !alreadySentForThisPeriod)
+            {
+                s.MarkRenewalReminderSent();
+                _subs.Update(s);
+                outbox.Add((s.TenantId, EmailTemplates.RenovacaoManual(end, url)));
             }
         }
 

@@ -18,6 +18,9 @@ public interface IUserRepository
     /// <summary>Quantidade de usuários do tenant atual (respeita o filtro global) — usado para limites de plano.</summary>
     Task<int> CountAsync(CancellationToken cancellationToken = default);
 
+    /// <summary>Redefinição de senha (requisição anônima): busca o usuário pelo hash do token, ignorando o filtro de tenant.</summary>
+    Task<User?> GetByPasswordResetTokenHashAsync(string tokenHash, CancellationToken cancellationToken = default);
+
     Task<bool> EmailExistsAsync(string email, CancellationToken cancellationToken = default);
     Task AddAsync(User user, CancellationToken cancellationToken = default);
 

@@ -21,6 +21,7 @@ public class TenantSubscriptionConfiguration : IEntityTypeConfiguration<TenantSu
         builder.Property(x => x.CurrentPeriodEnd);
         builder.Property(x => x.CancelledAt);
         builder.Property(x => x.TrialReminderSentAt);
+        builder.Property(x => x.RenewalReminderSentAt);
         builder.Property(x => x.ExternalSubscriptionId).HasMaxLength(200);
         builder.Property(x => x.PaymentProvider).HasMaxLength(50);
         builder.Property(x => x.CreatedAt).IsRequired();

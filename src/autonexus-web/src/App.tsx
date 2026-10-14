@@ -19,6 +19,7 @@ import { SuperAdminPage } from './pages/admin/SuperAdminPage';
 import { PricingPage } from './pages/public/PricingPage';
 import { SignupPage } from './pages/public/SignupPage';
 import { LegalPage } from './pages/public/LegalPage';
+import { ForgotPasswordPage, ResetPasswordPage } from './pages/public/PasswordPages';
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -56,6 +57,8 @@ function AppContent() {
   const publicPath = window.location.pathname;
   if (publicPath === '/precos') return <PricingPage />;
   if (publicPath === '/cadastro') return <SignupPage />;
+  if (publicPath === '/esqueci-senha') return <ForgotPasswordPage />;
+  if (publicPath === '/redefinir-senha') return <ResetPasswordPage />;
   if (publicPath === '/termos') return <LegalPage slug="termos" />;
   if (publicPath === '/privacidade') return <LegalPage slug="privacidade" />;
   if (publicPath === '/cookies') return <LegalPage slug="cookies" />;

@@ -14,7 +14,7 @@ public class SubscriptionAccessMiddleware
 {
     private static readonly string[] AllowedPrefixes =
     {
-        "/api/auth", "/api/billing", "/api/subscription", "/api/legal", "/api/webhooks",
+        "/api/auth", "/api/password", "/api/billing", "/api/subscription", "/api/legal", "/api/webhooks",
         "/api/signup", "/api/tenant-settings", "/api/superadmin", "/api/public", "/api/portal", "/health"
     };
 

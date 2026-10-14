@@ -16,6 +16,9 @@ public class UserConfiguration : IEntityTypeConfiguration<User>
         builder.Property(x => x.PasswordHash).HasMaxLength(500).IsRequired();
         builder.Property(x => x.Profile).HasConversion<int>().IsRequired();
         builder.Property(x => x.IsActive).IsRequired();
+        builder.Property(x => x.PasswordResetTokenHash).HasMaxLength(200);
+        builder.Property(x => x.PasswordResetExpiresAt);
+        builder.HasIndex(x => x.PasswordResetTokenHash);
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UpdatedAt);
 
