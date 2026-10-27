@@ -1,4 +1,4 @@
-﻿services:
+services:
   postgres:
     image: postgres:16-alpine
     container_name: autonexus-db
@@ -6,13 +6,52 @@
     environment:
       POSTGRES_DB: autonexus
       POSTGRES_USER: autonexus
-      POSTGRES_PASSWORD: "AutoNexus@2025!"
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
     ports:
       - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autonexus -d autonexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autonexus-api
+    restart: unless-stopped
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:5000
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=autonexus;Username=autonexus;Password=${POSTGRES_PASSWORD}"
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}
+      Jwt__Issuer: AutoNexusApi
+      Jwt__Audience: AutoNexusApp
+      Jwt__ExpirationInHours: "8"
+    ports:
+      - "5000:5000"
+    volumes:
+      - autonexus_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./src/autonexus-web
+      dockerfile: Dockerfile
+    container_name: autonexus-frontend
+    restart: unless-stopped
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
 
 volumes:
   postgres_data:
     external: true
     name: f1b42594be5f2a13ceed0253215afda3e702ae4c840199bcaca9013f163c149e
+  autonexus_uploads:
