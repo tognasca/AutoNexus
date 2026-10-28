@@ -281,6 +281,17 @@ public class BillingService : IBillingService
             if (sub == null) return;
         }
 
+        // Nunca liberar uma assinatura com valor divergente do checkout local.
+        // Para pagamentos criados no checkout, o valor persistido é a referência
+        // esperada; divergências exigem reconciliação manual e não podem ativar o plano.
+        if (!isNewPayment && info.Amount != payment.Amount)
+        {
+            _logger.LogError(
+                "Pagamento {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} diverge do valor esperado {ExpectedAmount} para o pagamento local {PaymentId}.",
+                externalPaymentId, info.Amount, payment.Amount, payment.Id);
+            return;
+        }
+
         switch (info.Status)
         {
             case PaymentStatus.Approved:
