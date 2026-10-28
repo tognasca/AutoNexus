@@ -53,6 +53,9 @@ services:
     build:
       context: ./src/autonexus-web
       dockerfile: Dockerfile
+      args:
+        VITE_DEMO_VIDEO_URL: ${VITE_DEMO_VIDEO_URL:-}
+        VITE_PUBLIC_WHATSAPP_NUMBER: ${VITE_PUBLIC_WHATSAPP_NUMBER:-}
     container_name: autonexus-frontend
     restart: unless-stopped
     ports:
