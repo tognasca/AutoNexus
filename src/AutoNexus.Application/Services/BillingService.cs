@@ -269,6 +269,19 @@ public class BillingService : IBillingService
             payment = await _payments.GetPendingWithoutExternalIdAsync(sub.Id, ct);
             if (payment == null)
             {
+                // Renovação recorrente sem checkout pendente: validar contra o preço
+                // vigente do plano antes de criar um registro usando o valor do gateway.
+                // Divergência exige reconciliação e nunca deve ativar/renovar acesso.
+                var currentPlan = await _plans.GetByIdAsync(sub.PlanId, ct);
+                var expectedAmount = currentPlan?.GetPriceForCycle(sub.BillingCycle);
+                if (expectedAmount is null || info.Amount != expectedAmount.Value)
+                {
+                    _logger.LogError(
+                        "Pagamento recorrente {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} não corresponde ao preço esperado {ExpectedAmount} do plano {PlanId}.",
+                        externalPaymentId, info.Amount, sub.PlanId);
+                    return;
+                }
+
                 payment = new Payment(sub.Id, info.Amount, info.Method ?? PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", sub.PlanId, sub.BillingCycle);
                 await _payments.AddForTenantAsync(payment, sub.TenantId, ct);
                 isNewPayment = true;
@@ -279,6 +292,17 @@ public class BillingService : IBillingService
         {
             sub = await _subs.GetByIdAsync(payment.SubscriptionId, ct);
             if (sub == null) return;
+        }
+
+        // Nunca liberar uma assinatura com valor divergente do checkout local.
+        // Para pagamentos criados no checkout, o valor persistido é a referência
+        // esperada; divergências exigem reconciliação manual e não podem ativar o plano.
+        if (!isNewPayment && info.Amount != payment.Amount)
+        {
+            _logger.LogError(
+                "Pagamento {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} diverge do valor esperado {ExpectedAmount} para o pagamento local {PaymentId}.",
+                externalPaymentId, info.Amount, payment.Amount, payment.Id);
+            return;
         }
 
         switch (info.Status)

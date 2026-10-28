@@ -60,7 +60,8 @@ public class AutoNexusDbContext : DbContext
         //  3) um Global Query Filter garante que nenhuma consulta LINQ feita
         //     através deste DbContext — em nenhum repositório, service ou
         //     controller — pode retornar linhas de outro tenant, mesmo que o
-        //     autor da consulta esqueça de filtrar manualmente.
+        //     autor da consulta esqueça de filtrar manualmente; sem tenant válido,
+        //     nenhuma linha tenant-owned é visível por padrão.
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
         {
             if (!typeof(TenantOwnedEntityBase).IsAssignableFrom(entityType.ClrType))
@@ -113,7 +114,7 @@ public class AutoNexusDbContext : DbContext
         where TEntity : TenantOwnedEntityBase
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(entity =>
-            !_tenantContext.HasTenant || entity.TenantId == _tenantContext.TenantId);
+            !_tenantContext.HasHttpContext || (_tenantContext.HasTenant && entity.TenantId == _tenantContext.TenantId));
     }
 
     public override int SaveChanges()
