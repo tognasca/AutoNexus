@@ -350,6 +350,23 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Checkout_CardSubscription_UsesPersistedIntentIdAsGatewayIdempotencyKey()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        c.Provider.ThrowOnCreateCardSubscription = false;
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        var result = await c.Service.CreateCheckoutAsync(dto);
+
+        var intent = Assert.Single(c.Payments.Items);
+        Assert.Equal(intent.Id, result.PaymentId);
+        Assert.Equal(intent.Id.ToString(), c.Provider.LastCardSubscriptionRequest!.IdempotencyKey);
+        Assert.Equal(c.Sub.Id.ToString(), c.Provider.LastCardSubscriptionRequest.ExternalReference);
+        Assert.Equal("sub-created", c.Sub.ExternalSubscriptionId);
+    }
+
+    [Fact]
     public async Task Checkout_WhenNewCardSubscriptionCreationFails_DoesNotKeepCancelledOldSubscriptionLinked()
     {
         var c = Build();
