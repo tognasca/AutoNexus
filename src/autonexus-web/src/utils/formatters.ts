@@ -61,7 +61,7 @@ export function formatCpfCnpj(value: string): string {
 
 /** Máscara de telefone brasileiro: (11) 91234-5678 ou (11) 1234-5678. */
 export function formatBrazilianPhone(value: string): string {
-  const digits = value.replace(/\\D/g, '').slice(0, 11);
+  const digits = value.replace(/\D/g, '').slice(0, 11);
   if (digits.length <= 2) return digits ? `(${digits}` : '';
   if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
   if (digits.length <= 10) {
@@ -72,8 +72,8 @@ export function formatBrazilianPhone(value: string): string {
 
 /** Valida os dígitos verificadores de CPF ou CNPJ (não apenas o formato). */
 export function isValidCpfCnpj(value: string): boolean {
-  const digits = value.replace(/\\D/g, '');
-  if (!/^\\d{11}$|^\\d{14}$/.test(digits) || /^(\\d)\\1+$/.test(digits)) return false;
+  const digits = value.replace(/\D/g, '');
+  if (!/^\d{11}$|^\d{14}$/.test(digits) || /^(\d)\1+$/.test(digits)) return false;
 
   if (digits.length === 11) {
     const numbers = digits.split('').map(Number);
@@ -105,5 +105,5 @@ export function formatBrazilianPlate(value: string): string {
 
 export function isValidBrazilianPlate(value: string): boolean {
   const plate = formatBrazilianPlate(value);
-  return /^[A-Z]{3}\\d{4}$/.test(plate) || /^[A-Z]{3}\\d[A-Z]\\d{2}$/.test(plate);
+  return /^[A-Z]{3}\d{4}$/.test(plate) || /^[A-Z]{3}\d[A-Z]\d{2}$/.test(plate);
 }
