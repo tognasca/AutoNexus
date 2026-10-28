@@ -270,6 +270,21 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Checkout_InvalidBoletoDocument_DoesNotCancelExistingSubscription()
+    {
+        var c = Build();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.Boleto, "123");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Equal(0, c.Provider.CancelSubscriptionCalls);
+        Assert.Equal("old-subscription", c.Sub.ExternalSubscriptionId);
+        Assert.Single(c.Payments.Items);
+    }
+
+    [Fact]
     public async Task Webhook_WithInvalidSignature_IsRejectedAndNothingChanges()
     {
         var c = Build();
