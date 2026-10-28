@@ -44,6 +44,19 @@ public class CreditController : ControllerBase
     [HttpPost("submit-proposal")]
     public async Task<IActionResult> SubmitProposal([FromBody] SubmitCreditProposalRequest request)
     {
+        if (!request.PrivacyConsent)
+            return BadRequest(new { message = "O consentimento informado é obrigatório para enviar a proposta." });
+
+        if (string.IsNullOrWhiteSpace(request.BankId) ||
+            string.IsNullOrWhiteSpace(request.CustomerName) ||
+            string.IsNullOrWhiteSpace(request.CustomerCpf) ||
+            string.IsNullOrWhiteSpace(request.VehicleName) ||
+            request.Months <= 0 ||
+            request.FinancedAmount <= 0 ||
+            request.InstallmentValue <= 0 ||
+            request.MonthlyIncome <= 0)
+            return BadRequest(new { message = "Os dados obrigatórios da proposta são inválidos." });
+
         var proposalRequest = new CreditProposalRequest(
             BankId: request.BankId,
             BankName: request.BankName,
