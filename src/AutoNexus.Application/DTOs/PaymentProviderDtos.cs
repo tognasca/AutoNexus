@@ -11,7 +11,8 @@ public record CreateCardSubscriptionRequest(
     string ExternalReference,
     string BackUrl,
     /// <summary>Dias de teste grátis restantes: a primeira cobrança só ocorre depois deles.</summary>
-    int? FreeTrialDays = null
+    int? FreeTrialDays = null,
+    string? IdempotencyKey = null
 );
 
 public record CreateCardSubscriptionResult(
