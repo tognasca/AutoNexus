@@ -208,15 +208,22 @@ public class BillingService : IBillingService
         var outbox = new List<Notification>();
         try
         {
-            if (!string.IsNullOrEmpty(parsed.ExternalPaymentId))
-                await ApplyPaymentAsync(parsed.ExternalPaymentId, outbox, ct);
-            else if (!string.IsNullOrEmpty(parsed.ExternalSubscriptionId))
-                await ApplySubscriptionStatusAsync(parsed.ExternalSubscriptionId, outbox, ct);
+            // Eventos diferentes podem apontar para o mesmo pagamento. A transação
+            // serializável protege a transição financeira e a renovação da assinatura
+            // como uma única operação atômica; conflito serializável é retornado ao
+            // gateway como 500 para que ele reenvie o evento.
+            await _uow.ExecuteInTransactionAsync(async () =>
+            {
+                if (!string.IsNullOrEmpty(parsed.ExternalPaymentId))
+                    await ApplyPaymentAsync(parsed.ExternalPaymentId, outbox, ct);
+                else if (!string.IsNullOrEmpty(parsed.ExternalSubscriptionId))
+                    await ApplySubscriptionStatusAsync(parsed.ExternalSubscriptionId, outbox, ct);
 
-            var ev = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
-            ev?.MarkProcessed();
-            if (ev != null) _events.Update(ev);
-            await _uow.CommitAsync(ct);
+                var ev = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
+                ev?.MarkProcessed();
+                if (ev != null) _events.Update(ev);
+                await _uow.CommitAsync(ct);
+            }, ct);
         }
         catch (Exception ex)
         {
