@@ -285,6 +285,38 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Checkout_OneTimePayment_PersistsLocalIntentAndUsesStableGatewayReference()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.Pix);
+        await c.Service.CreateCheckoutAsync(dto);
+
+        var payment = Assert.Single(c.Payments.Items);
+        Assert.Equal("pay-created", payment.ExternalPaymentId);
+        Assert.NotNull(c.Provider.LastOneTimePaymentRequest);
+        Assert.Equal(payment.Id.ToString(), c.Provider.LastOneTimePaymentRequest!.ExternalReference);
+        Assert.Equal(payment.Id.ToString(), c.Provider.LastOneTimePaymentRequest.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Webhook_RecoversLocalPaymentWhenGatewayCreatedItBeforeFinalCommit()
+    {
+        var c = Build();
+        var localIntent = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.Pix, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
+        c.Payments.Items.Add(localIntent);
+        c.Provider.ParseResult = new(true, "payment", "evt-recovery", "pay-recovered", null);
+        c.Provider.PaymentInfo = new("pay-recovered", PaymentStatus.Approved, "approved", 99.90m, localIntent.Id.ToString(), PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal("pay-recovered", localIntent.ExternalPaymentId);
+        Assert.Equal(PaymentStatus.Approved, localIntent.Status);
+        Assert.Equal(SubscriptionStatus.Active, c.Sub.Status);
+    }
+
+    [Fact]
     public async Task Webhook_WithInvalidSignature_IsRejectedAndNothingChanges()
     {
         var c = Build();
