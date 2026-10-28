@@ -4,6 +4,8 @@ using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using AutoNexus.Infrastructure.Data;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -12,97 +14,109 @@ namespace AutoNexus.Api.Controllers;
 [AllowAnonymous]
 public class PublicCatalogController : ControllerBase
 {
+    private readonly AutoNexusDbContext _context;
     private readonly IVehicleService _vehicleService;
     private readonly IFeedExportService _feedExportService;
     private readonly IAiDescriptionService _aiDescriptionService;
 
     public PublicCatalogController(
+        AutoNexusDbContext context,
         IVehicleService vehicleService, 
         IFeedExportService feedExportService,
         IAiDescriptionService aiDescriptionService)
     {
+        _context = context;
         _vehicleService = vehicleService;
         _feedExportService = feedExportService;
         _aiDescriptionService = aiDescriptionService;
     }
 
     [HttpGet("catalog")]
-    public async Task<IActionResult> GetPublicCatalog(CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPublicCatalog(
+        [FromQuery] string? store,
+        CancellationToken cancellationToken)
     {
-        var vehicles = await _vehicleService.GetByListAsync(cancellationToken);
-        if (vehicles == null) return Ok(new List<object>());
+        // O catálogo público é sempre vinculado a uma empresa explícita.
+        // "default" mantém compatibilidade com a rota antiga /catalogo.
+        var slug = string.IsNullOrWhiteSpace(store) ? "default" : store.Trim().ToLowerInvariant();
+        var tenant = await _context.Tenants.AsNoTracking()
+            .SingleOrDefaultAsync(t => t.Slug == slug && t.IsActive, cancellationToken);
+        if (tenant == null) return NotFound(new { message = "Loja não encontrada ou inativa." });
 
-        // IMPORTANTE: nunca repassar aqui campos internos do veículo
-        // (purchaseValue, plate, custos, margem). Este endpoint é público
-        // e sem autenticação — qualquer campo incluído abaixo fica visível
-        // para qualquer visitante do site.
-        var publicVehicles = vehicles.Select(v => new
+        // IgnoreQueryFilters é usado apenas nesta rota pública e a consulta
+        // aplica obrigatoriamente o TenantId resolvido pelo slug ativo.
+        var settings = await _context.TenantSettings.IgnoreQueryFilters().AsNoTracking()
+            .Where(s => s.TenantId == tenant.Id)
+            .Select(s => new { s.CompanyName, s.LogoUrl, s.PrimaryColor })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var vehicles = await _context.Vehicles.IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(v => v.TenantId == tenant.Id && v.Status == VehicleStatus.AVenda)
+            .Include(v => v.VehicleType)
+            .Include(v => v.Photos)
+            .OrderByDescending(v => v.CreatedAt)
+            .Select(v => new
+            {
+                id = v.Id,
+                vehicleTypeName = v.VehicleType.Name,
+                brand = v.Brand,
+                model = v.Model,
+                version = v.Version,
+                manufacturingYear = v.ManufacturingYear,
+                modelYear = v.ModelYear,
+                mileage = v.Mileage,
+                color = v.Color,
+                fuel = v.Fuel.HasValue ? v.Fuel.Value.ToString() : null,
+                transmission = v.Transmission.HasValue ? v.Transmission.Value.ToString() : null,
+                status = v.Status.ToString(),
+                listedValue = v.ListedValue,
+                mainPhotoUrl = v.Photos.Where(p => p.IsMain).Select(p => p.StoragePath).FirstOrDefault()
+                    ?? v.Photos.Select(p => p.StoragePath).FirstOrDefault(),
+                createdAt = v.CreatedAt
+            }).ToListAsync(cancellationToken);
+
+        return Ok(new
         {
-            id = v.Id,
-            vehicleTypeName = v.VehicleTypeName,
-            brand = v.Brand,
-            model = v.Model,
-            version = v.Version,
-            manufacturingYear = v.ManufacturingYear,
-            modelYear = v.ModelYear,
-            mileage = v.Mileage,
-            color = v.Color,
-            fuel = v.Fuel?.ToString(),
-            transmission = v.Transmission?.ToString(),
-            status = v.Status.ToString(),
-            // Nunca cair para PurchaseValue aqui: um veículo sem preço
-            // anunciado simplesmente não deve mostrar preço nenhum.
-            listedValue = v.ListedValue,
-            saleValue = v.SaleValue,
-            mainPhotoUrl = v.MainPhotoUrl,
-            createdAt = v.CreatedAt
+            store = new
+            {
+                name = settings?.CompanyName ?? tenant.Name,
+                slug = tenant.Slug,
+                logoUrl = settings?.LogoUrl,
+                primaryColor = settings?.PrimaryColor ?? "#2563eb"
+            },
+            items = vehicles
         });
-
-        return Ok(publicVehicles);
     }
 
     [HttpGet("catalog/{id:guid}")]
-    public async Task<IActionResult> GetPublicVehicleDetails(Guid id, CancellationToken cancellationToken)
+    public async Task<IActionResult> GetPublicVehicleDetails(
+        Guid id,
+        [FromQuery] string? store,
+        CancellationToken cancellationToken)
     {
-        var vehicle = await _vehicleService.GetByIdAsync(id, cancellationToken);
+        var slug = string.IsNullOrWhiteSpace(store) ? "default" : store.Trim().ToLowerInvariant();
+        var tenant = await _context.Tenants.AsNoTracking()
+            .SingleOrDefaultAsync(t => t.Slug == slug && t.IsActive, cancellationToken);
+        if (tenant == null) return NotFound(new { message = "Loja não encontrada ou inativa." });
+
+        var vehicle = await _context.Vehicles.IgnoreQueryFilters()
+            .AsNoTracking()
+            .Where(v => v.Id == id && v.TenantId == tenant.Id && v.Status == VehicleStatus.AVenda)
+            .Include(v => v.VehicleType)
+            .Include(v => v.Photos)
+            .Include(v => v.Documents).ThenInclude(d => d.DocumentCategory)
+            .FirstOrDefaultAsync(cancellationToken);
+
         if (vehicle == null)
+            return NotFound(new { message = "Veículo não encontrado no catálogo desta loja." });
+
+        // Nunca enviar placa, chassi, Renavam, valor de compra, custos ou
+        // documentos que não foram explicitamente marcados para exibição.
+        return Ok(new
         {
-            return NotFound(new { message = "Veículo não encontrado no estoque." });
-        }
-
-        // Veículos em preparação ou em processo interno de troca ainda não
-        // devem aparecer publicamente — tratamos como "não encontrado" para
-        // não revelar estoque que ainda não foi publicado.
-        if (vehicle.Status == VehicleStatus.InPreparation || vehicle.Status == VehicleStatus.EmTroca)
-        {
-            return NotFound(new { message = "Veículo não encontrado no estoque." });
-        }
-
-        // Filtra fotos e documentos marcados com ShowInCatalog = true
-        var publicPhotos = vehicle.Photos?
-            .Select(p => new {
-                id = p.Id,
-                url = p.StoragePath,
-                isMain = p.IsMain
-            }).ToList();
-
-        var publicDocuments = vehicle.Documents?
-            .Where(d => d.ShowInCatalog)
-            .Select(d => new {
-                id = d.Id,
-                name = d.Name,
-                documentType = d.CategoryName,
-                fileUrl = d.StoragePath,
-                createdAt = d.CreatedAt
-            }).ToList();
-
-        // IMPORTANTE: assim como no endpoint de listagem, nunca incluir aqui
-        // purchaseValue, plate, chassis, renavam, custos (Costs) ou
-        // documentos com ShowInCatalog = false — são dados internos/PII que
-        // nunca devem ser enviados ao frontend público.
-        var detail = new {
             id = vehicle.Id,
-            vehicleTypeName = vehicle.VehicleTypeName,
+            vehicleTypeName = vehicle.VehicleType.Name,
             brand = vehicle.Brand,
             model = vehicle.Model,
             version = vehicle.Version,
@@ -115,14 +129,18 @@ public class PublicCatalogController : ControllerBase
             status = vehicle.Status.ToString(),
             listedValue = vehicle.ListedValue,
             saleValue = vehicle.SaleValue,
-            fipeValue = vehicle.LatestFipeValue,
             notes = vehicle.Notes,
-            mainPhotoUrl = vehicle.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? vehicle.Photos?.FirstOrDefault()?.StoragePath,
-            photos = publicPhotos,
-            documents = publicDocuments
-        };
-
-        return Ok(detail);
+            mainPhotoUrl = vehicle.Photos.FirstOrDefault(p => p.IsMain)?.StoragePath ?? vehicle.Photos.FirstOrDefault()?.StoragePath,
+            photos = vehicle.Photos.Select(p => new { id = p.Id, url = p.StoragePath, isMain = p.IsMain }).ToList(),
+            documents = vehicle.Documents.Where(d => d.ShowInCatalog).Select(d => new
+            {
+                id = d.Id,
+                name = d.Name,
+                documentType = d.DocumentCategory.Name,
+                fileUrl = d.StoragePath,
+                createdAt = d.CreatedAt
+            }).ToList()
+        });
     }
 
     [HttpGet("feed/xml")]

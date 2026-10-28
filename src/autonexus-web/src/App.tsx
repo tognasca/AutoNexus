@@ -56,6 +56,7 @@ function AppContent() {
   // Páginas públicas (sem login): planos, cadastro e documentos legais
   const publicPath = window.location.pathname;
   if (publicPath === '/precos') return <PricingPage />;
+  if (publicPath.startsWith('/loja/')) return <PublicCatalogPage />;
   if (publicPath === '/cadastro') return <SignupPage />;
   if (publicPath === '/esqueci-senha') return <ForgotPasswordPage />;
   if (publicPath === '/redefinir-senha') return <ResetPasswordPage />;

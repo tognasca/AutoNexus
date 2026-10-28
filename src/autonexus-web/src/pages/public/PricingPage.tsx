@@ -8,6 +8,7 @@ export function PricingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [annual, setAnnual] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const demoVideoUrl = (import.meta.env.VITE_DEMO_VIDEO_URL || '').trim();
 
   useEffect(() => {
     billingService.publicPlans().then(setPlans).catch(() => setError('Não foi possível carregar os planos agora. Tente novamente em instantes.'));
@@ -34,6 +35,30 @@ export function PricingPage() {
         <h1 className="text-3xl sm:text-4xl font-bold text-white">A gestão completa da sua loja de veículos</h1>
         <p className="mt-4 text-slate-400">Compra, venda e troca de veículos, financeiro e documentos num sistema profissional, acessível do computador e do celular.</p>
         <a href="/cadastro" className="inline-block mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-white">Testar grátis por 7 dias</a>
+      </section>
+
+      <section id="como-funciona" className="max-w-6xl mx-auto px-4 pb-14">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-3xl border border-nexus-border bg-nexus-card p-6 sm:p-8">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o AutoNexus</p>
+            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Sua loja organizada em um só lugar</h2>
+            <p className="mt-4 text-sm leading-6 text-slate-400">Veja como centralizar estoque, compras, vendas, trocas, documentos e resultados financeiros em uma plataforma feita para lojas de veículos.</p>
+            <a href="#planos" className="inline-flex mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm">Ver planos e começar</a>
+          </div>
+          <div className="aspect-video overflow-hidden rounded-2xl border border-nexus-border bg-slate-950 flex items-center justify-center">
+            {demoVideoUrl ? (
+              <video className="w-full h-full object-contain" controls preload="metadata" src={demoVideoUrl}>
+                Seu navegador não conseguiu reproduzir o vídeo demonstrativo.
+              </video>
+            ) : (
+              <div className="max-w-sm p-6 text-center">
+                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/10 text-blue-400"><Car className="h-7 w-7" /></div>
+                <p className="mt-4 font-semibold text-white">Vídeo demonstrativo</p>
+                <p className="mt-2 text-xs leading-5 text-slate-400">Configure VITE_DEMO_VIDEO_URL com o endereço público do vídeo antes de divulgar a página.</p>
+              </div>
+            )}
+          </div>
+        </div>
       </section>
 
       <section className="max-w-6xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-14">
