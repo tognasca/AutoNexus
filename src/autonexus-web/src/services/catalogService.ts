@@ -18,6 +18,8 @@ export interface PublicVehiclePhoto {
   order?: number;
 }
 
+export interface PublicStoreInfo { name: string; slug: string; logoUrl?: string; primaryColor?: string; }
+
 export interface PublicVehicleDetail {
   id: string;
   brand: string;
@@ -28,8 +30,8 @@ export interface PublicVehicleDetail {
   plate?: string;
   mileage: number;
   color?: string;
-  fuel?: number;
-  transmission?: number;
+  fuel?: number | string;
+  transmission?: number | string;
   status?: number;
   purchaseValue?: number;
   listedValue?: number;
@@ -64,13 +66,13 @@ export function getPhotoUrl(input?: string | null): string {
 }
 
 export const catalogService = {
-  getPublicCatalog: async (): Promise<any[]> => {
-    const data = await request<any>('/public/catalog');
-    return data.items || data;
+  getPublicCatalog: async (storeSlug = 'default'): Promise<{ items: any[]; store?: PublicStoreInfo }> => {
+    const data = await request<any>(`/public/catalog?store=${encodeURIComponent(storeSlug)}`);
+    return Array.isArray(data) ? { items: data } : { items: data.items || [], store: data.store };
   },
 
-  getPublicVehicle: async (id: string): Promise<PublicVehicleDetail> => {
-    return await request<PublicVehicleDetail>(`/public/catalog/${id}`);
+  getPublicVehicle: async (id: string, storeSlug = 'default'): Promise<PublicVehicleDetail> => {
+    return await request<PublicVehicleDetail>(`/public/catalog/${id}?store=${encodeURIComponent(storeSlug)}`);
   },
 
   generateAiDescription: async (payload: {
