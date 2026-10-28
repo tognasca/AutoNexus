@@ -126,14 +126,33 @@ public class BillingService : IBillingService
             // Reutiliza a mesma intenção pendente em retries: o ID local vira a
             // external_reference e a chave de idempotência estável no gateway.
             // Assim um timeout/resposta perdida não precisa criar outra cobrança.
-            payment = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+            var candidates = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
                 .Where(p => p.Status == PaymentStatus.Pending
                     && p.Amount == amount
                     && p.Method == dto.Method
                     && p.PlanId == plan.Id
                     && p.BillingCycle == dto.Cycle)
-                .OrderByDescending(p => p.CreatedAt)
-                .FirstOrDefault()!;
+                .OrderByDescending(p => p.CreatedAt);
+
+            payment = null!;
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate.ExternalPaymentId))
+                {
+                    payment = candidate;
+                    break;
+                }
+
+                // Um commit pode ter sido concluído no banco mesmo que a API tenha
+                // perdido a confirmação. Só reutiliza um pagamento com ID externo
+                // quando o gateway confirma que ele usa a mesma external_reference.
+                var existingInfo = await _provider.GetPaymentStatusAsync(candidate.ExternalPaymentId, ct);
+                if (string.Equals(existingInfo.ExternalReference, candidate.Id.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    payment = candidate;
+                    break;
+                }
+            }
 
             if (payment == null)
             {
