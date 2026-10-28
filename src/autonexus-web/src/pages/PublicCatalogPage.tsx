@@ -303,8 +303,8 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
 
             {/* MODAL DE DETALHES COM GALERIA DE FOTOS E DOCUMENTOS REAIS */}
             {selectedVehicle && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/80 p-2 backdrop-blur-md sm:p-4">
+                    <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-4xl flex-col overflow-hidden rounded-2xl border border-nexus-border bg-nexus-card shadow-2xl sm:my-8 sm:max-h-[90dvh]">
 
                         <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
                             <div>
