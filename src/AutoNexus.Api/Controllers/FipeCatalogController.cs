@@ -50,4 +50,33 @@ public class FipeCatalogController : ControllerBase
         var years = await _fipeExternalService.GetYearsAsync(vehicleType, brandCode, modelCode, cancellationToken);
         return Ok(years);
     }
+
+    [HttpGet("brands/{brandCode}/models/{modelCode}/years/{yearCode}/quote")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetQuote(
+        string brandCode,
+        string modelCode,
+        string yearCode,
+        [FromQuery] string vehicleType = "Carro",
+        CancellationToken cancellationToken = default)
+    {
+        if (string.IsNullOrWhiteSpace(brandCode) || string.IsNullOrWhiteSpace(modelCode) || string.IsNullOrWhiteSpace(yearCode))
+            return BadRequest(new { message = "Marca, modelo e ano FIPE são obrigatórios." });
+
+        var result = await _fipeExternalService.FetchByBrandModelYearAsync(
+            vehicleType,
+            brandCode,
+            modelCode,
+            yearCode,
+            cancellationToken);
+
+        return Ok(new
+        {
+            fipeValue = result.FipeValue,
+            referenceMonth = result.Month,
+            referenceYear = result.Year,
+            fipeCode = result.FipeCode,
+            source = "Tabela FIPE / Parallelum"
+        });
+    }
 }
