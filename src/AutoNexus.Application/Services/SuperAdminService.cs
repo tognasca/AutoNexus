@@ -134,12 +134,8 @@ public class SuperAdminService : ISuperAdminService
 
         await _unitOfWork.CommitAsync(cancellationToken);
 
-        // Bloqueio de acesso de fato: AuthService.LoginAsync já checa
-        // Tenant.IsActive antes de emitir token (ver etapa 6), então a partir
-        // daqui ninguém dessa empresa consegue mais fazer um NOVO login.
-        // Token já emitido antes disso continua válido até expirar (JWT sem
-        // blocklist) — limitação conhecida, documentada, não resolvida nesta
-        // etapa.
+        // O middleware de tenant verifica IsActive em cada requisição
+        // autenticada, então tokens emitidos antes da desativação também perdem acesso.
     }
 
     public async Task<List<UserDto>> GetUsersAsync(Guid? tenantId, CancellationToken cancellationToken = default)
