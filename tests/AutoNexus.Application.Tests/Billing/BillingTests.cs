@@ -88,6 +88,18 @@ public class SubscriptionAccessTests
     }
 
     [Fact]
+    public async Task Evaluate_NoSubscription_IsBlocked()
+    {
+        var (service, _, _, _) = Build();
+
+        var result = await service.EvaluateAsync();
+
+        Assert.False(result.Allowed);
+        Assert.Null(result.Status);
+        Assert.Contains("assinatura válida", result.Message);
+    }
+
+    [Fact]
     public async Task Evaluate_TrialWithoutEndDate_IsAllowed()
     {
         var (service, repo, _, _) = Build();
