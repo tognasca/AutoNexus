@@ -4,7 +4,6 @@ using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -191,9 +190,11 @@ public class BillingService : IBillingService
             {
                 await _uow.CommitAsync(ct);
             }
-            catch (DbUpdateException)
+            catch (Exception)
             {
-                // Outra instância pode ter inserido o mesmo evento primeiro.
+                // O commit pode falhar porque outra instância inseriu o mesmo evento
+                // ou porque a confirmação da gravação foi perdida. Releia o registro:
+                // só continua se ele realmente existir; caso contrário, propaga o erro.
                 _uow.DiscardChanges();
                 existing = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
                 if (existing == null) throw;
