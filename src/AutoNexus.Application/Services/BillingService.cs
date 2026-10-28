@@ -324,15 +324,20 @@ public class BillingService : IBillingService
                 payment = await _payments.GetPendingWithoutExternalIdAsync(sub.Id, ct);
                 if (payment == null)
                 {
-                    // Renovação recorrente sem checkout pendente: validar contra o preço
-                    // vigente do plano antes de criar um registro usando o valor do gateway.
-                    var currentPlan = await _plans.GetByIdAsync(sub.PlanId, ct);
-                    var expectedAmount = currentPlan?.GetPriceForCycle(sub.BillingCycle);
+                    // Renovação recorrente sem checkout pendente: o catálogo pode ter
+                    // mudado desde a contratação. A última cobrança aprovada é o snapshot
+                    // financeiro efetivamente aceito para esta assinatura; não use o preço
+                    // comercial atual para reescrever retroativamente o contrato.
+                    var lastApprovedPayment = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                        .Where(p => p.Status == PaymentStatus.Approved)
+                        .OrderByDescending(p => p.PaidAt ?? p.CreatedAt)
+                        .FirstOrDefault();
+                    var expectedAmount = lastApprovedPayment?.Amount;
                     if (expectedAmount is null || info.Amount != expectedAmount.Value)
                     {
                         _logger.LogError(
-                            "Pagamento recorrente {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} não corresponde ao preço esperado {ExpectedAmount} do plano {PlanId}.",
-                            externalPaymentId, info.Amount, expectedAmount, sub.PlanId);
+                            "Pagamento recorrente {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} não corresponde ao último valor contratado/aprovado {ExpectedAmount} da assinatura {SubscriptionId}. Exige reconciliação.",
+                            externalPaymentId, info.Amount, expectedAmount, sub.Id);
                         return;
                     }
 
