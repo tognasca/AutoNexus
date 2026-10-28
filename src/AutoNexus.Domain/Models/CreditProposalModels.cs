@@ -15,7 +15,14 @@ public record CreditProposalRequest(
     string VehicleName,
     decimal FinancedAmount,
     int Months,
-    decimal InstallmentValue
+    decimal InstallmentValue,
+    string? Phone = null,
+    string? Email = null,
+    string? MaritalStatus = null,
+    string? Nationality = null,
+    string? AddressJson = null,
+    string? ProfessionalJson = null,
+    bool PrivacyConsent = false
 );
 
 public record CreditProposalResponse(
