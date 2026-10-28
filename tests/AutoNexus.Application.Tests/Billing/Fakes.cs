@@ -13,6 +13,7 @@ internal class FakeUow : IUnitOfWork
     public int Commits { get; private set; }
     public Task<int> CommitAsync(CancellationToken cancellationToken = default) { Commits++; return Task.FromResult(0); }
     public void DiscardChanges() { }
+    public Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default) => operation();
 }
 
 internal class FakeTenantContext : ITenantContext
