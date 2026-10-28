@@ -121,7 +121,14 @@ internal class FakePaymentProvider : IPaymentProvider
     public string ProviderName => "FakePay";
     public WebhookParseResult ParseResult { get; set; } = new(true, "payment", "evt-1", "pay-1", null);
     public PaymentStatusResult PaymentInfo { get; set; } = new("pay-1", PaymentStatus.Approved, "approved", 99.90m, null, PaymentMethodType.Pix);
-    public Task<CreateCardSubscriptionResult> CreateCardSubscriptionAsync(CreateCardSubscriptionRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public CreateCardSubscriptionRequest? LastCardSubscriptionRequest { get; private set; }
+    public bool ThrowOnCreateCardSubscription { get; set; } = true;
+    public Task<CreateCardSubscriptionResult> CreateCardSubscriptionAsync(CreateCardSubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        LastCardSubscriptionRequest = request;
+        if (ThrowOnCreateCardSubscription) throw new NotImplementedException();
+        return Task.FromResult(new CreateCardSubscriptionResult("sub-created", "https://checkout.test/card"));
+    }
     public CreateOneTimePaymentRequest? LastOneTimePaymentRequest { get; private set; }
     public CreateOneTimePaymentResult OneTimePaymentResult { get; set; } = new("pay-created", PaymentStatus.Pending, "pix-code", "qr-base64");
     public Task<CreateOneTimePaymentResult> CreateOneTimePaymentAsync(CreateOneTimePaymentRequest request, CancellationToken cancellationToken = default)
