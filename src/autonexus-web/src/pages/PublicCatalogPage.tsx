@@ -114,8 +114,13 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
             <header className="bg-nexus-card border-b border-nexus-border sticky top-0 z-40 shadow-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-nexus-accent rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/30">
-                            AN
+                        <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/30 overflow-hidden"
+                            style={{ backgroundColor: storeInfo?.primaryColor || undefined }}
+                        >
+                            {storeInfo?.logoUrl ? (
+                                <img src={storeInfo.logoUrl} alt={storeInfo.name} className="w-full h-full object-contain bg-white" />
+                            ) : 'AN'}
                         </div>
                         <div>
                             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
