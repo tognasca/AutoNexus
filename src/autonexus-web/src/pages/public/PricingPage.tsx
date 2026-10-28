@@ -51,10 +51,20 @@ export function PricingPage() {
                 Seu navegador não conseguiu reproduzir o vídeo demonstrativo.
               </video>
             ) : (
-              <div className="max-w-sm p-6 text-center">
-                <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-blue-500/10 text-blue-400"><Car className="h-7 w-7" /></div>
-                <p className="mt-4 font-semibold text-white">Vídeo demonstrativo</p>
-                <p className="mt-2 text-xs leading-5 text-slate-400">Configure VITE_DEMO_VIDEO_URL com o endereço público do vídeo antes de divulgar a página.</p>
+              <div className="w-full h-full p-5 sm:p-7 flex flex-col justify-center">
+                <div className="flex items-center gap-3">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-blue-500/10 text-blue-400"><Car className="h-6 w-6" /></div>
+                  <div>
+                    <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-400">Tour pela plataforma</p>
+                    <p className="mt-1 font-semibold text-white">Veja o que você pode gerenciar</p>
+                  </div>
+                </div>
+                <ol className="mt-5 space-y-3 text-sm text-slate-300">
+                  <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-300">1</span><span><strong className="text-white">Estoque:</strong> cadastre veículos, fotos, características e valores de venda.</span></li>
+                  <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-300">2</span><span><strong className="text-white">Negócios:</strong> organize compras, vendas, trocas e documentos.</span></li>
+                  <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-300">3</span><span><strong className="text-white">Resultados:</strong> acompanhe indicadores e informações financeiras.</span></li>
+                </ol>
+                <p className="mt-5 border-t border-slate-800 pt-4 text-xs leading-5 text-slate-500">O vídeo gravado será exibido aqui quando VITE_DEMO_VIDEO_URL apontar para um MP4 público. Este guia provisório não é uma gravação da tela.</p>
               </div>
             )}
           </div>
