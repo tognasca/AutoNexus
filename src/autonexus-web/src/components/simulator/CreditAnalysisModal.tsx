@@ -42,6 +42,27 @@ export function CreditAnalysisModal({
   const [birthDate, setBirthDate] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState<number>(5000);
   const [hasDriverLicense, setHasDriverLicense] = useState(true);
+  const [phone, setPhone] = useState('');
+  const [email, setEmail] = useState('');
+  const [maritalStatus, setMaritalStatus] = useState('');
+  const [nationality, setNationality] = useState('Brasileira');
+  const [cep, setCep] = useState('');
+  const [street, setStreet] = useState('');
+  const [addressNumber, setAddressNumber] = useState('');
+  const [addressComplement, setAddressComplement] = useState('');
+  const [neighborhood, setNeighborhood] = useState('');
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
+  const [residenceType, setResidenceType] = useState('');
+  const [residenceMonths, setResidenceMonths] = useState('');
+  const [occupation, setOccupation] = useState('');
+  const [employmentType, setEmploymentType] = useState('');
+  const [employerName, setEmployerName] = useState('');
+  const [jobTitle, setJobTitle] = useState('');
+  const [employmentMonths, setEmploymentMonths] = useState('');
+  const [otherIncome, setOtherIncome] = useState<number>(0);
+  const [dependents, setDependents] = useState('0');
+  const [privacyConsent, setPrivacyConsent] = useState(false);
 
   // Armazenamento das Fotos em Base64
   const [customerPhoto, setCustomerPhoto] = useState<string | null>(null);
@@ -52,7 +73,7 @@ export function CreditAnalysisModal({
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
+  const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected' | 'review'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
 
   // Refs de mídia
@@ -155,6 +176,12 @@ export function CreditAnalysisModal({
       alert('Informe uma data de nascimento válida no passado.');
       return;
     }
+    if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ''))) { alert('Informe um celular válido com DDD.'); return; }
+    if (!/^\d{8}$/.test(cep.replace(/\D/g, '')) || !street.trim() || !addressNumber.trim() || !neighborhood.trim() || !city.trim() || state.trim().length !== 2) {
+      alert('Preencha CEP, logradouro, número, bairro, cidade e UF corretamente.'); return;
+    }
+    if (!occupation.trim() || !employmentType) { alert('Informe a ocupação e o tipo de vínculo profissional.'); return; }
+    if (!privacyConsent) { alert('Confirme que o cliente foi informado sobre o uso dos dados para a proposta.'); return; }
     if (monthlyIncome <= 0) {
       alert('A renda mensal deve ser maior que zero.');
       return;
@@ -172,6 +199,13 @@ export function CreditAnalysisModal({
         birthDate,
         monthlyIncome,
         hasDriverLicense,
+        phone: phone.replace(/\D/g, ''),
+        email: email.trim() || null,
+        maritalStatus: maritalStatus || null,
+        nationality: nationality.trim() || null,
+        addressJson: JSON.stringify({ cep: cep.replace(/\D/g, ''), street: street.trim(), number: addressNumber.trim(), complement: addressComplement.trim() || null, neighborhood: neighborhood.trim(), city: city.trim(), state: state.toUpperCase(), residenceType: residenceType || null, residenceMonths: residenceMonths ? Number(residenceMonths) : null }),
+        professionalJson: JSON.stringify({ occupation: occupation.trim(), employmentType, employerName: employerName.trim() || null, jobTitle: jobTitle.trim() || null, employmentMonths: employmentMonths ? Number(employmentMonths) : null, otherIncome, dependents: Number(dependents) }),
+        privacyConsent,
         customerPhotoBase64: customerPhoto,
         driverLicensePhotoBase64: driverLicensePhoto,
         vehicleName,
@@ -191,16 +225,17 @@ export function CreditAnalysisModal({
       } else if (response.status === 'Rejected') {
         setStatus('rejected');
         setStatusMessage(response.message || 'Proposta não aprovada na margem score deste banco.');
+      } else if (response.status === 'Pending' || response.status === 'Submitted' || response.status === 'InAnalysis') {
+        setStatus('review');
+        setStatusMessage(response.message || 'Proposta recebida e aguardando análise. Isso não representa aprovação de crédito.');
       } else {
-        setStatus('approved');
-        setStatusMessage('Proposta submetida e em análise com retorno em até 15 minutos.');
+        setStatus('rejected');
+        setStatusMessage(response.message || 'A API não confirmou aprovação nem recebimento da proposta.');
       }
     } catch (err: any) {
       console.error('Erro na submissão de crédito:', err);
-      setTimeout(() => {
-        setStatus('approved');
-        setStatusMessage('Ficha enviada com sucesso! Pré-Aprovação confirmada pela mesa do banco.');
-      }, 1500);
+      setStatus('rejected');
+      setStatusMessage('Não foi possível enviar a proposta. Nenhuma aprovação foi confirmada. Verifique a conexão e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -337,6 +372,43 @@ export function CreditAnalysisModal({
               </div>
             </div>
 
+            <div className="border-t border-slate-800 pt-4 space-y-3">
+              <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Contato e estado civil</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="text-xs text-slate-400 block mb-1">Celular com DDD *</label><input type="tel" inputMode="numeric" autoComplete="tel" placeholder="(11) 99999-9999" value={phone} onChange={e => setPhone(e.target.value.replace(/[^\d()+\s-]/g, '').slice(0, 16))} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">E-mail</label><input type="email" autoComplete="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Estado civil</label><select value={maritalStatus} onChange={e => setMaritalStatus(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white"><option value="">Selecione</option><option>Solteiro(a)</option><option>Casado(a)</option><option>União estável</option><option>Divorciado(a)</option><option>Viúvo(a)</option></select></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Nacionalidade</label><input value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+              </div>
+            </div>
+            <div className="border-t border-slate-800 pt-4 space-y-3">
+              <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Endereço residencial</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="text-xs text-slate-400 block mb-1">CEP *</label><input inputMode="numeric" autoComplete="postal-code" maxLength={9} placeholder="00000-000" value={cep} onChange={e => setCep(e.target.value.replace(/[^\d-]/g, '').slice(0, 9))} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Rua / Logradouro *</label><input autoComplete="street-address" value={street} onChange={e => setStreet(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Número *</label><input value={addressNumber} onChange={e => setAddressNumber(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Complemento</label><input value={addressComplement} onChange={e => setAddressComplement(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Bairro *</label><input value={neighborhood} onChange={e => setNeighborhood(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Cidade *</label><input value={city} onChange={e => setCity(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">UF *</label><input maxLength={2} value={state} onChange={e => setState(e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase())} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white uppercase" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Tipo de residência</label><select value={residenceType} onChange={e => setResidenceType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white"><option value="">Selecione</option><option>Própria</option><option>Alugada</option><option>Financiada</option><option>Com familiares</option><option>Outra</option></select></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Tempo no endereço (meses)</label><input type="number" min="0" max="1200" value={residenceMonths} onChange={e => setResidenceMonths(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+              </div>
+            </div>
+            <div className="border-t border-slate-800 pt-4 space-y-3">
+              <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Dados profissionais e renda</h4>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div><label className="text-xs text-slate-400 block mb-1">Ocupação / profissão *</label><input value={occupation} onChange={e => setOccupation(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Vínculo profissional *</label><select value={employmentType} onChange={e => setEmploymentType(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" required><option value="">Selecione</option><option value="CLT">CLT</option><option value="Autônomo">Autônomo</option><option value="Empresário">Empresário</option><option value="Servidor público">Servidor público</option><option value="Aposentado/Pensionista">Aposentado/Pensionista</option><option value="Informal">Informal</option><option value="Outro">Outro</option></select></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Empresa / fonte pagadora</label><input value={employerName} onChange={e => setEmployerName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Cargo</label><input value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Tempo de trabalho (meses)</label><input type="number" min="0" max="1200" value={employmentMonths} onChange={e => setEmploymentMonths(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Outras rendas mensais</label><CurrencyInput value={otherIncome} onChange={setOtherIncome} /></div>
+                <div><label className="text-xs text-slate-400 block mb-1">Número de dependentes</label><input type="number" min="0" max="30" value={dependents} onChange={e => setDependents(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
+              </div>
+            </div>
+            <label className="flex items-start gap-2 text-xs text-slate-300 border-t border-slate-800 pt-4"><input type="checkbox" checked={privacyConsent} onChange={e => setPrivacyConsent(e.target.checked)} className="mt-0.5" required /><span>Confirmo que o cliente foi informado sobre a coleta e o uso destes dados para dar andamento à solicitação de financiamento. Revise o aviso de privacidade e a base legal aplicável antes de produção. *</span></label>
+
             {/* Seção de Fotos: Selfie + CNH (Câmera ao Vivo OU Upload) */}
             <div className="border-t border-slate-800 pt-4 space-y-4">
               <h4 className="text-xs font-bold text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
@@ -469,6 +541,14 @@ export function CreditAnalysisModal({
             <Clock className="w-12 h-12 text-amber-400 animate-spin mx-auto" />
             <h4 className="font-bold text-white text-base">Enviando Proposta para {bankName}...</h4>
             <p className="text-xs text-slate-400">Aguarde a resposta de score e margem de aprovação.</p>
+          </div>
+        )}
+
+        {status === 'review' && (
+          <div className="p-8 text-center space-y-4">
+            <h4 className="font-bold text-white text-lg">Proposta em análise</h4>
+            <p className="text-sm text-amber-300 bg-amber-950/40 p-3 rounded-lg">{statusMessage}</p>
+            <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl">Concluir</button>
           </div>
         )}
 
