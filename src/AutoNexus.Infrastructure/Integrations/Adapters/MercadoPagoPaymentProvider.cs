@@ -98,7 +98,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Mercado Pago: falha ao criar preapproval. Status {Status}. Body: {Body}", response.StatusCode, body);
+            _logger.LogError("Mercado Pago: falha ao criar preapproval. Status {Status}.", response.StatusCode);
             throw new InvalidOperationException($"Não foi possível criar a assinatura no Mercado Pago (status {(int)response.StatusCode}).");
         }
 
@@ -147,7 +147,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Mercado Pago: falha ao criar pagamento. Status {Status}. Body: {Body}", response.StatusCode, body);
+            _logger.LogError("Mercado Pago: falha ao criar pagamento. Status {Status}.", response.StatusCode);
             throw new InvalidOperationException($"Não foi possível criar o pagamento no Mercado Pago (status {(int)response.StatusCode}).");
         }
 
@@ -175,7 +175,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Mercado Pago: falha ao consultar pagamento {Id}. Status {Status}. Body: {Body}", externalPaymentId, response.StatusCode, body);
+            _logger.LogError("Mercado Pago: falha ao consultar pagamento {Id}. Status {Status}.", externalPaymentId, response.StatusCode);
             throw new InvalidOperationException($"Não foi possível consultar o pagamento {externalPaymentId} no Mercado Pago.");
         }
 
@@ -204,7 +204,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Mercado Pago: falha ao consultar assinatura {Id}. Status {Status}. Body: {Body}", externalSubscriptionId, response.StatusCode, body);
+            _logger.LogError("Mercado Pago: falha ao consultar assinatura {Id}. Status {Status}.", externalSubscriptionId, response.StatusCode);
             throw new InvalidOperationException($"Não foi possível consultar a assinatura {externalSubscriptionId} no Mercado Pago.");
         }
 
@@ -249,7 +249,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
         if (!response.IsSuccessStatusCode)
         {
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
-            _logger.LogError("Mercado Pago: falha ao cancelar assinatura {Id}. Status {Status}. Body: {Body}", externalSubscriptionId, response.StatusCode, body);
+            _logger.LogError("Mercado Pago: falha ao cancelar assinatura {Id}. Status {Status}.", externalSubscriptionId, response.StatusCode);
             throw new InvalidOperationException($"Não foi possível cancelar a assinatura {externalSubscriptionId} no Mercado Pago.");
         }
     }
@@ -275,7 +275,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
             return new WebhookParseResult(false, null, null, null, null);
         }
 
-        if (string.IsNullOrWhiteSpace(signatureHeader) || string.IsNullOrWhiteSpace(dataId))
+        if (string.IsNullOrWhiteSpace(signatureHeader) || string.IsNullOrWhiteSpace(requestId) || string.IsNullOrWhiteSpace(dataId))
         {
             return new WebhookParseResult(false, null, null, null, null);
         }
@@ -292,17 +292,28 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
             else if (key == "v1") v1 = value;
         }
 
-        if (ts == null || v1 == null)
+        if (string.IsNullOrWhiteSpace(ts) || string.IsNullOrWhiteSpace(v1)
+            || !long.TryParse(ts, out _)
+            || v1.Length != 64
+            || !v1.All(Uri.IsHexDigit))
         {
             return new WebhookParseResult(false, null, null, null, null);
         }
 
         var manifest = $"id:{dataId.ToLowerInvariant()};request-id:{requestId};ts:{ts};";
-        var computedHex = Convert.ToHexStringLower(
-            new HMACSHA256(Encoding.UTF8.GetBytes(webhookSecret)).ComputeHash(Encoding.UTF8.GetBytes(manifest)));
+        var expectedSignature = new HMACSHA256(Encoding.UTF8.GetBytes(webhookSecret))
+            .ComputeHash(Encoding.UTF8.GetBytes(manifest));
+        byte[] suppliedSignature;
+        try
+        {
+            suppliedSignature = Convert.FromHexString(v1);
+        }
+        catch (FormatException)
+        {
+            return new WebhookParseResult(false, null, null, null, null);
+        }
 
-        var isValid = CryptographicOperations.FixedTimeEquals(
-            Encoding.UTF8.GetBytes(computedHex), Encoding.UTF8.GetBytes(v1));
+        var isValid = CryptographicOperations.FixedTimeEquals(expectedSignature, suppliedSignature);
 
         if (!isValid)
         {
