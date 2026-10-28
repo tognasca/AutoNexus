@@ -4,6 +4,7 @@ using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -186,9 +187,23 @@ public class BillingService : IBillingService
         {
             var payloadCopy = rawBody.Length > 4000 ? rawBody[..4000] : rawBody;
             await _events.AddAsync(new WebhookEvent(provider, parsed.ExternalEventId, parsed.EventType ?? "unknown", payloadCopy), ct);
-            // O índice único (Provider, ExternalEventId) garante no banco que duas entregas simultâneas não passam juntas.
-            await _uow.CommitAsync(ct);
+            try
+            {
+                await _uow.CommitAsync(ct);
+            }
+            catch (DbUpdateException)
+            {
+                // Outra instância pode ter inserido o mesmo evento primeiro.
+                _uow.DiscardChanges();
+                existing = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
+                if (existing == null) throw;
+            }
         }
+
+        // Claim atômico no banco: somente uma instância pode processar o evento.
+        // Um claim abandonado por queda do processo pode ser retomado após 5 minutos.
+        if (!await _events.TryAcquireProcessingAsync(provider, parsed.ExternalEventId, ct))
+            return WebhookProcessResult.Duplicate;
 
         var outbox = new List<Notification>();
         try
