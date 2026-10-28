@@ -88,8 +88,14 @@ public class BillingService : IBillingService
         // Evita cobrança duplicada: qualquer assinatura recorrente anterior no
         // gateway é cancelada antes de criar a nova forma de cobrança. O
         // período já pago continua valendo (CurrentPeriodEnd).
-        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId) && sub.PaymentProvider == _provider.ProviderName)
+        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId))
         {
+            if (!string.Equals(sub.PaymentProvider, _provider.ProviderName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "A assinatura atual pertence a outro gateway de pagamento. A troca foi bloqueada para evitar cobranças duplicadas; é necessária reconciliação administrativa.");
+            }
+
             try
             {
                 await CancelExternalSubscriptionIdempotentlyAsync(sub.ExternalSubscriptionId, ct);
@@ -105,6 +111,13 @@ public class BillingService : IBillingService
                 throw new InvalidOperationException(
                     "Não foi possível confirmar o cancelamento da cobrança anterior. Nenhuma nova cobrança foi criada. Tente novamente em instantes.");
             }
+
+            // O cancelamento remoto já foi confirmado. Persistir a remoção do ID
+            // evita que a aplicação continue tratando uma assinatura cancelada no
+            // gateway como recorrência ativa se a criação da nova cobrança falhar.
+            sub.ClearExternalSubscription();
+            _subs.Update(sub);
+            await _uow.CommitAsync(ct);
         }
 
         CheckoutResultDto result;
