@@ -114,7 +114,7 @@ public class AutoNexusDbContext : DbContext
         where TEntity : TenantOwnedEntityBase
     {
         modelBuilder.Entity<TEntity>().HasQueryFilter(entity =>
-            _tenantContext.HasTenant && entity.TenantId == _tenantContext.TenantId);
+            !_tenantContext.HasHttpContext || (_tenantContext.HasTenant && entity.TenantId == _tenantContext.TenantId));
     }
 
     public override int SaveChanges()
