@@ -73,6 +73,12 @@ public class BillingService : IBillingService
         var payer = await _users.GetByIdAsync(_tenantContext.UserId.Value, ct) ?? throw new KeyNotFoundException("Usuário não encontrado.");
         var currentPlan = await _plans.GetByIdAsync(sub.PlanId, ct);
         var amount = plan.GetPriceForCycle(dto.Cycle);
+        var document = new string((dto.PayerDocument ?? string.Empty).Where(char.IsDigit).ToArray());
+
+        // Valide os dados do pagamento antes de cancelar qualquer assinatura
+        // recorrente existente. Uma entrada inválida não pode causar efeito externo.
+        if (dto.Method == PaymentMethodType.Boleto && document.Length is not (11 or 14))
+            throw new ArgumentException("Informe um CPF ou CNPJ válido para gerar o boleto.");
 
         var operation = sub.Status is SubscriptionStatus.Trialing or SubscriptionStatus.Expired or SubscriptionStatus.Canceled
             ? "CriarAssinatura"
@@ -116,10 +122,6 @@ public class BillingService : IBillingService
         }
         else
         {
-            var document = new string((dto.PayerDocument ?? string.Empty).Where(char.IsDigit).ToArray());
-            if (dto.Method == PaymentMethodType.Boleto && document.Length is not (11 or 14))
-                throw new ArgumentException("Informe um CPF ou CNPJ válido para gerar o boleto.");
-
             var one = await _provider.CreateOneTimePaymentAsync(new CreateOneTimePaymentRequest(
                 amount, dto.Method, payer.Email, payer.Name, document.Length > 0 ? document : null,
                 $"AutoNexus {plan.Name} ({(dto.Cycle == BillingCycle.Annual ? "anual" : "mensal")})", sub.Id.ToString()), ct);
