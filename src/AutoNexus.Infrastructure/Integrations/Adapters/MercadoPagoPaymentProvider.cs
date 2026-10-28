@@ -128,7 +128,14 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
             }
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/v1/payments", payload, JsonWriteOpts, cancellationToken);
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/v1/payments")
+        {
+            Content = JsonContent.Create(payload, options: JsonWriteOpts)
+        };
+        if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+            requestMessage.Headers.TryAddWithoutValidation("X-Idempotency-Key", request.IdempotencyKey);
+
+        var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
