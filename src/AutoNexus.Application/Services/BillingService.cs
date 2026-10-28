@@ -482,7 +482,20 @@ public class BillingService : IBillingService
 
             case PaymentStatus.Refunded:
                 payment.MarkRefunded();
-                await _audit.LogForTenantAsync(sub.TenantId, null, "PagamentoEstornado", "Payment", payment.Id.ToString(), "Revisar acesso manualmente", ct);
+                // Estorno do pagamento mais recente não pode manter a empresa ativa
+                // com base em uma cobrança devolvida. Se houver pagamento aprovado
+                // posterior, preserva o estado atual e deixa a reconciliação para esse ciclo.
+                var hasNewerApprovedPayment = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                    .Any(p => p.Id != payment.Id
+                        && p.Status == PaymentStatus.Approved
+                        && (p.PaidAt ?? p.CreatedAt) > (payment.PaidAt ?? payment.CreatedAt));
+                if (!hasNewerApprovedPayment && sub.Status == SubscriptionStatus.Active)
+                    sub.Suspend();
+                _subs.Update(sub);
+                await _audit.LogForTenantAsync(
+                    sub.TenantId, null, "PagamentoEstornado", "Payment", payment.Id.ToString(),
+                    hasNewerApprovedPayment ? "Estorno registrado; existe pagamento aprovado posterior." : "Estorno do pagamento mais recente; acesso suspenso para reconciliação.",
+                    ct);
                 break;
 
             default:
