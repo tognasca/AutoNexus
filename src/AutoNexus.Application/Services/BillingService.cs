@@ -242,10 +242,18 @@ public class BillingService : IBillingService
         var sub = await _subs.GetCurrentAsync(ct) ?? throw new KeyNotFoundException("Sua empresa não tem assinatura.");
         if (sub.Status == SubscriptionStatus.Canceled) return;
 
-        // Se o gateway falhar, NÃO cancelamos localmente — senão o cliente
-        // continuaria sendo cobrado sem enxergar a assinatura como ativa.
-        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId) && sub.PaymentProvider == _provider.ProviderName)
+        // Uma assinatura externa existente precisa ser cancelada no MESMO gateway
+        // que a criou. Nunca marcar como cancelada apenas localmente quando o
+        // gateway configurado não é o dono da assinatura: isso esconderia uma
+        // cobrança potencialmente ainda ativa.
+        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId))
         {
+            if (!string.Equals(sub.PaymentProvider, _provider.ProviderName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "A assinatura atual pertence a outro gateway de pagamento. O cancelamento foi bloqueado para evitar cobrança ativa sem controle local; é necessária reconciliação administrativa.");
+            }
+
             try { await CancelExternalSubscriptionIdempotentlyAsync(sub.ExternalSubscriptionId, ct); }
             catch (Exception ex)
             {
