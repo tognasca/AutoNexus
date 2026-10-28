@@ -27,13 +27,11 @@ export interface PublicVehicleDetail {
   version?: string;
   manufacturingYear: number;
   modelYear: number;
-  plate?: string;
   mileage: number;
   color?: string;
   fuel?: number | string;
   transmission?: number | string;
-  status?: number;
-  purchaseValue?: number;
+  status?: number | string;
   listedValue?: number;
   notes?: string;
   mainPhotoUrl?: string;
