@@ -1,4 +1,5 @@
 using System.Data;
+using Microsoft.EntityFrameworkCore;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
 
