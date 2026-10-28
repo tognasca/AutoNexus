@@ -84,8 +84,21 @@ public class BillingService : IBillingService
         // período já pago continua valendo (CurrentPeriodEnd).
         if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId) && sub.PaymentProvider == _provider.ProviderName)
         {
-            try { await _provider.CancelSubscriptionAsync(sub.ExternalSubscriptionId, ct); }
-            catch (Exception ex) { _logger.LogWarning(ex, "Não foi possível cancelar a assinatura anterior {Id} no gateway.", sub.ExternalSubscriptionId); }
+            try
+            {
+                await _provider.CancelSubscriptionAsync(sub.ExternalSubscriptionId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Checkout interrompido: não foi possível cancelar a assinatura anterior {Id} no gateway.",
+                    sub.ExternalSubscriptionId);
+                // Fail closed: não criamos outra cobrança enquanto a anterior
+                // pode continuar ativa. O usuário pode tentar novamente após
+                // a confirmação do gateway, evitando assinaturas duplicadas.
+                throw new InvalidOperationException(
+                    "Não foi possível confirmar o cancelamento da cobrança anterior. Nenhuma nova cobrança foi criada. Tente novamente em instantes.");
+            }
         }
 
         CheckoutResultDto result;
