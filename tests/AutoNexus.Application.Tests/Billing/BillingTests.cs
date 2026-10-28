@@ -350,6 +350,22 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Checkout_WhenNewCardSubscriptionCreationFails_DoesNotKeepCancelledOldSubscriptionLinked()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        await Assert.ThrowsAsync<NotImplementedException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Null(c.Sub.ExternalSubscriptionId);
+        Assert.Single(c.Payments.Items);
+        Assert.Equal(PaymentStatus.Pending, c.Payments.Items[0].Status);
+        Assert.Equal(c.TargetPlan.Id, c.Payments.Items[0].PlanId);
+    }
+
+    [Fact]
     public async Task Webhook_SubscriptionAuthorizedBeforeCheckoutResponse_RecoversLocalSubscriptionAndPlanIntent()
     {
         var c = Build();
