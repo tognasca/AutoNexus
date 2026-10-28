@@ -76,26 +76,33 @@ builder.Services.Configure<FormOptions>(options =>
 
 builder.Services.AddAuthorization();
 
-// Limita tentativas de login por IP — antes não havia nenhuma proteção
-// contra força bruta. 5 tentativas por minuto é suficiente para uso legítimo
-// (ninguém erra a senha 6 vezes em 60s) e já dificulta bastante um ataque
-// automatizado. Aplicado só no endpoint de login (ver [EnableRateLimiting]
-// no AuthController), não afeta o resto da API.
+// Limita tentativas de login/cadastro por cliente, e não globalmente.
+// AddFixedWindowLimiter cria um único contador compartilhado por toda a API;
+// isso faria os 5 primeiros erros de login de qualquer usuário bloquearem todos
+// os demais usuários durante a janela. RateLimitPartition cria um contador por IP.
 builder.Services.AddRateLimiter(options =>
 {
-    options.AddFixedWindowLimiter("login", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 5;
-        limiterOptions.Window = TimeSpan.FromMinutes(1);
-        limiterOptions.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        limiterOptions.QueueLimit = 0;
-    });
-    options.AddFixedWindowLimiter("signup", limiterOptions =>
-    {
-        limiterOptions.PermitLimit = 10;
-        limiterOptions.Window = TimeSpan.FromHours(1);
-        limiterOptions.QueueLimit = 0;
-    });
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
+                QueueLimit = 0
+            }));
+
+    options.AddPolicy("signup", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 10,
+                Window = TimeSpan.FromHours(1),
+                QueueLimit = 0
+            }));
+
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
