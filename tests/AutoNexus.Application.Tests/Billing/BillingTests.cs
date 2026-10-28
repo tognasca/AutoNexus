@@ -531,6 +531,35 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Webhook_RefundedLatestPayment_SuspendsSubscriptionAndRecordsRefund()
+    {
+        var c = Build();
+        c.Sub.RenewPeriod(DateTime.UtcNow.AddDays(20));
+        c.Provider.PaymentInfo = new("pay-1", PaymentStatus.Refunded, "refunded", 99.90m, null, PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal(PaymentStatus.Refunded, c.Payment.Status);
+        Assert.Equal(SubscriptionStatus.Suspended, c.Sub.Status);
+        Assert.Contains("PagamentoEstornado", c.Audit.Operations);
+    }
+
+    [Fact]
+    public async Task Webhook_DoesNotPersistRawPayload()
+    {
+        var c = Build();
+        c.Provider.ParseResult = new(true, "payment", "evt-no-payload", "pay-1", null);
+
+        await c.Service.ProcessWebhookAsync(
+            "{\"personal_data\":\"must-not-be-stored\"}",
+            new Dictionary<string, string>(),
+            new Dictionary<string, string>());
+
+        var ev = Assert.Single(c.Events.Items);
+        Assert.Null(ev.RawPayload);
+    }
+
+    [Fact]
     public async Task Webhook_RejectedPayment_MarksPaymentRejectedAndNotifies()
     {
         var c = Build();
