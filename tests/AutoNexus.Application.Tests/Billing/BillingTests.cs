@@ -270,6 +270,22 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Cancel_WhenGatewayCallThrowsButRemoteStatusIsCancelled_CompletesLocalCancellation()
+    {
+        var c = Build();
+        c.Sub.RenewPeriod(DateTime.UtcNow.AddDays(10));
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+        c.Provider.ThrowOnCancelSubscription = true;
+        c.Provider.SubscriptionStatus = ProviderSubscriptionStatus.Cancelled;
+
+        await c.Service.CancelAsync("Solicitado pelo cliente");
+
+        Assert.Equal(SubscriptionStatus.Canceled, c.Sub.Status);
+        Assert.Equal(DateTime.UtcNow.Date, c.Sub.CancelledAt!.Value.Date);
+        Assert.Single(c.Notifier.Subjects);
+    }
+
+    [Fact]
     public async Task Checkout_InvalidBoletoDocument_DoesNotCancelExistingSubscription()
     {
         var c = Build();
