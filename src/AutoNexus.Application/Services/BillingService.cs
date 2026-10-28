@@ -109,6 +109,7 @@ public class BillingService : IBillingService
 
         CheckoutResultDto result;
         Payment payment;
+        var paymentAlreadyPersisted = false;
 
         if (dto.Method == PaymentMethodType.CreditCard)
         {
@@ -122,13 +123,52 @@ public class BillingService : IBillingService
         }
         else
         {
+            // Reutiliza a mesma intenção pendente em retries: o ID local vira a
+            // external_reference e a chave de idempotência estável no gateway.
+            // Assim um timeout/resposta perdida não precisa criar outra cobrança.
+            var candidates = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                .Where(p => p.Status == PaymentStatus.Pending
+                    && p.Amount == amount
+                    && p.Method == dto.Method
+                    && p.PlanId == plan.Id
+                    && p.BillingCycle == dto.Cycle)
+                .OrderByDescending(p => p.CreatedAt);
+
+            payment = null!;
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate.ExternalPaymentId))
+                {
+                    payment = candidate;
+                    break;
+                }
+
+                // Um commit pode ter sido concluído no banco mesmo que a API tenha
+                // perdido a confirmação. Só reutiliza um pagamento com ID externo
+                // quando o gateway confirma que ele usa a mesma external_reference.
+                var existingInfo = await _provider.GetPaymentStatusAsync(candidate.ExternalPaymentId, ct);
+                if (string.Equals(existingInfo.ExternalReference, candidate.Id.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    payment = candidate;
+                    break;
+                }
+            }
+
+            if (payment == null)
+            {
+                payment = new Payment(sub.Id, amount, dto.Method, _provider.ProviderName, "BRL", plan.Id, dto.Cycle);
+                await _payments.AddAsync(payment, ct);
+                await _uow.CommitAsync(ct); // intenção local existe antes de chamar o gateway
+            }
+            paymentAlreadyPersisted = true;
+
             var one = await _provider.CreateOneTimePaymentAsync(new CreateOneTimePaymentRequest(
                 amount, dto.Method, payer.Email, payer.Name, document.Length > 0 ? document : null,
-                $"AutoNexus {plan.Name} ({(dto.Cycle == BillingCycle.Annual ? "anual" : "mensal")})", sub.Id.ToString()), ct);
+                $"AutoNexus {plan.Name} ({(dto.Cycle == BillingCycle.Annual ? "anual" : "mensal")})",
+                payment.Id.ToString(), payment.Id.ToString()), ct);
 
             if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId)) sub.ClearExternalSubscription();
             sub.SetPaymentMethod(dto.Method);
-            payment = new Payment(sub.Id, amount, dto.Method, _provider.ProviderName, "BRL", plan.Id, dto.Cycle);
             payment.SetExternalPaymentId(one.ExternalPaymentId);
             result = new CheckoutResultDto(payment.Id, dto.Method, one.Status,
                 dto.Method == PaymentMethodType.Boleto ? one.PaymentDetail : null,
@@ -136,7 +176,8 @@ public class BillingService : IBillingService
                 one.QrCodeBase64);
         }
 
-        await _payments.AddAsync(payment, ct);
+        if (!paymentAlreadyPersisted) await _payments.AddAsync(payment, ct);
+        else _payments.Update(payment);
         _subs.Update(sub);
         await _audit.LogAsync(operation, "TenantSubscription", sub.Id.ToString(),
             $"Plano {plan.Name}, {amount.ToString("C", PtBr)} ({dto.Cycle}), meio: {dto.Method}", ct);
@@ -259,36 +300,48 @@ public class BillingService : IBillingService
 
         if (payment == null)
         {
-            // Primeira cobrança do cartão (Payment pendente criado no checkout, ainda sem id do gateway) ou renovação recorrente.
-            if (!Guid.TryParse(info.ExternalReference, out var subscriptionId))
+            // Primeiro tenta localizar a intenção local pelo ID que enviamos em
+            // external_reference. Se não existir, mantém compatibilidade com
+            // cobranças recorrentes antigas que usam o ID da assinatura.
+            if (!Guid.TryParse(info.ExternalReference, out var referenceId))
             {
                 _logger.LogWarning("Pagamento {Id} do gateway sem external_reference válido — ignorado.", externalPaymentId);
                 return;
             }
-            sub = await _subs.GetByIdAsync(subscriptionId, ct);
-            if (sub == null) return;
 
-            payment = await _payments.GetPendingWithoutExternalIdAsync(sub.Id, ct);
-            if (payment == null)
+            payment = await _payments.GetByIdAsync(referenceId, ct);
+            if (payment != null)
             {
-                // Renovação recorrente sem checkout pendente: validar contra o preço
-                // vigente do plano antes de criar um registro usando o valor do gateway.
-                // Divergência exige reconciliação e nunca deve ativar/renovar acesso.
-                var currentPlan = await _plans.GetByIdAsync(sub.PlanId, ct);
-                var expectedAmount = currentPlan?.GetPriceForCycle(sub.BillingCycle);
-                if (expectedAmount is null || info.Amount != expectedAmount.Value)
-                {
-                    _logger.LogError(
-                        "Pagamento recorrente {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} não corresponde ao preço esperado {ExpectedAmount} do plano {PlanId}.",
-                        externalPaymentId, info.Amount, sub.PlanId);
-                    return;
-                }
-
-                payment = new Payment(sub.Id, info.Amount, info.Method ?? PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", sub.PlanId, sub.BillingCycle);
-                await _payments.AddForTenantAsync(payment, sub.TenantId, ct);
-                isNewPayment = true;
+                sub = await _subs.GetByIdAsync(payment.SubscriptionId, ct);
+                if (sub == null) return;
+                payment.SetExternalPaymentId(externalPaymentId);
             }
-            payment.SetExternalPaymentId(externalPaymentId);
+            else
+            {
+                sub = await _subs.GetByIdAsync(referenceId, ct);
+                if (sub == null) return;
+
+                payment = await _payments.GetPendingWithoutExternalIdAsync(sub.Id, ct);
+                if (payment == null)
+                {
+                    // Renovação recorrente sem checkout pendente: validar contra o preço
+                    // vigente do plano antes de criar um registro usando o valor do gateway.
+                    var currentPlan = await _plans.GetByIdAsync(sub.PlanId, ct);
+                    var expectedAmount = currentPlan?.GetPriceForCycle(sub.BillingCycle);
+                    if (expectedAmount is null || info.Amount != expectedAmount.Value)
+                    {
+                        _logger.LogError(
+                            "Pagamento recorrente {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} não corresponde ao preço esperado {ExpectedAmount} do plano {PlanId}.",
+                            externalPaymentId, info.Amount, expectedAmount, sub.PlanId);
+                        return;
+                    }
+
+                    payment = new Payment(sub.Id, info.Amount, info.Method ?? PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", sub.PlanId, sub.BillingCycle);
+                    await _payments.AddForTenantAsync(payment, sub.TenantId, ct);
+                    isNewPayment = true;
+                }
+                payment.SetExternalPaymentId(externalPaymentId);
+            }
         }
         else
         {
