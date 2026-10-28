@@ -92,12 +92,12 @@ public class BillingService : IBillingService
         {
             try
             {
-                await _provider.CancelSubscriptionAsync(sub.ExternalSubscriptionId, ct);
+                await CancelExternalSubscriptionIdempotentlyAsync(sub.ExternalSubscriptionId, ct);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex,
-                    "Checkout interrompido: não foi possível cancelar a assinatura anterior {Id} no gateway.",
+                    "Checkout interrompido: não foi possível confirmar o cancelamento da assinatura anterior {Id} no gateway.",
                     sub.ExternalSubscriptionId);
                 // Fail closed: não criamos outra cobrança enquanto a anterior
                 // pode continuar ativa. O usuário pode tentar novamente após
@@ -198,10 +198,10 @@ public class BillingService : IBillingService
         // continuaria sendo cobrado sem enxergar a assinatura como ativa.
         if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId) && sub.PaymentProvider == _provider.ProviderName)
         {
-            try { await _provider.CancelSubscriptionAsync(sub.ExternalSubscriptionId, ct); }
+            try { await CancelExternalSubscriptionIdempotentlyAsync(sub.ExternalSubscriptionId, ct); }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Falha ao cancelar assinatura {Id} no gateway.", sub.ExternalSubscriptionId);
+                _logger.LogError(ex, "Falha ao confirmar cancelamento da assinatura {Id} no gateway.", sub.ExternalSubscriptionId);
                 throw new InvalidOperationException("Não foi possível cancelar agora. Tente novamente em instantes.");
             }
         }
@@ -212,6 +212,44 @@ public class BillingService : IBillingService
             string.IsNullOrWhiteSpace(reason) ? "Sem motivo informado" : $"Motivo: {reason}", ct);
         await _uow.CommitAsync(ct);
         await _notifier.NotifyAdminAsync(sub.TenantId, EmailTemplates.AssinaturaCancelada(sub.EndDate), ct);
+    }
+
+    /// <summary>
+    /// Trata como sucesso uma resposta de cancelamento ambígua somente quando
+    /// uma consulta independente ao gateway confirma que a assinatura já está cancelada.
+    /// Isso torna retries seguros quando o gateway cancelou, mas a resposta se perdeu.
+    /// </summary>
+    private async Task CancelExternalSubscriptionIdempotentlyAsync(string externalSubscriptionId, CancellationToken ct)
+    {
+        try
+        {
+            await _provider.CancelSubscriptionAsync(externalSubscriptionId, ct);
+        }
+        catch (Exception cancelException)
+        {
+            try
+            {
+                var status = await _provider.GetSubscriptionStatusAsync(externalSubscriptionId, ct);
+                if (status == ProviderSubscriptionStatus.Cancelled)
+                {
+                    _logger.LogWarning(
+                        "O gateway retornou erro ao cancelar {Id}, mas a consulta confirmou que já está cancelada.",
+                        externalSubscriptionId);
+                    return;
+                }
+            }
+            catch (Exception verificationException)
+            {
+                _logger.LogWarning(verificationException,
+                    "Não foi possível verificar o estado da assinatura {Id} após falha no cancelamento.",
+                    externalSubscriptionId);
+            }
+
+            // Mantém a falha original: sem confirmação explícita, não prosseguir
+            // com um novo checkout nem marcar o cancelamento local como concluído.
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cancelException).Throw();
+            throw;
+        }
     }
 
     // ------------------------------------------------------------------ webhook
