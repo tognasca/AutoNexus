@@ -321,8 +321,9 @@ public class BillingService : IBillingService
 
         if (existing == null)
         {
-            var payloadCopy = rawBody.Length > 4000 ? rawBody[..4000] : rawBody;
-            await _events.AddAsync(new WebhookEvent(provider, parsed.ExternalEventId, parsed.EventType ?? "unknown", payloadCopy), ct);
+            // Não persistir o corpo bruto: payloads do provedor podem conter dados pessoais.
+            // O tipo do evento, o ID externo e os metadados bastam para deduplicação.
+            await _events.AddAsync(new WebhookEvent(provider, parsed.ExternalEventId, parsed.EventType ?? "unknown", null), ct);
             try
             {
                 await _uow.CommitAsync(ct);
