@@ -52,7 +52,7 @@ export function CreditAnalysisModal({
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected'>('idle');
+  const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected' | 'review'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
 
   // Refs de mídia
@@ -191,9 +191,12 @@ export function CreditAnalysisModal({
       } else if (response.status === 'Rejected') {
         setStatus('rejected');
         setStatusMessage(response.message || 'Proposta não aprovada na margem score deste banco.');
+      } else if (response.status === 'Pending' || response.status === 'Submitted' || response.status === 'InAnalysis') {
+        setStatus('review');
+        setStatusMessage(response.message || 'Proposta recebida e aguardando análise. Isso não representa aprovação de crédito.');
       } else {
-        setStatus('approved');
-        setStatusMessage('Proposta submetida e em análise com retorno em até 15 minutos.');
+        setStatus('rejected');
+        setStatusMessage(response.message || 'A API não confirmou aprovação nem recebimento da proposta.');
       }
     } catch (err: any) {
       console.error('Erro na submissão de crédito:', err);
