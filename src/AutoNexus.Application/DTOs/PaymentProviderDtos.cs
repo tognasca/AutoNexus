@@ -27,7 +27,9 @@ public record CreateOneTimePaymentRequest(
     string PayerName,
     string? PayerDocument,
     string Description,
-    string ExternalReference
+    string ExternalReference,
+    /// <summary>Stable key reused when retrying the same local payment creation.</summary>
+    string? IdempotencyKey = null
 );
 
 public record CreateOneTimePaymentResult(
