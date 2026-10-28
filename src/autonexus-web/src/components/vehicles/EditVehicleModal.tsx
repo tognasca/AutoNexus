@@ -388,7 +388,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
             <button
               type="button"
               onClick={() => setActiveTab('photos')}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer sm:px-4 ${
                 activeTab === 'photos'
                   ? 'border-amber-500 text-amber-400'
                   : 'border-transparent text-slate-400 hover:text-white'
@@ -400,7 +400,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
             <button
               type="button"
               onClick={() => setActiveTab('documents')}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer sm:px-4 ${
                 activeTab === 'documents'
                   ? 'border-emerald-500 text-emerald-400'
                   : 'border-transparent text-slate-400 hover:text-white'
@@ -412,7 +412,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
             <button
               type="button"
               onClick={() => setActiveTab('costs')}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer sm:px-4 ${
                 activeTab === 'costs'
                   ? 'border-purple-500 text-purple-400'
                   : 'border-transparent text-slate-400 hover:text-white'
