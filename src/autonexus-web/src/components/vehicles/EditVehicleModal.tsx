@@ -356,15 +356,15 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-3xl overflow-hidden my-8 shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/70 backdrop-blur-sm p-2 sm:p-4">
+      <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-3xl flex-col overflow-hidden rounded-2xl border border-nexus-border bg-nexus-card shadow-2xl sm:my-8 sm:max-h-[90dvh]">
         
         {/* Cabeçalho com Abas */}
         <div className="border-b border-nexus-border">
-          <div className="flex items-center justify-between px-6 py-4">
-            <h2 className="text-lg font-bold text-white flex items-center gap-2">
+          <div className="flex shrink-0 items-start justify-between gap-3 px-4 py-3 sm:items-center sm:px-6 sm:py-4">
+            <h2 className="flex min-w-0 items-center gap-2 text-base font-bold text-white sm:text-lg">
               <Car className="text-blue-500 w-5 h-5" />
-              Editar Veículo: <span className="text-slate-300">{form.brand} {form.model}</span>
+              <span className="shrink-0">Editar Veículo:</span> <span className="min-w-0 break-words text-slate-300">{form.brand} {form.model}</span>
             </h2>
             <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
               <X size={20} />
@@ -372,11 +372,11 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
           </div>
 
           {/* Navegação de Abas */}
-          <div className="flex px-6 gap-2 border-t border-nexus-border/50 bg-nexus-dark/50">
+          <div className="flex shrink-0 gap-1 overflow-x-auto overscroll-x-contain border-t border-nexus-border/50 bg-nexus-dark/50 px-2 sm:gap-2 sm:px-6">
             <button
               type="button"
               onClick={() => setActiveTab('details')}
-              className={`flex items-center gap-2 py-3 px-4 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+              className={`flex shrink-0 items-center gap-2 whitespace-nowrap px-3 py-3 text-xs font-semibold border-b-2 transition-colors cursor-pointer sm:px-4 ${
                 activeTab === 'details'
                   ? 'border-blue-500 text-blue-400'
                   : 'border-transparent text-slate-400 hover:text-white'
@@ -429,7 +429,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
             <p className="text-sm font-medium">Carregando dados do veículo...</p>
           </div>
         ) : (
-          <div className="p-6 max-h-[75vh] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-6">
             {error && (
               <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm font-medium">
                 {error}
