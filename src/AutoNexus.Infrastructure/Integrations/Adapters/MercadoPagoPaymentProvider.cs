@@ -363,6 +363,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
         [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
         [JsonPropertyName("init_point")] public string? InitPoint { get; set; }
         [JsonPropertyName("status")] public string? Status { get; set; }
+        [JsonPropertyName("external_reference")] public string? ExternalReference { get; set; }
     }
 
     private class MpPaymentResponse
