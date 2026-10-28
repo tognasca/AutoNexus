@@ -544,6 +544,14 @@ export function CreditAnalysisModal({
           </div>
         )}
 
+        {status === 'review' && (
+          <div className="p-8 text-center space-y-4">
+            <h4 className="font-bold text-white text-lg">Proposta em análise</h4>
+            <p className="text-sm text-amber-300 bg-amber-950/40 p-3 rounded-lg">{statusMessage}</p>
+            <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl">Concluir</button>
+          </div>
+        )}
+
         {/* Estado Aprovado */}
         {status === 'approved' && (
           <div className="p-8 text-center space-y-4">
