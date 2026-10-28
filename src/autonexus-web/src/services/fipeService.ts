@@ -24,6 +24,14 @@ export interface FipeSummary {
   history: FipeHistoryItem[];
 }
 
+export interface FipeCatalogQuote {
+  fipeValue: number;
+  referenceMonth: number;
+  referenceYear: number;
+  fipeCode: string;
+  source?: string;
+}
+
 export const fipeService = {
   getSummary: (vehicleId: string) =>
     request<FipeSummary>(`/vehicles/${vehicleId}/fipe`),
@@ -46,6 +54,11 @@ export const fipeService = {
 
   getCatalogYears: (vehicleType: string, brandCode: string, modelCode: string) =>
     request<FipeLookupItem[]>(`/fipe/catalog/brands/${encodeURIComponent(brandCode)}/models/${encodeURIComponent(modelCode)}/years?vehicleType=${encodeURIComponent(vehicleType)}`),
+
+  getCatalogQuote: (vehicleType: string, brandCode: string, modelCode: string, yearCode: string) =>
+    request<FipeCatalogQuote>(
+      `/fipe/catalog/brands/${encodeURIComponent(brandCode)}/models/${encodeURIComponent(modelCode)}/years/${encodeURIComponent(yearCode)}/quote?vehicleType=${encodeURIComponent(vehicleType)}`
+    ),
 
   fetchGuided: (vehicleId: string, vehicleType: string, brandCode: string, modelCode: string, yearCode: string) =>
     request<FipeSummary>(`/vehicles/${vehicleId}/fipe/fetch-guided`, {
