@@ -10,4 +10,7 @@ public interface IUnitOfWork
     /// ex.: processamento de webhook que deu erro).
     /// </summary>
     void DiscardChanges();
+
+    /// <summary>Executa a operação em transação serializável, para evitar efeitos financeiros duplicados em webhooks concorrentes.</summary>
+    Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default);
 }
