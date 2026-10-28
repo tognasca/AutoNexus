@@ -21,7 +21,11 @@ var envToConfig = new Dictionary<string, string>
     ["RESEND_API_KEY"] = "Resend:ApiKey",
     ["RESEND_FROM_EMAIL"] = "Resend:FromEmail",
     ["RESEND_FROM_NAME"] = "Resend:FromName",
-    ["APPLICATION_URL"] = "Application:Url"
+    ["APPLICATION_URL"] = "Application:Url",
+    ["AUTONEXUS_INITIAL_ADMIN_EMAIL"] = "Seed:AdminEmail",
+    ["AUTONEXUS_INITIAL_ADMIN_PASSWORD"] = "Seed:AdminPassword",
+    ["AUTONEXUS_SUPERADMIN_EMAIL"] = "Seed:SuperAdminEmail",
+    ["AUTONEXUS_SUPERADMIN_PASSWORD"] = "Seed:SuperAdminPassword"
 };
 foreach (var (envName, configKey) in envToConfig)
 {
@@ -137,7 +141,7 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoNexusDbContext>();
-    await DbInitializer.SeedAsync(context);
+    await DbInitializer.SeedAsync(context, builder.Configuration, builder.Environment.IsDevelopment());
 }
 
 if (app.Environment.IsDevelopment())
