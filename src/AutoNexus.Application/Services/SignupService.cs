@@ -5,6 +5,7 @@ using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace AutoNexus.Application.Services;
 
@@ -27,13 +28,14 @@ public class SignupService : ISignupService
     private readonly IAuditLogService _audit;
     private readonly IEmailService _email;
     private readonly IUnitOfWork _uow;
+    private readonly ILogger<SignupService> _logger;
 
     public SignupService(ITenantRepository tenants, IUserRepository users, IPlanRepository plans, ITenantSubscriptionRepository subs,
         ITenantSettingRepository settings, ILegalDocumentRepository legal, IUserConsentRepository consents, IPasswordHasher hasher,
-        IJwtTokenGenerator jwt, IAuditLogService audit, IEmailService email, IUnitOfWork uow)
+        IJwtTokenGenerator jwt, IAuditLogService audit, IEmailService email, IUnitOfWork uow, ILogger<SignupService> logger)
     {
         _tenants = tenants; _users = users; _plans = plans; _subs = subs; _settings = settings; _legal = legal;
-        _consents = consents; _hasher = hasher; _jwt = jwt; _audit = audit; _email = email; _uow = uow;
+        _consents = consents; _hasher = hasher; _jwt = jwt; _audit = audit; _email = email; _uow = uow; _logger = logger;
     }
 
     public async Task<SignupResultDto> SignupAsync(SignupDto dto, string? ipAddress, CancellationToken ct = default)
@@ -80,15 +82,30 @@ public class SignupService : ISignupService
         await _uow.CommitAsync(ct);
 
         var welcome = EmailTemplates.CadastroConfirmado(tenant.Name);
-        await _email.SendAsync(admin.Email, admin.Name, welcome.Subject, welcome.Html, ct);
+        await TrySendEmailAsync(admin.Email, admin.Name, welcome.Subject, welcome.Html, ct);
         if (plan.TrialDays > 0 && subscription.TrialEndsAt.HasValue)
         {
             var trial = EmailTemplates.TrialIniciado(plan.Name, plan.TrialDays, subscription.TrialEndsAt.Value);
-            await _email.SendAsync(admin.Email, admin.Name, trial.Subject, trial.Html, ct);
+            await TrySendEmailAsync(admin.Email, admin.Name, trial.Subject, trial.Html, ct);
         }
 
         var token = _jwt.GenerateToken(admin);
         return new SignupResultDto(new LoginResponseDto(token, admin.Id, admin.Name, admin.Email, admin.Profile, tenant.Id), plan.TrialDays);
+    }
+
+
+    private async Task TrySendEmailAsync(string email, string name, string subject, string html, CancellationToken ct)
+    {
+        try
+        {
+            await _email.SendAsync(email, name, subject, html, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            _logger.LogError(ex,
+                "Cadastro concluído, mas falhou o envio do e-mail {Subject} para {Email}. O envio precisa ser reconciliado.",
+                subject, email);
+        }
     }
 
     private static string Slugify(string text)
