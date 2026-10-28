@@ -196,6 +196,21 @@ public class PlanLimitTests
 
 public class BillingWebhookTests
 {
+    [Fact]
+    public void WebhookEvent_ProcessingClaim_AllowsOnlyOneActiveClaimAndCanRetryAfterLeaseExpires()
+    {
+        var ev = new WebhookEvent("FakePay", "evt-claim", "payment", "{}");
+        var now = DateTime.UtcNow;
+
+        Assert.True(ev.TryStartProcessing(now, TimeSpan.FromMinutes(5)));
+        Assert.False(ev.TryStartProcessing(now.AddSeconds(1), TimeSpan.FromMinutes(5)));
+        Assert.True(ev.TryStartProcessing(now.AddMinutes(6), TimeSpan.FromMinutes(5)));
+
+        ev.MarkProcessed();
+        Assert.False(ev.TryStartProcessing(now.AddMinutes(7), TimeSpan.FromMinutes(5)));
+    }
+
+
     private sealed class Ctx
     {
         public FakeSubscriptionRepo Subs = new();
