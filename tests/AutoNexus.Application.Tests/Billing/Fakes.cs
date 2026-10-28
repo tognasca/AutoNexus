@@ -131,7 +131,9 @@ internal class FakePaymentProvider : IPaymentProvider
     }
     public Task<PaymentStatusResult> GetPaymentStatusAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(PaymentInfo);
     public ProviderSubscriptionStatus SubscriptionStatus { get; set; } = ProviderSubscriptionStatus.Unknown;
+    public string? SubscriptionExternalReference { get; set; }
     public Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(SubscriptionStatus);
+    public Task<string?> GetSubscriptionExternalReferenceAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(SubscriptionExternalReference);
     public bool ThrowOnCancelSubscription { get; set; }
     public int CancelSubscriptionCalls { get; private set; }
     public Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
