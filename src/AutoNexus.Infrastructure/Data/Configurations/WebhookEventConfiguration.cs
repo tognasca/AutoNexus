@@ -15,6 +15,8 @@ public class WebhookEventConfiguration : IEntityTypeConfiguration<WebhookEvent>
         builder.Property(x => x.ExternalEventId).HasMaxLength(200).IsRequired();
         builder.Property(x => x.EventType).HasMaxLength(100);
         builder.Property(x => x.ProcessingError).HasMaxLength(1000);
+        builder.Property(x => x.IsProcessing).IsRequired();
+        builder.Property(x => x.ProcessingStartedAt);
         builder.Property(x => x.ReceivedAt).IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UpdatedAt);
