@@ -125,8 +125,10 @@ internal class FakePaymentProvider : IPaymentProvider
     public Task<PaymentStatusResult> GetPaymentStatusAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(PaymentInfo);
     public Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(ProviderSubscriptionStatus.Unknown);
     public bool ThrowOnCancelSubscription { get; set; }
+    public int CancelSubscriptionCalls { get; private set; }
     public Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
     {
+        CancelSubscriptionCalls++;
         if (ThrowOnCancelSubscription) throw new InvalidOperationException("Gateway cancellation failed");
         return Task.CompletedTask;
     }
