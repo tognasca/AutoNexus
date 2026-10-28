@@ -326,6 +326,35 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Webhook_ApprovedPaymentWithMismatchedAmount_DoesNotActivateSubscription()
+    {
+        var c = Build();
+        c.Provider.PaymentInfo = new("pay-1", PaymentStatus.Approved, "approved", 1.00m, null, PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal(PaymentStatus.Pending, c.Payment.Status);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+        Assert.Empty(c.Notifier.Subjects);
+    }
+
+    [Fact]
+    public async Task Webhook_RecurringPaymentWithMismatchedAmount_IsNotRecordedOrActivated()
+    {
+        var c = Build();
+        c.Provider.ParseResult = new(true, "payment", "evt-recurring", "pay-2", null);
+        c.Provider.PaymentInfo = new("pay-2", PaymentStatus.Approved, "approved", 1.00m, c.Sub.Id.ToString(), PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.Single(c.Payments.Items);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+        Assert.Empty(c.Notifier.Subjects);
+    }
+
+    [Fact]
     public async Task Webhook_RejectedPayment_MarksPaymentRejectedAndNotifies()
     {
         var c = Build();

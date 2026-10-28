@@ -1,4 +1,5 @@
 using System.Security.Claims;
+using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Interfaces;
 using Microsoft.AspNetCore.Http;
 
@@ -18,16 +19,29 @@ public class TenantContext : ITenantContext
 {
     public Guid TenantId { get; }
     public bool HasTenant { get; }
+    public bool HasHttpContext { get; }
     public Guid? UserId { get; }
 
     public TenantContext(IHttpContextAccessor httpContextAccessor)
     {
-        var user = httpContextAccessor.HttpContext?.User;
+        var httpContext = httpContextAccessor.HttpContext;
+        HasHttpContext = httpContext is not null;
+        var user = httpContext?.User;
         var claimValue = user?.FindFirst("tenant_id")?.Value;
 
         if (!string.IsNullOrEmpty(claimValue) && Guid.TryParse(claimValue, out var parsedTenantId))
         {
             TenantId = parsedTenantId;
+            HasTenant = true;
+        }
+        else if (httpContext is not null
+            && httpContext.User.Identity?.IsAuthenticated != true
+            && httpContext.Request.Path.StartsWithSegments("/api/public", StringComparison.OrdinalIgnoreCase))
+        {
+            // Compatibilidade do catálogo público legado: enquanto a aplicação
+            // não resolver tenant por domínio/slug, o catálogo anônimo fica
+            // explicitamente limitado ao tenant legado, nunca a todos os tenants.
+            TenantId = Tenant.DefaultTenantId;
             HasTenant = true;
         }
         else
