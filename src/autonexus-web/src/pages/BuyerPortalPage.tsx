@@ -1,6 +1,6 @@
 ﻿import { useState, useEffect } from 'react';
 import { portalService, type PortalVehicle } from '../services/portalService';
-import { formatCurrency, formatDateTime, formatCpfCnpj } from '../utils/formatters';
+import { formatCurrency, formatDateTime, formatCpfCnpj, isValidCpfCnpj } from '../utils/formatters';
 import { Car, Download, CheckCircle2, ShieldCheck, FileText, Loader2, AlertCircle } from 'lucide-react';
 
 export function BuyerPortalPage({ token }: { token: string }) {
@@ -30,8 +30,8 @@ export function BuyerPortalPage({ token }: { token: string }) {
 
   const handleAcceptance = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!buyerName || !buyerDoc) {
-      setError('Preencha seu Nome e CPF/CNPJ para o aceite eletrônico.');
+    if (!buyerName.trim() || !isValidCpfCnpj(buyerDoc)) {
+      setError('Informe seu nome completo e um CPF/CNPJ válido para o aceite eletrônico.');
       return;
     }
 
@@ -204,7 +204,10 @@ export function BuyerPortalPage({ token }: { token: string }) {
                   value={buyerDoc}
                   onChange={(e) => setBuyerDoc(formatCpfCnpj(e.target.value))}
                   placeholder="000.000.000-00"
+                  inputMode="numeric"
+                  autoComplete="off"
                   maxLength={18}
+                  aria-label="CPF ou CNPJ do comprador"
                   required
                   className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-xs text-white"
                 />
