@@ -81,6 +81,7 @@ internal class FakePaymentRepo : IPaymentRepository
     public List<Payment> Items { get; } = new();
     public Task<List<Payment>> GetBySubscriptionAsync(Guid subscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(Items.Where(p => p.SubscriptionId == subscriptionId).ToList());
     public Task<Payment?> GetByExternalPaymentIdAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(p => p.ExternalPaymentId == externalPaymentId));
+    public Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(p => p.Id == paymentId));
     public Task<Payment?> GetPendingWithoutExternalIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(p => p.SubscriptionId == subscriptionId && p.ExternalPaymentId == null && p.Status == PaymentStatus.Pending));
     public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) { Items.Add(payment); return Task.CompletedTask; }
     public Task AddForTenantAsync(Payment payment, Guid tenantId, CancellationToken cancellationToken = default) { Items.Add(payment); return Task.CompletedTask; }
@@ -121,7 +122,13 @@ internal class FakePaymentProvider : IPaymentProvider
     public WebhookParseResult ParseResult { get; set; } = new(true, "payment", "evt-1", "pay-1", null);
     public PaymentStatusResult PaymentInfo { get; set; } = new("pay-1", PaymentStatus.Approved, "approved", 99.90m, null, PaymentMethodType.Pix);
     public Task<CreateCardSubscriptionResult> CreateCardSubscriptionAsync(CreateCardSubscriptionRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    public Task<CreateOneTimePaymentResult> CreateOneTimePaymentAsync(CreateOneTimePaymentRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public CreateOneTimePaymentRequest? LastOneTimePaymentRequest { get; private set; }
+    public CreateOneTimePaymentResult OneTimePaymentResult { get; set; } = new("pay-created", PaymentStatus.Pending, "pix-code", "qr-base64");
+    public Task<CreateOneTimePaymentResult> CreateOneTimePaymentAsync(CreateOneTimePaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        LastOneTimePaymentRequest = request;
+        return Task.FromResult(OneTimePaymentResult);
+    }
     public Task<PaymentStatusResult> GetPaymentStatusAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(PaymentInfo);
     public Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(ProviderSubscriptionStatus.Unknown);
     public bool ThrowOnCancelSubscription { get; set; }
