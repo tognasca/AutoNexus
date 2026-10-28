@@ -326,6 +326,20 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Webhook_ApprovedPaymentWithMismatchedAmount_DoesNotActivateSubscription()
+    {
+        var c = Build();
+        c.Provider.PaymentInfo = new("pay-1", PaymentStatus.Approved, "approved", 1.00m, null, PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal(PaymentStatus.Pending, c.Payment.Status);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+        Assert.Empty(c.Notifier.Subjects);
+    }
+
+    [Fact]
     public async Task Webhook_RejectedPayment_MarksPaymentRejectedAndNotifies()
     {
         var c = Build();
