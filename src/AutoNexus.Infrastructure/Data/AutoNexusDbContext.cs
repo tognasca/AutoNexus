@@ -30,6 +30,7 @@ public class AutoNexusDbContext : DbContext
     public DbSet<BuyerAccessLink> BuyerAccessLinks => Set<BuyerAccessLink>();
     public DbSet<ElectronicAcceptance> ElectronicAcceptances => Set<ElectronicAcceptance>();
     public DbSet<BankConfig> BankConfigs => Set<BankConfig>();
+    public DbSet<CreditProposalRecord> CreditProposals => Set<CreditProposalRecord>();
     public DbSet<CompanyDocument> CompanyDocuments => Set<CompanyDocument>();
     public DbSet<VehicleBrand> VehicleBrands => Set<VehicleBrand>();
     public DbSet<VehicleModel> VehicleModels => Set<VehicleModel>();
@@ -45,6 +46,7 @@ public class AutoNexusDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
+        modelBuilder.Entity<CreditProposalRecord>().ToTable("credit_proposals");
 
         // --- Multi-tenancy: aplicado de forma centralizada para TODA entidade
         // que herdar de TenantOwnedEntityBase, sem precisar configurar

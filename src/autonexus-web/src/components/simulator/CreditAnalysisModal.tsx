@@ -73,7 +73,7 @@ export function CreditAnalysisModal({
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
   const [loading, setLoading] = useState(false);
-  const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected' | 'review'>('idle');
+  const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected' | 'review' | 'unavailable'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
 
   // Refs de mídia
@@ -225,6 +225,9 @@ export function CreditAnalysisModal({
       } else if (response.status === 'Rejected') {
         setStatus('rejected');
         setStatusMessage(response.message || 'Proposta não aprovada na margem score deste banco.');
+      } else if (response.status === 'Unavailable') {
+        setStatus('unavailable');
+        setStatusMessage(response.message || 'O banco não confirmou o recebimento. Nenhuma aprovação foi confirmada.');
       } else if (response.status === 'Pending' || response.status === 'Submitted' || response.status === 'InAnalysis') {
         setStatus('review');
         setStatusMessage(response.message || 'Proposta recebida e aguardando análise. Isso não representa aprovação de crédito.');
@@ -549,6 +552,23 @@ export function CreditAnalysisModal({
             <h4 className="font-bold text-white text-lg">Proposta em análise</h4>
             <p className="text-sm text-amber-300 bg-amber-950/40 p-3 rounded-lg">{statusMessage}</p>
             <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl">Concluir</button>
+          </div>
+        )}
+
+        {status === 'unavailable' && (
+          <div className="p-8 text-center space-y-4">
+            <h4 className="font-bold text-white text-lg">Envio não confirmado</h4>
+            <p className="text-sm text-amber-300 bg-amber-950/40 p-3 rounded-lg">{statusMessage}</p>
+            <p className="text-xs text-slate-400">Não considere esta proposta aprovada. Confirme a integração do banco antes de tentar novamente.</p>
+            <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl">Fechar</button>
+          </div>
+        )}
+
+        {status === 'rejected' && (
+          <div className="p-8 text-center space-y-4">
+            <h4 className="font-bold text-white text-lg">Não foi possível confirmar aprovação</h4>
+            <p className="text-sm text-rose-300 bg-rose-950/40 p-3 rounded-lg">{statusMessage}</p>
+            <button onClick={onClose} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold rounded-xl">Fechar</button>
           </div>
         )}
 
