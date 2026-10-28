@@ -90,6 +90,11 @@ internal class FakeEventRepo : IWebhookEventRepository
     public List<WebhookEvent> Items { get; } = new();
     public Task<WebhookEvent?> GetByExternalEventIdAsync(string provider, string externalEventId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(e => e.Provider == provider && e.ExternalEventId == externalEventId));
     public Task AddAsync(WebhookEvent webhookEvent, CancellationToken cancellationToken = default) { Items.Add(webhookEvent); return Task.CompletedTask; }
+    public Task<bool> TryAcquireProcessingAsync(string provider, string externalEventId, CancellationToken cancellationToken = default)
+    {
+        var item = Items.FirstOrDefault(e => e.Provider == provider && e.ExternalEventId == externalEventId);
+        return Task.FromResult(item?.TryStartProcessing(DateTime.UtcNow, TimeSpan.FromMinutes(5)) ?? false);
+    }
     public void Update(WebhookEvent webhookEvent) { }
 }
 
