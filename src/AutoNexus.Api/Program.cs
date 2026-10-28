@@ -84,7 +84,7 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("login", context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
@@ -95,7 +95,7 @@ builder.Services.AddRateLimiter(options =>
 
     options.AddPolicy("signup", context =>
         RateLimitPartition.GetFixedWindowLimiter(
-            context.HttpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 10,
