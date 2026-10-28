@@ -340,7 +340,7 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
                   brand={form.brand}
                   model={form.model}
                   modelYear={form.modelYear}
-                  version={form.version}
+                  version={form.version ?? ''}
                   onChange={value => setForm(prev => ({ ...prev, ...value }))}
                 />
 
