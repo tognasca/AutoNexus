@@ -1,14 +1,10 @@
 using System;
-using AutoNexus.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
 namespace AutoNexus.Infrastructure.Migrations
 {
-    [DbContext(typeof(AutoNexusDbContext))]
-    [Migration("20261028120000_WebhookProcessingLease")]
     public partial class WebhookProcessingLease : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
