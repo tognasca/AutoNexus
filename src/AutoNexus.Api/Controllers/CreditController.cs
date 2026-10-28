@@ -19,7 +19,14 @@ public record SubmitCreditProposalRequest(
     string VehicleName,
     decimal FinancedAmount,
     int Months,
-    decimal InstallmentValue
+    decimal InstallmentValue,
+    string? Phone = null,
+    string? Email = null,
+    string? MaritalStatus = null,
+    string? Nationality = null,
+    string? AddressJson = null,
+    string? ProfessionalJson = null,
+    bool PrivacyConsent = false
 );
 
 [ApiController]
@@ -50,7 +57,14 @@ public class CreditController : ControllerBase
             VehicleName: request.VehicleName,
             FinancedAmount: request.FinancedAmount,
             Months: request.Months,
-            InstallmentValue: request.InstallmentValue
+            InstallmentValue: request.InstallmentValue,
+            Phone: request.Phone,
+            Email: request.Email,
+            MaritalStatus: request.MaritalStatus,
+            Nationality: request.Nationality,
+            AddressJson: request.AddressJson,
+            ProfessionalJson: request.ProfessionalJson,
+            PrivacyConsent: request.PrivacyConsent
         );
 
         var result = await _creditService.SubmitProposalAsync(proposalRequest);
