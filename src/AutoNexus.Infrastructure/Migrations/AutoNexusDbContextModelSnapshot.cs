@@ -1610,6 +1610,14 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("processedSuccessfully");
 
+                    b.Property<bool>("IsProcessing")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isProcessing");
+
+                    b.Property<DateTime?>("ProcessingStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processingStartedAt");
+
                     b.Property<string>("ProcessingError")
                         .HasMaxLength(1000)
                         .HasColumnType("character varying(1000)")
