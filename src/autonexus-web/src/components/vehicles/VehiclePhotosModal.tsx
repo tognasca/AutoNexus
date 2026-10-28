@@ -314,17 +314,17 @@ export function VehiclePhotosModal({
   const lightboxPhoto = photos.find((photo) => photo.id === lightboxId);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain p-2 sm:p-6">
       <div
         className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl"
         onClick={handleCloseModal}
       />
 
-      <div className="relative w-full max-w-5xl max-h-[92vh] overflow-hidden rounded-3xl border border-white/10 bg-gradient-to-br from-slate-900 via-nexus-card to-slate-950 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)]">
+      <div className="relative my-auto flex w-full min-w-0 max-w-5xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-gradient-to-br from-slate-900 via-nexus-card to-slate-950 shadow-[0_30px_80px_-20px_rgba(0,0,0,0.85)] max-h-[calc(100dvh-1rem)] sm:rounded-3xl sm:max-h-[92dvh]">
         <div className="pointer-events-none absolute -top-24 right-10 h-56 w-56 rounded-full bg-blue-500/20 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-16 left-0 h-48 w-48 rounded-full bg-cyan-400/10 blur-3xl" />
 
-        <header className="relative flex items-start justify-between gap-4 border-b border-white/10 px-5 py-4 sm:px-7">
+        <header className="relative flex shrink-0 items-start justify-between gap-3 border-b border-white/10 px-4 py-3 sm:gap-4 sm:px-7 sm:py-4">
           <div className="min-w-0">
             <p className="text-[11px] font-semibold uppercase tracking-[0.22em] text-blue-300/80">
               Estúdio de fotos
@@ -349,7 +349,7 @@ export function VehiclePhotosModal({
           </button>
         </header>
 
-        <div className="relative max-h-[calc(92vh-88px)] overflow-y-auto p-5 sm:p-7">
+        <div className="relative min-h-0 flex-1 overflow-y-auto overscroll-contain p-3 sm:p-7">
           {error && (
             <div className="mb-5 rounded-2xl border border-rose-500/20 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
               {error}
@@ -404,7 +404,7 @@ export function VehiclePhotosModal({
               }}
               onDragLeave={() => setIsDragging(false)}
               onDrop={onDropFiles}
-              className={`relative overflow-hidden rounded-3xl border-2 border-dashed p-6 text-center transition ${
+              className={`relative overflow-hidden rounded-2xl border-2 border-dashed p-4 text-center transition sm:rounded-3xl sm:p-6 ${
                 isDragging
                   ? 'border-blue-400 bg-blue-500/10'
                   : 'border-white/10 bg-white/[0.03] hover:border-blue-400/50'
@@ -479,7 +479,7 @@ export function VehiclePhotosModal({
                     <img
                       src={photoSrc(coverPhoto)}
                       alt={coverPhoto.fileName || 'Foto de capa'}
-                      className="h-full min-h-[280px] w-full object-cover transition duration-500 group-hover:scale-[1.03]"
+                      className="h-full min-h-[200px] w-full object-cover transition duration-500 group-hover:scale-[1.03] sm:min-h-[280px]"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/10 to-transparent" />
                     <div className="absolute left-4 top-4 inline-flex items-center gap-1.5 rounded-full bg-amber-400 px-3 py-1 text-[11px] font-black uppercase tracking-wide text-slate-950">
