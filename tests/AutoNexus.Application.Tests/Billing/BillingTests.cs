@@ -387,6 +387,50 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Webhook_RecurringPayment_UsesLastApprovedAmountWhenPlanPriceChanges()
+    {
+        var c = Build();
+        var starter = c.Plans.Items.Single(p => p.Name == "Starter");
+        starter.Update("Starter", 79.90m, 799m, 7, null, null, null);
+
+        var previousApproved = new Payment(c.Sub.Id, 49.90m, PaymentMethodType.CreditCard, "FakePay", "BRL", starter.Id, BillingCycle.Monthly);
+        previousApproved.SetExternalPaymentId("pay-old");
+        previousApproved.MarkApproved();
+        c.Payments.Items.Add(previousApproved);
+
+        c.Provider.ParseResult = new(true, "payment", "evt-recurring-price-change", "pay-recurring", null);
+        c.Provider.PaymentInfo = new("pay-recurring", PaymentStatus.Approved, "approved", 49.90m, c.Sub.Id.ToString(), PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.Contains(c.Payments.Items, p => p.ExternalPaymentId == "pay-recurring" && p.Status == PaymentStatus.Approved);
+        Assert.Equal(SubscriptionStatus.Active, c.Sub.Status);
+        Assert.NotNull(c.Sub.CurrentPeriodEnd);
+    }
+
+    [Fact]
+    public async Task Webhook_RecurringPaymentWithNewCatalogPriceButNoMatchingContractAmount_IsRejected()
+    {
+        var c = Build();
+        var starter = c.Plans.Items.Single(p => p.Name == "Starter");
+        starter.Update("Starter", 79.90m, 799m, 7, null, null, null);
+
+        var previousApproved = new Payment(c.Sub.Id, 49.90m, PaymentMethodType.CreditCard, "FakePay", "BRL", starter.Id, BillingCycle.Monthly);
+        previousApproved.SetExternalPaymentId("pay-old");
+        previousApproved.MarkApproved();
+        c.Payments.Items.Add(previousApproved);
+
+        c.Provider.ParseResult = new(true, "payment", "evt-recurring-price-mismatch", "pay-recurring-new-price", null);
+        c.Provider.PaymentInfo = new("pay-recurring-new-price", PaymentStatus.Approved, "approved", 79.90m, c.Sub.Id.ToString(), PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.DoesNotContain(c.Payments.Items, p => p.ExternalPaymentId == "pay-recurring-new-price");
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+    }
+
+    [Fact]
     public async Task Webhook_RecurringPaymentWithMismatchedAmount_IsNotRecordedOrActivated()
     {
         var c = Build();
