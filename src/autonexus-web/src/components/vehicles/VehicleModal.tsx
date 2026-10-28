@@ -157,8 +157,8 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-2xl overflow-hidden my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/70 p-2 backdrop-blur-sm sm:p-4">
+      <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-2xl flex-col overflow-hidden rounded-2xl border border-nexus-border bg-nexus-card sm:max-h-[90dvh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
           <h2 className="text-lg font-bold text-white">Cadastrar Novo Veículo</h2>
           <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors cursor-pointer">
@@ -166,7 +166,7 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+        <form onSubmit={handleSubmit} className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-3 sm:p-6">
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm font-medium">
               {error}
@@ -282,11 +282,19 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">KM</label>
               <input
-                type="number"
-                value={form.mileage}
-                onChange={(e) => setForm({ ...form, mileage: Number(e.target.value) })}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9.]*"
+                autoComplete="off"
+                value={form.mileage ? form.mileage.toLocaleString('pt-BR') : ''}
+                onChange={(e) => {
+                  const digits = e.target.value.replace(/\D/g, '');
+                  setForm({ ...form, mileage: digits ? Number(digits) : 0 });
+                }}
+                placeholder="Ex.: 85.000"
+                aria-label="Quilometragem em quilômetros"
                 className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
-              />
+/>
             </div>
 
             <div>

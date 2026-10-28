@@ -536,11 +536,19 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">KM</label>
                     <input
-                      type="number"
-                      value={form.mileage}
-                      onChange={(e) => setForm(prev => ({ ...prev, mileage: Number(e.target.value) }))}
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9.]*"
+                      autoComplete="off"
+                      value={form.mileage ? form.mileage.toLocaleString('pt-BR') : ''}
+                      onChange={(e) => {
+                        const digits = e.target.value.replace(/\D/g, '');
+                        setForm(prev => ({ ...prev, mileage: digits ? Number(digits) : 0 }));
+                      }}
+                      placeholder="Ex.: 85.000"
+                      aria-label="Quilometragem em quilômetros"
                       className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent"
-                    />
+/>
                   </div>
 
                   <div>
