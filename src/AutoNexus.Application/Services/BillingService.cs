@@ -113,12 +113,38 @@ public class BillingService : IBillingService
 
         if (dto.Method == PaymentMethodType.CreditCard)
         {
+            // Grave a intenção local antes de chamar o gateway. O webhook de
+            // autorização pode chegar antes da resposta do checkout; a intenção
+            // guarda o plano/ciclo contratados e também fornece uma chave estável
+            // para retries idempotentes no Mercado Pago.
+            var existingIntent = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                .Where(p => p.Status == PaymentStatus.Pending
+                    && p.ExternalPaymentId == null
+                    && p.Method == PaymentMethodType.CreditCard
+                    && p.Amount == amount
+                    && p.PlanId == plan.Id
+                    && p.BillingCycle == dto.Cycle)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefault();
+
+            if (existingIntent == null)
+            {
+                payment = new Payment(sub.Id, amount, PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", plan.Id, dto.Cycle);
+                await _payments.AddAsync(payment, ct);
+                await _uow.CommitAsync(ct);
+            }
+            else
+            {
+                payment = existingIntent;
+            }
+            paymentAlreadyPersisted = true;
+
             var trialDays = BillingMapper.TrialDaysRemaining(sub);
             var card = await _provider.CreateCardSubscriptionAsync(new CreateCardSubscriptionRequest(
-                plan.Name, amount, dto.Cycle, payer.Email, sub.Id.ToString(), $"{AppUrl}/", trialDays > 0 ? trialDays : null), ct);
+                plan.Name, amount, dto.Cycle, payer.Email, sub.Id.ToString(), $"{AppUrl}/",
+                trialDays > 0 ? trialDays : null, payment.Id.ToString()), ct);
 
             sub.SetExternalSubscription(_provider.ProviderName, card.ExternalSubscriptionId, PaymentMethodType.CreditCard);
-            payment = new Payment(sub.Id, amount, PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", plan.Id, dto.Cycle);
             result = new CheckoutResultDto(payment.Id, PaymentMethodType.CreditCard, PaymentStatus.Pending, card.CheckoutUrl, null, null);
         }
         else
@@ -475,6 +501,24 @@ public class BillingService : IBillingService
     private async Task ApplySubscriptionStatusAsync(string externalSubscriptionId, List<Notification> outbox, CancellationToken ct)
     {
         var sub = await _subs.GetByExternalSubscriptionIdAsync(externalSubscriptionId, ct);
+        if (sub == null)
+        {
+            // O gateway pode emitir o webhook antes de o checkout salvar o ID
+            // externo na assinatura local. O external_reference do preapproval
+            // contém o ID interno estável do tenant subscription e permite recuperar
+            // essa associação sem descartar o evento de autorização.
+            var externalReference = await _provider.GetSubscriptionExternalReferenceAsync(externalSubscriptionId, ct);
+            if (Guid.TryParse(externalReference, out var subscriptionId))
+            {
+                sub = await _subs.GetByIdAsync(subscriptionId, ct);
+                if (sub != null)
+                {
+                    sub.SetExternalSubscription(_provider.ProviderName, externalSubscriptionId, PaymentMethodType.CreditCard);
+                    _subs.Update(sub);
+                }
+            }
+        }
+
         if (sub == null) return; // assinatura antiga (já substituída) ou desconhecida
 
         var status = await _provider.GetSubscriptionStatusAsync(externalSubscriptionId, ct);
