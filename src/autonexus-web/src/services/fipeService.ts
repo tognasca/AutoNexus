@@ -26,7 +26,7 @@ export interface FipeSummary {
 
 export const fipeService = {
   getSummary: (vehicleId: string) =>
-    request<FipeSummary>(`/vehicles/${vehicleId}/fipe`),  
+    request<FipeSummary>(`/vehicles/${vehicleId}/fipe`),
 
   getBrands: (vehicleId: string) =>
     request<FipeLookupItem[]>(`/vehicles/${vehicleId}/fipe/brands`),
@@ -36,6 +36,16 @@ export const fipeService = {
 
   getYears: (vehicleId: string, brandCode: string, modelCode: string) =>
     request<FipeLookupItem[]>(`/vehicles/${vehicleId}/fipe/brands/${brandCode}/models/${modelCode}/years`),
+
+  // Catálogo FIPE independente de veículo já criado — usado no cadastro/edição.
+  getCatalogBrands: (vehicleType: string) =>
+    request<FipeLookupItem[]>(`/fipe/catalog/brands?vehicleType=${encodeURIComponent(vehicleType)}`),
+
+  getCatalogModels: (vehicleType: string, brandCode: string) =>
+    request<FipeLookupItem[]>(`/fipe/catalog/brands/${encodeURIComponent(brandCode)}/models?vehicleType=${encodeURIComponent(vehicleType)}`),
+
+  getCatalogYears: (vehicleType: string, brandCode: string, modelCode: string) =>
+    request<FipeLookupItem[]>(`/fipe/catalog/brands/${encodeURIComponent(brandCode)}/models/${encodeURIComponent(modelCode)}/years?vehicleType=${encodeURIComponent(vehicleType)}`),
 
   fetchGuided: (vehicleId: string, vehicleType: string, brandCode: string, modelCode: string, yearCode: string) =>
     request<FipeSummary>(`/vehicles/${vehicleId}/fipe/fetch-guided`, {
