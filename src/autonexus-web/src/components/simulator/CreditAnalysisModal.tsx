@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatCpfCnpj, formatCurrency } from '../../utils/formatters';
+import { formatCpfCnpj, formatCurrency, isValidCpfCnpj } from '../../utils/formatters';
 import { 
   Building, 
   User, 
@@ -147,8 +147,16 @@ export function CreditAnalysisModal({
 
   const handleSendToBank = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName || !cpf) {
-      alert('Preencha o Nome e CPF do cliente.');
+    if (!customerName.trim() || !isValidCpfCnpj(cpf) || cpf.replace(/\D/g, '').length !== 11) {
+      alert('Informe o nome do cliente e um CPF válido com dígitos verificadores corretos.');
+      return;
+    }
+    if (!birthDate || Number.isNaN(Date.parse(birthDate)) || new Date(birthDate) >= new Date()) {
+      alert('Informe uma data de nascimento válida no passado.');
+      return;
+    }
+    if (monthlyIncome <= 0) {
+      alert('A renda mensal deve ser maior que zero.');
       return;
     }
 

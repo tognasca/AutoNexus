@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CurrencyInput } from '../ui/CurrencyInput';
-import { formatCpfCnpj } from '../../utils/formatters';
+import { formatBrazilianPhone, formatCpfCnpj, formatBrazilianPlate, isValidBrazilianPlate, isValidCpfCnpj } from '../../utils/formatters';
 import { ContractPrintModal, ContractData } from './ContractPrintModal';
 import { FileText, X, Car, User, DollarSign } from 'lucide-react';
 import { request } from '../../services/api';
@@ -50,8 +50,21 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerName || !customerDocument) {
-      alert('Preencha o Nome e CPF/CNPJ do cliente.');
+    if (!customerName.trim() || !isValidCpfCnpj(customerDocument)) {
+      alert('Informe o nome do cliente e um CPF/CNPJ válido.');
+      return;
+    }
+    const phoneDigits = customerPhone.replace(/\D/g, '');
+    if (phoneDigits && phoneDigits.length !== 10 && phoneDigits.length !== 11) {
+      alert('Informe um telefone com DDD e 10 ou 11 dígitos.');
+      return;
+    }
+    if (hasTrade && tradePlate.trim() && !isValidBrazilianPlate(tradePlate)) {
+      alert('A placa do veículo de troca não está em um formato válido.');
+      return;
+    }
+    if (saleValue <= 0 || entryValue < 0 || entryValue > saleValue) {
+      alert('Confira os valores: a venda deve ser maior que zero e a entrada não pode superar o valor do veículo.');
       return;
     }
 
@@ -155,6 +168,10 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
                 placeholder="CPF ou CNPJ *"
                 value={customerDocument}
                 onChange={e => setCustomerDocument(formatCpfCnpj(e.target.value))}
+                inputMode="numeric"
+                autoComplete="off"
+                maxLength={18}
+                aria-label="CPF ou CNPJ do cliente"
                 className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm focus:border-blue-500 outline-none"
                 required
               />
@@ -162,7 +179,7 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
                 type="text"
                 placeholder="Telefone / WhatsApp"
                 value={customerPhone}
-                onChange={e => setCustomerPhone(e.target.value)}
+                onChange={e => setCustomerPhone(formatBrazilianPhone(e.target.value))}
                 className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm outline-none"
               />
               <input
@@ -246,7 +263,9 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
                   type="text"
                   placeholder="Placa"
                   value={tradePlate}
-                  onChange={e => setTradePlate(e.target.value.toUpperCase())}
+                  onChange={e => setTradePlate(formatBrazilianPlate(e.target.value))}
+                  maxLength={7}
+                  autoCapitalize="characters"
                   className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm outline-none uppercase"
                 />
                 <div>
