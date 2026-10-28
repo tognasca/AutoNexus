@@ -333,6 +333,75 @@ public class BillingWebhookTests
     }
 
     [Fact]
+    public async Task Checkout_CardSubscription_PersistsIntentBeforeCallingGateway()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        var ex = await Assert.ThrowsAsync<NotImplementedException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.NotNull(ex);
+        var intent = Assert.Single(c.Payments.Items);
+        Assert.Equal(PaymentMethodType.CreditCard, intent.Method);
+        Assert.Equal(c.TargetPlan.Id, intent.PlanId);
+        Assert.Equal(BillingCycle.Monthly, intent.BillingCycle);
+        Assert.Equal(PaymentStatus.Pending, intent.Status);
+    }
+
+    [Fact]
+    public async Task Checkout_CardSubscription_UsesPersistedIntentIdAsGatewayIdempotencyKey()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        c.Provider.ThrowOnCreateCardSubscription = false;
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        var result = await c.Service.CreateCheckoutAsync(dto);
+
+        var intent = Assert.Single(c.Payments.Items);
+        Assert.Equal(intent.Id, result.PaymentId);
+        Assert.Equal(intent.Id.ToString(), c.Provider.LastCardSubscriptionRequest!.IdempotencyKey);
+        Assert.Equal(c.Sub.Id.ToString(), c.Provider.LastCardSubscriptionRequest.ExternalReference);
+        Assert.Equal("sub-created", c.Sub.ExternalSubscriptionId);
+    }
+
+    [Fact]
+    public async Task Checkout_WhenNewCardSubscriptionCreationFails_DoesNotKeepCancelledOldSubscriptionLinked()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        await Assert.ThrowsAsync<NotImplementedException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Null(c.Sub.ExternalSubscriptionId);
+        Assert.Single(c.Payments.Items);
+        Assert.Equal(PaymentStatus.Pending, c.Payments.Items[0].Status);
+        Assert.Equal(c.TargetPlan.Id, c.Payments.Items[0].PlanId);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionAuthorizedBeforeCheckoutResponse_RecoversLocalSubscriptionAndPlanIntent()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        var intent = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.CreditCard, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
+        c.Payments.Items.Add(intent);
+        c.Provider.ParseResult = new(true, "subscription_preapproval", "evt-early-sub", null, "preapproval-early");
+        c.Provider.SubscriptionExternalReference = c.Sub.Id.ToString();
+        c.Provider.SubscriptionStatus = ProviderSubscriptionStatus.Authorized;
+
+        Assert.Equal(WebhookProcessResult.Processed, await Send(c));
+
+        Assert.Equal("preapproval-early", c.Sub.ExternalSubscriptionId);
+        Assert.Equal("FakePay", c.Sub.PaymentProvider);
+        Assert.Equal(c.TargetPlan.Id, c.Sub.PlanId);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+    }
+
+    [Fact]
     public async Task Webhook_WithInvalidSignature_IsRejectedAndNothingChanges()
     {
         var c = Build();

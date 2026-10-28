@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Application.Services;
+using AutoNexus.Domain.Interfaces;
 
 namespace AutoNexus.Api.Middleware;
 
@@ -22,12 +23,34 @@ public class SubscriptionAccessMiddleware
 
     public SubscriptionAccessMiddleware(RequestDelegate next) => _next = next;
 
-    public async Task InvokeAsync(HttpContext context, ISubscriptionAccessService access)
+    public async Task InvokeAsync(
+        HttpContext context,
+        ISubscriptionAccessService access,
+        ITenantContext tenantContext,
+        ITenantRepository tenants)
     {
         var path = context.Request.Path.Value ?? string.Empty;
+        var isAuthenticatedTenant = context.User.Identity?.IsAuthenticated == true
+            && !context.User.IsInRole("SuperAdmin");
+
+        // Desativar uma empresa deve bloquear também tokens já emitidos, e não
+        // somente impedir novos logins. Esta verificação roda inclusive nas
+        // rotas liberadas para regularização de cobrança.
+        if (isAuthenticatedTenant && tenantContext.HasTenant)
+        {
+            var tenant = await tenants.GetByIdAsync(tenantContext.TenantId, context.RequestAborted);
+            if (tenant == null || !tenant.IsActive)
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                await context.Response.WriteAsJsonAsync(
+                    new { message = "Esta empresa está desativada. Fale com o suporte." },
+                    context.RequestAborted);
+                return;
+            }
+        }
+
         var needsCheck = path.StartsWith("/api/", StringComparison.OrdinalIgnoreCase)
-            && context.User.Identity?.IsAuthenticated == true
-            && !context.User.IsInRole("SuperAdmin")
+            && isAuthenticatedTenant
             && !AllowedPrefixes.Any(p => path.StartsWith(p, StringComparison.OrdinalIgnoreCase));
 
         if (needsCheck)

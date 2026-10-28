@@ -86,7 +86,14 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
             external_reference = request.ExternalReference
         };
 
-        var response = await _httpClient.PostAsJsonAsync("/preapproval", payload, JsonWriteOpts, cancellationToken);
+        using var requestMessage = new HttpRequestMessage(HttpMethod.Post, "/preapproval")
+        {
+            Content = JsonContent.Create(payload, options: JsonWriteOpts)
+        };
+        if (!string.IsNullOrWhiteSpace(request.IdempotencyKey))
+            requestMessage.Headers.TryAddWithoutValidation("X-Idempotency-Key", request.IdempotencyKey);
+
+        var response = await _httpClient.SendAsync(requestMessage, cancellationToken);
         var body = await response.Content.ReadAsStringAsync(cancellationToken);
 
         if (!response.IsSuccessStatusCode)
@@ -210,6 +217,22 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
             "cancelled" => ProviderSubscriptionStatus.Cancelled,
             _ => ProviderSubscriptionStatus.Unknown
         };
+    }
+
+    public async Task<string?> GetSubscriptionExternalReferenceAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
+    {
+        EnsureConfigured();
+
+        var response = await _httpClient.GetAsync($"/preapproval/{externalSubscriptionId}", cancellationToken);
+        var body = await response.Content.ReadAsStringAsync(cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            _logger.LogError("Mercado Pago: falha ao consultar referência da assinatura {Id}. Status {Status}.", externalSubscriptionId, response.StatusCode);
+            throw new InvalidOperationException($"Não foi possível consultar a referência da assinatura {externalSubscriptionId} no Mercado Pago.");
+        }
+
+        var parsed = JsonSerializer.Deserialize<MpPreapprovalResponse>(body, JsonOpts);
+        return parsed?.ExternalReference;
     }
 
     public async Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
@@ -340,6 +363,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
         [JsonPropertyName("id")] public string Id { get; set; } = string.Empty;
         [JsonPropertyName("init_point")] public string? InitPoint { get; set; }
         [JsonPropertyName("status")] public string? Status { get; set; }
+        [JsonPropertyName("external_reference")] public string? ExternalReference { get; set; }
     }
 
     private class MpPaymentResponse

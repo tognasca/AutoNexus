@@ -22,6 +22,8 @@ public interface IPaymentProvider
 
     Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default);
 
+    Task<string?> GetSubscriptionExternalReferenceAsync(string externalSubscriptionId, CancellationToken cancellationToken = default);
+
     Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default);
 
     /// <summary>
