@@ -1,12 +1,13 @@
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 
 namespace AutoNexus.Infrastructure.Data.Seeds;
 
 public static class DbInitializer
 {
-    public static async Task SeedAsync(AutoNexusDbContext context)
+    public static async Task SeedAsync(AutoNexusDbContext context, IConfiguration configuration, bool isDevelopment)
     {
         await context.Database.MigrateAsync();
 
@@ -111,26 +112,41 @@ public static class DbInitializer
             await context.DocumentCategories.AddRangeAsync(docCategories);
         }
 
-        // 4. Usuário Admin Inicial (Senha padrão: Admin@123456)
-        if (!await context.Users.AnyAsync(u => u.Email == "admin@autonexus.com"))
+        // 4. Contas iniciais. Credenciais padrão existem somente no ambiente Development.
+        // Em produção, as contas de bootstrap só são criadas quando e-mail e senha
+        // fortes são fornecidos por configuração/secret manager.
+        var adminEmail = configuration["Seed:AdminEmail"];
+        var adminPassword = configuration["Seed:AdminPassword"];
+        if (isDevelopment)
         {
-            var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword("Admin@123456", workFactor: 12);
-            var adminUser = new User("Administrador", "admin@autonexus.com", adminPasswordHash, UserProfile.Admin);
+            adminEmail = string.IsNullOrWhiteSpace(adminEmail) ? "admin@autonexus.com" : adminEmail;
+            adminPassword = string.IsNullOrWhiteSpace(adminPassword) ? "Admin@123456" : adminPassword;
+        }
+
+        if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword)
+            && !await context.Users.AnyAsync(u => u.Email == adminEmail))
+        {
+            var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, workFactor: 12);
+            var adminUser = new User("Administrador", adminEmail, adminPasswordHash, UserProfile.Admin);
             adminUser.TenantId = Tenant.DefaultTenantId;
             await context.Users.AddAsync(adminUser);
         }
 
-        // 5. Usuário SuperAdmin inicial (dono do SaaS — TROQUE A SENHA em produção).
-        // Deliberadamente SEM TenantId (fica em Guid.Empty, o valor padrão de
-        // um Guid em C#): SuperAdmin não pertence a nenhuma empresa. Por isso
-        // não usamos AnyAsync com IgnoreQueryFilters aqui — como estamos no
-        // seed (fora de uma requisição HTTP), HasTenant já é false e o filtro
-        // global não está ativo, então esta consulta já enxerga todos os
-        // usuários normalmente.
-        if (!await context.Users.AnyAsync(u => u.Email == "superadmin@autonexus.com"))
+        // 5. SuperAdmin não pertence a nenhum tenant. Nunca criar credenciais
+        // conhecidas em produção: usar Seed__SuperAdminEmail/Password como secrets.
+        var superAdminEmail = configuration["Seed:SuperAdminEmail"];
+        var superAdminPassword = configuration["Seed:SuperAdminPassword"];
+        if (isDevelopment)
         {
-            var superAdminPasswordHash = BCrypt.Net.BCrypt.HashPassword("SuperAdmin@123456", workFactor: 12);
-            var superAdminUser = new User("Super Admin", "superadmin@autonexus.com", superAdminPasswordHash, UserProfile.SuperAdmin);
+            superAdminEmail = string.IsNullOrWhiteSpace(superAdminEmail) ? "superadmin@autonexus.com" : superAdminEmail;
+            superAdminPassword = string.IsNullOrWhiteSpace(superAdminPassword) ? "SuperAdmin@123456" : superAdminPassword;
+        }
+
+        if (!string.IsNullOrWhiteSpace(superAdminEmail) && !string.IsNullOrWhiteSpace(superAdminPassword)
+            && !await context.Users.AnyAsync(u => u.Email == superAdminEmail))
+        {
+            var superAdminPasswordHash = BCrypt.Net.BCrypt.HashPassword(superAdminPassword, workFactor: 12);
+            var superAdminUser = new User("Super Admin", superAdminEmail, superAdminPasswordHash, UserProfile.SuperAdmin);
             await context.Users.AddAsync(superAdminUser);
         }
 
