@@ -1,3 +1,5 @@
+using System.Text.Json;
+using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Domain.Models;
 using Microsoft.Extensions.Logging;
@@ -7,6 +9,7 @@ namespace AutoNexus.Application.Services;
 public class CreditService : IBankCreditService
 {
     private readonly IBankConfigRepository? _bankConfigRepository;
+    private readonly ICreditProposalRepository? _proposalRepository;
     private readonly IEnumerable<IBankAdapter> _adapters;
     private readonly IHttpClientFactory _httpClientFactory;
     private readonly ILogger<CreditService> _logger;
@@ -15,21 +18,32 @@ public class CreditService : IBankCreditService
         IHttpClientFactory httpClientFactory,
         ILogger<CreditService> logger,
         IBankConfigRepository? bankConfigRepository = null,
-        IEnumerable<IBankAdapter>? adapters = null)
+        IEnumerable<IBankAdapter>? adapters = null,
+        ICreditProposalRepository? proposalRepository = null)
     {
         _httpClientFactory = httpClientFactory;
         _logger = logger;
         _bankConfigRepository = bankConfigRepository;
         _adapters = adapters ?? Enumerable.Empty<IBankAdapter>();
+        _proposalRepository = proposalRepository;
     }
 
     public async Task<CreditProposalResponse> SubmitProposalAsync(CreditProposalRequest request)
     {
+        if (!request.PrivacyConsent)
+            throw new ArgumentException("O consentimento informado é obrigatório para registrar a proposta.", nameof(request));
+
+        // Persist business data for audit/status tracking, but never store base64
+        // selfie/CNH images in PostgreSQL or write customer payloads to application logs.
+        var safeRequest = request with { CustomerPhotoBase64 = null, DriverLicensePhotoBase64 = null };
+        var record = new CreditProposalRecord(request, JsonSerializer.Serialize(safeRequest));
+        if (_proposalRepository != null)
+            await _proposalRepository.AddAsync(record);
+
         if (_bankConfigRepository != null)
         {
             var config = await _bankConfigRepository.GetByCodeAsync(request.BankId);
-
-            if (config != null && config.IsActive && !string.IsNullOrEmpty(config.ApiKey))
+            if (config != null && config.IsActive && !string.IsNullOrWhiteSpace(config.ApiKey))
             {
                 var adapter = _adapters.FirstOrDefault(a =>
                     a.BankCode.Equals(config.BankCode, StringComparison.OrdinalIgnoreCase));
@@ -39,28 +53,33 @@ public class CreditService : IBankCreditService
                     try
                     {
                         using var httpRequest = adapter.BuildHttpRequest(config, request);
-
-                        var requestBody = httpRequest.Content != null
-                            ? await httpRequest.Content.ReadAsStringAsync()
-                            : string.Empty;
-
-                        _logger.LogInformation(
-                            ">>> REQUEST ENVIADO PARA BANCO [{Bank}]: {Url}\nPayload: {Payload}",
-                            config.Name,
-                            httpRequest.RequestUri,
-                            requestBody);
-
                         var client = _httpClientFactory.CreateClient("BankCreditClient");
-                        var httpResponse = await client.SendAsync(httpRequest);
+                        using var httpResponse = await client.SendAsync(httpRequest);
                         var responseBody = await httpResponse.Content.ReadAsStringAsync();
 
                         _logger.LogInformation(
-                            "<<< RESPOSTA DO BANCO [{Bank}] Status [{Code}]: {Body}",
+                            "Resposta da integração de crédito {Bank}: HTTP {StatusCode}",
                             config.Name,
-                            (int)httpResponse.StatusCode,
-                            responseBody);
+                            (int)httpResponse.StatusCode);
 
-                        return adapter.ParseHttpResponse(responseBody, (int)httpResponse.StatusCode);
+                        CreditProposalResponse result;
+                        if (!httpResponse.IsSuccessStatusCode)
+                        {
+                            result = new CreditProposalResponse(
+                                "Unavailable",
+                                $"AUTO-{record.Id:N}",
+                                "O banco não confirmou o recebimento da proposta. Nenhuma aprovação foi confirmada.",
+                                null, null, null);
+                        }
+                        else
+                        {
+                            result = adapter.ParseHttpResponse(responseBody, (int)httpResponse.StatusCode);
+                        }
+
+                        record.SetResult(result);
+                        if (_proposalRepository != null)
+                            await _proposalRepository.UpdateAsync(record);
+                        return result;
                     }
                     catch (Exception ex)
                     {
@@ -70,41 +89,34 @@ public class CreditService : IBankCreditService
             }
         }
 
-        // Simulação de crédito (fallback quando a API do banco não estiver configurada)
-        await Task.Delay(1000);
-
-        var requiredIncome = request.InstallmentValue * 2.5m;
-        if (request.MonthlyIncome >= requiredIncome || request.MonthlyIncome == 0)
-        {
-            return new CreditProposalResponse(
-                Status: "Approved",
-                ProposalNumber: $"PROP-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}",
-                Message: $"Crédito Pré-Aprovado no {request.BankName}! Margem de renda compatível.",
-                ApprovedLimit: request.FinancedAmount,
-                ApprovedMonths: request.Months,
-                ApprovedRate: null
-            );
-        }
-
-        return new CreditProposalResponse(
-            Status: "Pending",
-            ProposalNumber: $"PROP-{DateTime.UtcNow:yyyyMMdd}-{Random.Shared.Next(1000, 9999)}",
-            Message: $"Proposta submetida para análise da mesa de crédito do {request.BankName}.",
-            ApprovedLimit: null,
-            ApprovedMonths: null,
-            ApprovedRate: null
-        );
+        // Never simulate a bank decision. No configured/working integration means
+        // no real submission and therefore no approval.
+        var unavailable = new CreditProposalResponse(
+            "Unavailable",
+            $"AUTO-{record.Id:N}",
+            "A integração real deste banco não está configurada ou está indisponível. A proposta foi registrada no AutoNexus, mas não foi enviada ao banco e não há aprovação confirmada.",
+            null, null, null);
+        record.SetResult(unavailable);
+        if (_proposalRepository != null)
+            await _proposalRepository.UpdateAsync(record);
+        return unavailable;
     }
 
-    public Task<CreditProposalResponse> CheckStatusAsync(string proposalNumber)
+    public async Task<CreditProposalResponse> CheckStatusAsync(string proposalNumber)
     {
-        return Task.FromResult(new CreditProposalResponse(
-            "Pending",
-            proposalNumber,
-            "Em análise.",
-            null,
-            null,
-            null
-        ));
+        if (_proposalRepository == null)
+            return new CreditProposalResponse("Unavailable", proposalNumber,
+                "A consulta persistida de propostas não está configurada.", null, null, null);
+
+        var proposal = await _proposalRepository.GetByProposalNumberAsync(proposalNumber);
+        if (proposal == null)
+            return new CreditProposalResponse("Unavailable", proposalNumber,
+                "Proposta não encontrada para esta empresa.", null, null, null);
+
+        return new CreditProposalResponse(
+            proposal.Status,
+            proposal.ProposalNumber ?? proposalNumber,
+            proposal.Message,
+            null, null, null);
     }
 }
