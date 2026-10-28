@@ -117,6 +117,11 @@ internal class FakePaymentProvider : IPaymentProvider
     public Task<CreateOneTimePaymentResult> CreateOneTimePaymentAsync(CreateOneTimePaymentRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
     public Task<PaymentStatusResult> GetPaymentStatusAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(PaymentInfo);
     public Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(ProviderSubscriptionStatus.Unknown);
-    public Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public bool ThrowOnCancelSubscription { get; set; }
+    public Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
+    {
+        if (ThrowOnCancelSubscription) throw new InvalidOperationException("Gateway cancellation failed");
+        return Task.CompletedTask;
+    }
     public WebhookParseResult ParseAndValidateWebhook(string rawBody, IDictionary<string, string> headers, IDictionary<string, string> queryParams) => ParseResult;
 }

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Application.Services;
 using AutoNexus.Domain.Entities;
@@ -203,6 +204,8 @@ public class BillingWebhookTests
         public FakeEventRepo Events = new();
         public FakePaymentProvider Provider = new();
         public FakeNotifier Notifier = new();
+        public FakeUserRepo Users = new();
+        public FakeTenantContext TenantContext = new();
         public FakeAudit Audit = new();
         public BillingService Service = null!;
         public TenantSubscription Sub = null!;
@@ -219,18 +222,37 @@ public class BillingWebhookTests
 
         c.Sub = new TenantSubscription(starter.Id, SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
         c.Subs.Items.Add(c.Sub);
+        var payer = new User("Admin", "admin@loja.test", "hash", UserProfile.Admin);
+        c.Users.Items.Add(payer);
+        c.TenantContext.UserId = payer.Id;
 
         c.Payment = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.Pix, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
         c.Payment.SetExternalPaymentId("pay-1");
         c.Payments.Items.Add(c.Payment);
 
-        c.Service = new BillingService(c.Subs, c.Plans, c.Payments, c.Events, new FakeUserRepo(), c.Provider, c.Audit,
-            c.Notifier, new FakeTenantContext(), new FakeUow(), TestConfig.Create(), NullLogger<BillingService>.Instance);
+        c.Service = new BillingService(c.Subs, c.Plans, c.Payments, c.Events, c.Users, c.Provider, c.Audit,
+            c.Notifier, c.TenantContext, new FakeUow(), TestConfig.Create(), NullLogger<BillingService>.Instance);
         return c;
     }
 
     private static Task<WebhookProcessResult> Send(Ctx c) =>
         c.Service.ProcessWebhookAsync("{}", new Dictionary<string, string>(), new Dictionary<string, string>());
+
+    [Fact]
+    public async Task Checkout_WhenPreviousRecurringCancellationFails_DoesNotCreateNewCharge()
+    {
+        var c = Build();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+        c.Provider.ThrowOnCancelSubscription = true;
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Contains("Nenhuma nova cobrança foi criada", ex.Message);
+        Assert.Single(c.Payments.Items);
+        Assert.Equal("old-subscription", c.Sub.ExternalSubscriptionId);
+    }
 
     [Fact]
     public async Task Webhook_WithInvalidSignature_IsRejectedAndNothingChanges()
