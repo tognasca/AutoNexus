@@ -90,7 +90,10 @@ public class SuperAdminService : ISuperAdminService
         var settings = new TenantSetting(dto.TenantName);
         await _settingRepository.AddForTenantAsync(settings, tenant.Id, cancellationToken);
 
-        var subscription = new TenantSubscription(freePlan.Id, SubscriptionStatus.Trialing, BillingCycle.Monthly, freePlan.TrialDays);
+        // Sem trial configurado, a empresa não pode nascer com acesso gratuito
+        // indefinido: a mesma regra do signup público exige assinatura imediata.
+        var initialStatus = freePlan.TrialDays > 0 ? SubscriptionStatus.Trialing : SubscriptionStatus.Expired;
+        var subscription = new TenantSubscription(freePlan.Id, initialStatus, BillingCycle.Monthly, freePlan.TrialDays);
         await _subscriptionRepository.AddForTenantAsync(subscription, tenant.Id, cancellationToken);
 
         // LogForTenantAsync: quem executa é o SuperAdmin (sem tenant próprio),
