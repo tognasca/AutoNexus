@@ -26,7 +26,7 @@ export function PricingPage() {
       <header className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
         <a href="/" className="font-bold text-lg text-white">AutoNexus</a>
         <div className="space-x-4 text-sm">
-          <a href="/" className="text-slate-300 hover:text-white">Entrar</a>
+          <a href="/entrar" className="text-slate-300 hover:text-white">Entrar</a>
           <a href="/cadastro" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-white">Começar teste grátis</a>
         </div>
       </header>
