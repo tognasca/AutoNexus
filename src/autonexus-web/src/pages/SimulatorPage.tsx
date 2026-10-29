@@ -140,7 +140,8 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
           </div>
           <div>
             <h1 className="text-xl font-bold text-white flex items-center gap-2">Simulador de Financiamento</h1>
-            <p className="text-xs md:text-sm text-slate-400">Calcule parcelas com taxas em tempo real para o cliente.</p>
+            <p className="text-xs md:text-sm text-slate-400">Calcule parcelas com taxas estimadas para apoiar a negociação.</p>
+            <p className="mt-2 max-w-3xl text-xs text-amber-300/90">A simulação não é uma cotação bancária nem garante aprovação. O envio real da proposta depende de uma integração ativa e homologada com a financeira escolhida.</p>
           </div>
         </div>
 
