@@ -93,6 +93,9 @@ public sealed class BvFinancingConditionsService : IBvFinancingConditionsService
 
             if (!response.IsSuccessStatusCode)
             {
+                var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
+                correlationId = TryReadCorrelationId(errorBody) ?? correlationId;
+
                 _logger.LogWarning(
                     "BV Open financing-conditions returned HTTP {StatusCode}; correlation {CorrelationId}",
                     (int)response.StatusCode,
@@ -150,5 +153,34 @@ public sealed class BvFinancingConditionsService : IBvFinancingConditionsService
                 "O BV retornou dados em formato inesperado.",
                 innerException: ex);
         }
+    }
+
+    private static string? TryReadCorrelationId(string errorBody)
+    {
+        if (string.IsNullOrWhiteSpace(errorBody))
+            return null;
+
+        try
+        {
+            using var document = JsonDocument.Parse(errorBody);
+            if (document.RootElement.ValueKind != JsonValueKind.Object)
+                return null;
+
+            foreach (var property in document.RootElement.EnumerateObject())
+            {
+                if (string.Equals(property.Name, "correlationId", StringComparison.OrdinalIgnoreCase) &&
+                    property.Value.ValueKind == JsonValueKind.String)
+                {
+                    var value = property.Value.GetString();
+                    return string.IsNullOrWhiteSpace(value) ? null : value;
+                }
+            }
+        }
+        catch (JsonException)
+        {
+            // A malformed/non-JSON error body must not break safe upstream error handling.
+        }
+
+        return null;
     }
 }

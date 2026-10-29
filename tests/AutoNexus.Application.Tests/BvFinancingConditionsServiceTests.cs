@@ -96,9 +96,9 @@ public sealed class BvFinancingConditionsServiceTests
         {
             var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
             {
-                Content = new StringContent("{\"fault\":{\"message\":\"private upstream detail\"}}")
+                Content = new StringContent(
+                    "{\"correlationId\":\"corr-body-456\",\"fault\":{\"message\":\"private upstream detail\"}}")
             };
-            response.Headers.Add("x-correlation-id", "corr-123");
             return response;
         });
         var service = CreateService(handler, includeCredentials: true);
@@ -107,7 +107,28 @@ public sealed class BvFinancingConditionsServiceTests
             service.GetConditionsAsync(CreateRequest()));
 
         Assert.Equal(403, exception.UpstreamStatusCode);
-        Assert.Equal("corr-123", exception.CorrelationId);
+        Assert.Equal("corr-body-456", exception.CorrelationId);
+        Assert.DoesNotContain("private upstream detail", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetConditionsAsync_WhenErrorBodyHasNoCorrelationId_UsesHeaderFallback()
+    {
+        var handler = new RecordingHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("{\"fault\":{\"message\":\"private upstream detail\"}}")
+            };
+            response.Headers.Add("x-correlation-id", "corr-header-789");
+            return response;
+        });
+        var service = CreateService(handler, includeCredentials: true);
+
+        var exception = await Assert.ThrowsAsync<BvOpenIntegrationException>(() =>
+            service.GetConditionsAsync(CreateRequest()));
+
+        Assert.Equal("corr-header-789", exception.CorrelationId);
         Assert.DoesNotContain("private upstream detail", exception.Message);
     }
 
