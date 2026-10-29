@@ -58,7 +58,8 @@ export function SignupPage() {
       // Já entra logado: mesma chave/formato usados pelo login normal.
       localStorage.setItem('autonexus_token', result.login.token);
       localStorage.setItem('autonexus_user', JSON.stringify({ ...result.login, profileName: 'Administrador' }));
-      window.location.href = '/';
+      // Após criar empresa e administrador, abrir a área de assinatura para o usuário concluir a cobrança.
+      window.location.href = '/?view=subscription';
     } catch (err: any) {
       setError(err.message || 'Não foi possível concluir o cadastro. Tente novamente.');
     } finally {
