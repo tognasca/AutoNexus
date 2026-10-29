@@ -22,7 +22,11 @@ public record CreditProposalRequest(
     string? Nationality = null,
     string? AddressJson = null,
     string? ProfessionalJson = null,
-    bool PrivacyConsent = false
+    bool PrivacyConsent = false,
+    string? VehicleId = null,
+    decimal VehiclePrice = 0,
+    decimal EntryValue = 0,
+    decimal TradeValue = 0
 );
 
 public record CreditProposalResponse(
