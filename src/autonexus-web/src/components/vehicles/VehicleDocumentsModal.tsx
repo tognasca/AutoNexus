@@ -39,14 +39,6 @@ interface VehicleDocumentsModalProps {
   onDocumentsUpdated?: () => void;
 }
 
-const DEFAULT_CATEGORIES: DocumentCategory[] = [
-  { id: '11111111-1111-1111-1111-111111111111', name: 'Laudo Cautelar' },
-  { id: '22222222-2222-2222-2222-222222222222', name: 'CRLV / Documento' },
-  { id: '33333333-3333-3333-3333-333333333333', name: 'Nota Fiscal' },
-  { id: '44444444-4444-4444-4444-444444444444', name: 'Comprovante de Revisão' },
-  { id: '55555555-5555-5555-5555-555555555555', name: 'Outros' }
-];
-
 export const getFullDocumentUrl = (path?: string) => {
   if (!path) return '#';
   if (path.startsWith('http')) return path;
