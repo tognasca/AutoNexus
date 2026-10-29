@@ -23,7 +23,9 @@ import { ForgotPasswordPage, ResetPasswordPage } from './pages/public/PasswordPa
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
-  const [currentView, setCurrentView] = useState('dashboard');
+  const [currentView, setCurrentView] = useState(() =>
+    new URLSearchParams(window.location.search).get('view') === 'subscription' ? 'subscription' : 'dashboard'
+  );
   const [isPublicCatalogRoute, setIsPublicCatalogRoute] = useState(
     window.location.pathname === '/catalogo'
   );
