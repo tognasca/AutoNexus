@@ -53,8 +53,9 @@ function AppContent() {
     return () => window.removeEventListener('autonexus:subscription-required', goToSubscription);
   }, []);
 
-  // Páginas públicas (sem login): planos, cadastro e documentos legais
+  // Páginas públicas (sem login): landing/planos, cadastro, login e documentos legais
   const publicPath = window.location.pathname;
+  if (publicPath === '/entrar') return <LoginPage />;
   if (publicPath === '/precos') return <PricingPage />;
   if (publicPath.startsWith('/loja/')) return <PublicCatalogPage />;
   if (publicPath === '/cadastro') return <SignupPage />;
@@ -90,9 +91,10 @@ function AppContent() {
     );
   }
 
-  // 3. Se não estiver autenticado, direciona para a Tela de Login
+  // 3. A raiz é a landing comercial para visitantes; o login fica em /entrar.
+  // Usuários autenticados continuam entrando normalmente no sistema.
   if (!isAuthenticated || !user) {
-    return <LoginPage />;
+    return <PricingPage />;
   }
 
   // 4. Manipulador de navegação interna
