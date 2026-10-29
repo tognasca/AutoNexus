@@ -225,11 +225,15 @@ export const ContractPrintModal: React.FC<ContractPrintModalProps> = ({ data, on
                 <p className="font-bold text-slate-900">{formatCurrency(data.financials.financedValue)}</p>
               </div>
             </div>
-            {data.financials.installmentsCount > 0 && (
-              <p className="text-xs text-slate-700 italic">
-                * Financiamento aprovado em {data.financials.installmentsCount}x de {formatCurrency(data.financials.installmentValue)} via {data.financials.paymentMethod}.
-              </p>
-            )}
+            <div className="mt-2 rounded border border-slate-300 bg-white p-3">
+              <p className="text-[10px] text-slate-500 uppercase font-bold">Forma de Pagamento</p>
+              <p className="font-bold text-slate-900">{data.financials.paymentMethod || 'Não informada'}</p>
+              {data.financials.installmentsCount > 0 && (
+                <p className="mt-1 text-xs text-slate-700 italic">
+                  Condição do financiamento: {data.financials.installmentsCount}x de {formatCurrency(data.financials.installmentValue)}.
+                </p>
+              )}
+            </div>
           </section>
 
           {/* Cláusulas Jurídicas de Garantia e Responsabilidade */}
