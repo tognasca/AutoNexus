@@ -87,15 +87,26 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("login", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+    {
+        // Em produção, o frontend fica atrás do Nginx/Cloudflare Tunnel.
+        // RemoteIpAddress pode ser o IP do proxy compartilhado por todos os
+        // usuários, fazendo uma conta bloquear o login de outras contas.
+        // O Nginx encaminha CF-Connecting-IP recebido da Cloudflare.
+        var cloudflareClientIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
+        var clientIp = !string.IsNullOrWhiteSpace(cloudflareClientIp)
+            ? cloudflareClientIp.Trim()
+            : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            clientIp,
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
-            }));
+            });
+    });
 
     options.AddPolicy("signup", context =>
         RateLimitPartition.GetFixedWindowLimiter(
