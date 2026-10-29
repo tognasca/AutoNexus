@@ -2,7 +2,6 @@ using AutoNexus.Application.DTOs;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Infrastructure.Data;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -15,11 +14,13 @@ public class LookupsController : ControllerBase
 {
     private readonly ILookupRepository _lookupRepository;
     private readonly AutoNexusDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public LookupsController(ILookupRepository lookupRepository, AutoNexusDbContext context)
+    public LookupsController(ILookupRepository lookupRepository, AutoNexusDbContext context, ITenantContext tenantContext)
     {
         _lookupRepository = lookupRepository;
         _context = context;
+        _tenantContext = tenantContext;
     }
 
     [HttpGet("vehicle-types")]
@@ -63,6 +64,9 @@ public class LookupsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetDocumentCategories(CancellationToken cancellationToken)
     {
+        if (!_tenantContext.HasTenant)
+            return Forbid();
+
         // DocumentCategory é tenant-owned. A rota precisa do JWT para que o
         // filtro global do AutoNexusDbContext carregue apenas as categorias
         // da empresa autenticada; devolver IDs fictícios causava violação de FK
