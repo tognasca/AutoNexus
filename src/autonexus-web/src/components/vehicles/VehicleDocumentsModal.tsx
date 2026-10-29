@@ -67,7 +67,7 @@ export function VehicleDocumentsModal({
   onDocumentsUpdated
 }: VehicleDocumentsModalProps) {
   const [documents, setDocuments] = useState<VehicleDocument[]>([]);
-  const [categories, setCategories] = useState<DocumentCategory[]>(DEFAULT_CATEGORIES);
+  const [categories, setCategories] = useState<DocumentCategory[]>([]);
   const [loading, setLoading] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -156,16 +156,25 @@ export function VehicleDocumentsModal({
     setError(null);
 
     try {
-      const cats = await request('/lookups/document-categories').catch(() => null);
-      if (Array.isArray(cats) && cats.length > 0) {
+      const cats = await request('/lookups/document-categories');
+      if (!Array.isArray(cats) || cats.length === 0) {
+        setCategories([]);
+        setSelectedCategoryId('');
+        setError('Não foi possível carregar as categorias de documentos desta empresa. Atualize a tela e tente novamente.');
+      } else {
         setCategories(cats);
-        setSelectedCategoryId(cats[0].id);
+        setSelectedCategoryId((current) =>
+          cats.some((category: DocumentCategory) => category.id === current) ? current : cats[0].id
+        );
       }
 
       const docs = await request(`/vehicles/${vehicle.id}/documents`).catch(() => []);
       setDocuments(Array.isArray(docs) ? docs : []);
     } catch (err: any) {
       console.error('Erro ao carregar dados:', err);
+      setCategories([]);
+      setSelectedCategoryId('');
+      setError(err?.message || 'Não foi possível carregar os dados dos documentos.');
     } finally {
       setLoading(false);
     }
@@ -307,9 +316,11 @@ export function VehicleDocumentsModal({
                 <label className="block text-xs font-semibold text-slate-400 mb-1">Categoria do Documento</label>
                 <select
                   value={selectedCategoryId}
+                  disabled={categories.length === 0 || uploading}
                   onChange={(e) => setSelectedCategoryId(e.target.value)}
                   className="w-full bg-slate-950 border border-nexus-border rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-nexus-accent"
                 >
+                  {categories.length === 0 && <option value="">Categorias indisponíveis</option>}
                   {categories.map((cat) => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
@@ -413,7 +424,7 @@ export function VehicleDocumentsModal({
 
               <button
                 type="submit"
-                disabled={uploading || !selectedFile}
+                disabled={uploading || !selectedFile || !selectedCategoryId || categories.length === 0}
                 className="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {uploading ? <Loader2 size={16} className="animate-spin" /> : <Upload size={16} />}
