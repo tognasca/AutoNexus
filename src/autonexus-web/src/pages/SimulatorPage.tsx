@@ -309,6 +309,10 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
           bankName={DEFAULT_BANKS.find(b => b.id === selectedBank)?.name || 'Banco'}
           bankId={selectedBank}
           vehicleName={currentVehicle ? `${currentVehicle.brand} ${currentVehicle.model}` : 'Veículo Selecionado'}
+          vehicleId={selectedVehicleId}
+          vehiclePrice={vehiclePrice}
+          entryValue={entryValue}
+          tradeValue={tradeValue}
           financedAmount={financedAmount}
           months={selectedPlanForCredit.months}
           installmentValue={selectedPlanForCredit.value}
