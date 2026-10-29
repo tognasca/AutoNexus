@@ -13,6 +13,17 @@
 Nada disso fica no código. Sem `RESEND_*` o sistema NÃO quebra: apenas registra aviso e não envia e-mail.
 Sem `MERCADOPAGO_*` o checkout retorna erro claro e o webhook é recusado por segurança.
 
+## Bootstrap seguro de produção
+
+O arquivo `.env.example` documenta as variáveis que o `docker-compose.yml` encaminha para a API.
+Em produção, não são criadas contas com as senhas públicas de desenvolvimento. Para criar as contas iniciais em um banco novo, configure
+`AUTONEXUS_INITIAL_ADMIN_EMAIL`, `AUTONEXUS_INITIAL_ADMIN_PASSWORD`, `AUTONEXUS_SUPERADMIN_EMAIL` e
+`AUTONEXUS_SUPERADMIN_PASSWORD` no arquivo `.env` (ou em um gerenciador de secrets) antes de iniciar os containers.
+Essas contas só são criadas se ainda não existir usuário com o e-mail configurado; alterar o secret depois não troca automaticamente a senha de uma conta existente.
+
+**Banco que já foi inicializado com versões anteriores:** o seed antigo podia criar `admin@autonexus.com` / `Admin@123456` e
+`superadmin@autonexus.com` / `SuperAdmin@123456`. Troque imediatamente essas senhas ou desative/remova as contas padrão existentes antes de expor o sistema à internet. Esta mudança impede novas criações com essas credenciais em produção, mas não apaga nem altera contas já gravadas.
+
 ## Webhook do Mercado Pago
 Cadastre em *Suas integrações > Webhooks* a URL `https://SEU-DOMINIO/api/webhooks/mercadopago`
 com os eventos **Pagamentos** e **Planos e assinaturas** (`subscription_preapproval`).

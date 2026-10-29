@@ -61,8 +61,8 @@ export function VehicleSaleModal({ isOpen, vehicle, onClose, onSaleCompleted }: 
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
-      <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md overflow-hidden shadow-2xl">
+    <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/70 p-2 backdrop-blur-sm sm:p-4">
+      <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-md flex-col overflow-y-auto overscroll-contain rounded-2xl border border-nexus-border bg-nexus-card shadow-2xl sm:max-h-[90dvh]">
         <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
           <h2 className="text-lg font-bold text-white flex items-center gap-2">
             <CheckCircle2 className="text-emerald-400" size={20} />
@@ -73,7 +73,7 @@ export function VehicleSaleModal({ isOpen, vehicle, onClose, onSaleCompleted }: 
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4 p-3 sm:p-6">
           {error && (
             <div className="p-3 bg-red-500/10 border border-red-500/20 text-red-400 rounded-lg text-sm">
               {error}

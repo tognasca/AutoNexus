@@ -84,6 +84,34 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("audit_logs", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.CreditProposalRecord", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
+                    b.Property<Guid>("TenantId").ValueGeneratedOnAdd().HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001")).HasColumnName("tenantId");
+                    b.Property<string>("BankId").IsRequired().HasColumnType("text").HasColumnName("bankId");
+                    b.Property<string>("BankName").IsRequired().HasColumnType("text").HasColumnName("bankName");
+                    b.Property<string>("CustomerName").IsRequired().HasColumnType("text").HasColumnName("customerName");
+                    b.Property<string>("CustomerCpf").IsRequired().HasColumnType("text").HasColumnName("customerCpf");
+                    b.Property<string>("VehicleName").IsRequired().HasColumnType("text").HasColumnName("vehicleName");
+                    b.Property<decimal>("FinancedAmount").HasColumnType("numeric").HasColumnName("financedAmount");
+                    b.Property<int>("Months").HasColumnType("integer").HasColumnName("months");
+                    b.Property<decimal>("InstallmentValue").HasColumnType("numeric").HasColumnName("installmentValue");
+                    b.Property<string>("Status").IsRequired().HasColumnType("text").HasColumnName("status");
+                    b.Property<string>("ProposalNumber").HasColumnType("text").HasColumnName("proposalNumber");
+                    b.Property<string>("Message").IsRequired().HasColumnType("text").HasColumnName("message");
+                    b.Property<string>("RequestDataJson").IsRequired().HasColumnType("text").HasColumnName("requestDataJson");
+                    b.Property<bool>("PrivacyConsent").HasColumnType("boolean").HasColumnName("privacyConsent");
+                    b.Property<DateTime>("StatusUpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("statusUpdatedAt");
+                    b.HasKey("Id");
+                    b.HasIndex("ProposalNumber");
+                    b.HasIndex("Status");
+                    b.HasIndex("TenantId");
+                    b.ToTable("credit_proposals", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.BankConfig", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1609,6 +1637,14 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Property<bool>("ProcessedSuccessfully")
                         .HasColumnType("boolean")
                         .HasColumnName("processedSuccessfully");
+
+                    b.Property<bool>("IsProcessing")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isProcessing");
+
+                    b.Property<DateTime?>("ProcessingStartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("processingStartedAt");
 
                     b.Property<string>("ProcessingError")
                         .HasMaxLength(1000)

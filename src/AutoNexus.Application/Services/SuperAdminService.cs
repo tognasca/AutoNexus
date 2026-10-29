@@ -90,7 +90,10 @@ public class SuperAdminService : ISuperAdminService
         var settings = new TenantSetting(dto.TenantName);
         await _settingRepository.AddForTenantAsync(settings, tenant.Id, cancellationToken);
 
-        var subscription = new TenantSubscription(freePlan.Id, SubscriptionStatus.Trialing, BillingCycle.Monthly, freePlan.TrialDays);
+        // Sem trial configurado, a empresa não pode nascer com acesso gratuito
+        // indefinido: a mesma regra do signup público exige assinatura imediata.
+        var initialStatus = freePlan.TrialDays > 0 ? SubscriptionStatus.Trialing : SubscriptionStatus.Expired;
+        var subscription = new TenantSubscription(freePlan.Id, initialStatus, BillingCycle.Monthly, freePlan.TrialDays);
         await _subscriptionRepository.AddForTenantAsync(subscription, tenant.Id, cancellationToken);
 
         // LogForTenantAsync: quem executa é o SuperAdmin (sem tenant próprio),
@@ -131,12 +134,8 @@ public class SuperAdminService : ISuperAdminService
 
         await _unitOfWork.CommitAsync(cancellationToken);
 
-        // Bloqueio de acesso de fato: AuthService.LoginAsync já checa
-        // Tenant.IsActive antes de emitir token (ver etapa 6), então a partir
-        // daqui ninguém dessa empresa consegue mais fazer um NOVO login.
-        // Token já emitido antes disso continua válido até expirar (JWT sem
-        // blocklist) — limitação conhecida, documentada, não resolvida nesta
-        // etapa.
+        // O middleware de tenant verifica IsActive em cada requisição
+        // autenticada, então tokens emitidos antes da desativação também perdem acesso.
     }
 
     public async Task<List<UserDto>> GetUsersAsync(Guid? tenantId, CancellationToken cancellationToken = default)

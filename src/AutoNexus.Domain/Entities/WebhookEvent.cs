@@ -19,6 +19,8 @@ public class WebhookEvent : EntityBase
     public string EventType { get; private set; } = string.Empty;
     public string? RawPayload { get; private set; }
     public bool ProcessedSuccessfully { get; private set; }
+    public bool IsProcessing { get; private set; }
+    public DateTime? ProcessingStartedAt { get; private set; }
     public string? ProcessingError { get; private set; }
     public DateTime ReceivedAt { get; private set; }
     public DateTime? ProcessedAt { get; private set; }
@@ -39,15 +41,32 @@ public class WebhookEvent : EntityBase
         ReceivedAt = DateTime.UtcNow;
     }
 
+    public bool TryStartProcessing(DateTime now, TimeSpan leaseDuration)
+    {
+        if (ProcessedSuccessfully) return false;
+        if (IsProcessing && ProcessingStartedAt.HasValue && ProcessingStartedAt.Value > now - leaseDuration)
+            return false;
+
+        IsProcessing = true;
+        ProcessingStartedAt = now;
+        ProcessingError = null;
+        return true;
+    }
+
     public void MarkProcessed()
     {
         ProcessedSuccessfully = true;
+        IsProcessing = false;
+        ProcessingStartedAt = null;
+        ProcessingError = null;
         ProcessedAt = DateTime.UtcNow;
     }
 
     public void MarkFailed(string error)
     {
         ProcessedSuccessfully = false;
+        IsProcessing = false;
+        ProcessingStartedAt = null;
         ProcessingError = error;
         ProcessedAt = DateTime.UtcNow;
     }

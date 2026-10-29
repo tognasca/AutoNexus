@@ -4,11 +4,12 @@ import {
     X, ChevronLeft, ChevronRight, ShieldCheck,
     Car, FileText, Sparkles, ExternalLink
 } from 'lucide-react';
-import { catalogService, getPhotoUrl, type PublicVehicleDetail } from '../services/catalogService';
+import { catalogService, getPhotoUrl, type PublicVehicleDetail, type PublicStoreInfo } from '../services/catalogService';
 import { formatCurrency } from '../utils/formatters';
 
 export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
     const [vehicles, setVehicles] = useState<any[]>([]);
+    const [storeInfo, setStoreInfo] = useState<PublicStoreInfo | undefined>();
     const [filteredVehicles, setFilteredVehicles] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
     const [searchTerm, setSearchTerm] = useState('');
@@ -18,11 +19,12 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     const [selectedVehicle, setSelectedVehicle] = useState<PublicVehicleDetail | null>(null);
     const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
-    const WHATSAPP_NUMBER = "5511999999999";
+    const storeSlug = window.location.pathname.match(/^\/loja\/([^/]+)/)?.[1] || new URLSearchParams(window.location.search).get('store') || 'default';
+    const WHATSAPP_NUMBER = (import.meta.env.VITE_PUBLIC_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 
     useEffect(() => {
         fetchCatalog();
-    }, []);''
+    }, []);
 
     useEffect(() => {
         let result = vehicles;
@@ -46,9 +48,10 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     const fetchCatalog = async () => {
         try {
             setLoading(true);
-            const data = await catalogService.getPublicCatalog();
-            setVehicles(data);
-            setFilteredVehicles(data);
+            const data = await catalogService.getPublicCatalog(storeSlug);
+            setStoreInfo(data.store);
+            setVehicles(data.items);
+            setFilteredVehicles(data.items);
         } catch (err) {
             console.error('Erro ao carregar catálogo público:', err);
         } finally {
@@ -59,14 +62,15 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     const handleOpenDetails = async (vehicleId: string) => {
         try {
             setActivePhotoIndex(0);
-            const detail = await catalogService.getPublicVehicle(vehicleId);
+            const detail = await catalogService.getPublicVehicle(vehicleId, storeSlug);
             setSelectedVehicle(detail);
         } catch (err) {
             console.error('Erro ao buscar detalhes do veículo:', err);
         }
     };
 
-    const getFuelName = (fuel?: number) => {
+    const getFuelName = (fuel?: number | string) => {
+        if (typeof fuel === 'string') return ({ Gasolina: 'Gasolina', Etanol: 'Etanol', Flex: 'Flex', Diesel: 'Diesel', Hibrido: 'Híbrido', Híbrido: 'Híbrido', Eletrico: 'Elétrico', Elétrico: 'Elétrico' } as Record<string, string>)[fuel] || fuel;
         switch (fuel) {
             case 1: return 'Gasolina';
             case 2: return 'Etanol';
@@ -78,7 +82,8 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
         }
     };
 
-    const getTransmissionName = (transmission?: number) => {
+    const getTransmissionName = (transmission?: number | string) => {
+        if (typeof transmission === 'string') return ({ Manual: 'Manual', Automatico: 'Automático', Automático: 'Automático', CVT: 'CVT' } as Record<string, string>)[transmission] || transmission;
         switch (transmission) {
             case 1: return 'Manual';
             case 2: return 'Automático';
@@ -88,9 +93,11 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     };
 
     const handleWhatsAppContact = (vehicle: any) => {
-        const price = vehicle.listedValue || vehicle.ListedValue || vehicle.purchaseValue || vehicle.PurchaseValue || 0;
-        const text = `Olá! Vi no catálogo o veículo *${vehicle.brand} ${vehicle.model} ${vehicle.modelYear || ''}* no valor de ${formatCurrency(price)} e gostaria de mais informações!`;
-        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank');
+        if (!WHATSAPP_NUMBER) return;
+        const price = vehicle.listedValue ?? vehicle.ListedValue;
+        const priceText = Number(price) > 0 ? formatCurrency(Number(price)) : 'preço a consultar';
+        const text = `Olá! Vi no catálogo da ${storeInfo?.name || 'loja'} o veículo *${vehicle.brand} ${vehicle.model} ${vehicle.modelYear || ''}* (${priceText}) e gostaria de mais informações!`;
+        window.open(`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(text)}`, '_blank', 'noopener,noreferrer');
     };
 
     const uniqueBrands = Array.from(new Set(vehicles.map(v => v.brand).filter(Boolean)));
@@ -107,12 +114,17 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
             <header className="bg-nexus-card border-b border-nexus-border sticky top-0 z-40 shadow-xl">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-nexus-accent rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/30">
-                            AN
+                        <div
+                            className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-xl text-white shadow-lg shadow-blue-500/30 overflow-hidden"
+                            style={{ backgroundColor: storeInfo?.primaryColor || undefined }}
+                        >
+                            {storeInfo?.logoUrl ? (
+                                <img src={storeInfo.logoUrl} alt={storeInfo.name} className="w-full h-full object-contain bg-white" />
+                            ) : 'AN'}
                         </div>
                         <div>
                             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                                AutoNexus Motors
+                                {storeInfo?.name || 'AutoNexus'}
                             </h1>
                             <p className="text-xs text-slate-400">Catálogo Oficial de Veículos</p>
                         </div>
@@ -127,7 +139,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                 Voltar ao Painel
                             </button>
                         )}
-                        <a
+                        {WHATSAPP_NUMBER && <a
                             href={`https://wa.me/${WHATSAPP_NUMBER}`}
                             target="_blank"
                             rel="noreferrer"
@@ -135,7 +147,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                         >
                             <MessageCircle size={16} />
                             <span>WhatsApp</span>
-                        </a>
+                        </a>}
                     </div>
                 </div>
             </header>
@@ -194,7 +206,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                         {filteredVehicles.map((vehicle) => {
                             const photoPath = vehicle.mainPhotoUrl || vehicle.MainPhotoUrl;
                             const photoFullUrl = getPhotoUrl(photoPath);
-                            const price = Number(vehicle.listedValue ?? vehicle.ListedValue ?? vehicle.purchaseValue ?? vehicle.PurchaseValue ?? 0);
+                            const price = Number(vehicle.listedValue ?? vehicle.ListedValue ?? 0);
 
                             return (
                                 <div
@@ -259,7 +271,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                             <div className="flex items-baseline justify-between">
                                                 <span className="text-[10px] text-slate-500 uppercase font-medium">Preço</span>
                                                 <span className="text-lg font-extrabold text-emerald-400">
-                                                    {formatCurrency(price)}
+                                                    {price > 0 ? formatCurrency(price) : 'Consulte'}
                                                 </span>
                                             </div>
 
@@ -272,13 +284,13 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                                     Detalhes
                                                 </button>
 
-                                                <button
+                                                {WHATSAPP_NUMBER && <button
                                                     onClick={() => handleWhatsAppContact(vehicle)}
                                                     className="py-2.5 px-3 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-xl text-xs font-bold transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-md"
                                                 >
                                                     <MessageCircle size={14} />
                                                     WhatsApp
-                                                </button>
+                                                </button>}
                                             </div>
                                         </div>
                                     </div>
@@ -291,8 +303,8 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
 
             {/* MODAL DE DETALHES COM GALERIA DE FOTOS E DOCUMENTOS REAIS */}
             {selectedVehicle && (
-                <div className="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 overflow-y-auto">
-                    <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-4xl overflow-hidden shadow-2xl my-8">
+                <div className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto overscroll-contain bg-black/80 p-2 backdrop-blur-md sm:p-4">
+                    <div className="my-auto flex max-h-[calc(100dvh-1rem)] w-full min-w-0 max-w-4xl flex-col overflow-hidden rounded-2xl border border-nexus-border bg-nexus-card shadow-2xl sm:my-8 sm:max-h-[90dvh]">
 
                         <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
                             <div>
@@ -437,17 +449,17 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                 <div>
                                     <span className="text-xs text-slate-400 block">Preço do Veículo</span>
                                     <span className="text-2xl font-black text-emerald-400">
-                                        {formatCurrency(Number(selectedVehicle.listedValue || selectedVehicle.purchaseValue || 0))}
+                                        {Number(selectedVehicle.listedValue) > 0 ? formatCurrency(Number(selectedVehicle.listedValue)) : 'Consulte'}
                                     </span>
                                 </div>
 
-                                <button
+                                {WHATSAPP_NUMBER && <button
                                     onClick={() => handleWhatsAppContact(selectedVehicle)}
                                     className="w-full sm:w-auto px-6 py-3 bg-[#25D366] hover:bg-[#20bd5a] text-white font-bold rounded-xl text-sm transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
                                 >
                                     <MessageCircle size={18} />
                                     Falar sobre este Veículo
-                                </button>
+                                </button>}
                             </div>
 
                         </div>

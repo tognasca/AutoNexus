@@ -39,6 +39,7 @@ public static class DependencyInjection
         services.AddScoped<IBuyerLinkRepository, BuyerLinkRepository>();
         services.AddScoped<IAcceptanceRepository, AcceptanceRepository>();
         services.AddScoped<IBankConfigRepository, BankConfigRepository>(); // Registrado aqui
+        services.AddScoped<ICreditProposalRepository, CreditProposalRepository>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IBankAdapter, SantanderBankAdapter>();

@@ -1,4 +1,5 @@
 using System.Text.RegularExpressions;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Application.Services;
 using AutoNexus.Domain.Entities;
@@ -85,6 +86,18 @@ public class SubscriptionAccessTests
 
         Assert.True(service.ExpireTrialIfNeeded(sub, DateTime.UtcNow.AddDays(8)));
         Assert.Equal(SubscriptionStatus.Expired, sub.Status);
+    }
+
+    [Fact]
+    public async Task Evaluate_NoSubscription_IsBlocked()
+    {
+        var (service, _, _, _) = Build();
+
+        var result = await service.EvaluateAsync();
+
+        Assert.False(result.Allowed);
+        Assert.Null(result.Status);
+        Assert.Contains("assinatura válida", result.Message);
     }
 
     [Fact]
@@ -183,6 +196,21 @@ public class PlanLimitTests
 
 public class BillingWebhookTests
 {
+    [Fact]
+    public void WebhookEvent_ProcessingClaim_AllowsOnlyOneActiveClaimAndCanRetryAfterLeaseExpires()
+    {
+        var ev = new WebhookEvent("FakePay", "evt-claim", "payment", "{}");
+        var now = DateTime.UtcNow;
+
+        Assert.True(ev.TryStartProcessing(now, TimeSpan.FromMinutes(5)));
+        Assert.False(ev.TryStartProcessing(now.AddSeconds(1), TimeSpan.FromMinutes(5)));
+        Assert.True(ev.TryStartProcessing(now.AddMinutes(6), TimeSpan.FromMinutes(5)));
+
+        ev.MarkProcessed();
+        Assert.False(ev.TryStartProcessing(now.AddMinutes(7), TimeSpan.FromMinutes(5)));
+    }
+
+
     private sealed class Ctx
     {
         public FakeSubscriptionRepo Subs = new();
@@ -191,6 +219,8 @@ public class BillingWebhookTests
         public FakeEventRepo Events = new();
         public FakePaymentProvider Provider = new();
         public FakeNotifier Notifier = new();
+        public FakeUserRepo Users = new();
+        public FakeTenantContext TenantContext = new();
         public FakeAudit Audit = new();
         public BillingService Service = null!;
         public TenantSubscription Sub = null!;
@@ -207,18 +237,169 @@ public class BillingWebhookTests
 
         c.Sub = new TenantSubscription(starter.Id, SubscriptionStatus.Trialing, BillingCycle.Monthly, 7);
         c.Subs.Items.Add(c.Sub);
+        var payer = new User("Admin", "admin@loja.test", "hash", UserProfile.Admin);
+        c.Users.Items.Add(payer);
+        c.TenantContext.UserId = payer.Id;
 
         c.Payment = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.Pix, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
         c.Payment.SetExternalPaymentId("pay-1");
         c.Payments.Items.Add(c.Payment);
 
-        c.Service = new BillingService(c.Subs, c.Plans, c.Payments, c.Events, new FakeUserRepo(), c.Provider, c.Audit,
-            c.Notifier, new FakeTenantContext(), new FakeUow(), TestConfig.Create(), NullLogger<BillingService>.Instance);
+        c.Service = new BillingService(c.Subs, c.Plans, c.Payments, c.Events, c.Users, c.Provider, c.Audit,
+            c.Notifier, c.TenantContext, new FakeUow(), TestConfig.Create(), NullLogger<BillingService>.Instance);
         return c;
     }
 
     private static Task<WebhookProcessResult> Send(Ctx c) =>
         c.Service.ProcessWebhookAsync("{}", new Dictionary<string, string>(), new Dictionary<string, string>());
+
+    [Fact]
+    public async Task Checkout_WhenPreviousRecurringCancellationFails_DoesNotCreateNewCharge()
+    {
+        var c = Build();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+        c.Provider.ThrowOnCancelSubscription = true;
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Contains("Nenhuma nova cobrança foi criada", ex.Message);
+        Assert.Single(c.Payments.Items);
+        Assert.Equal("old-subscription", c.Sub.ExternalSubscriptionId);
+    }
+
+    [Fact]
+    public async Task Cancel_WhenGatewayCallThrowsButRemoteStatusIsCancelled_CompletesLocalCancellation()
+    {
+        var c = Build();
+        c.Sub.RenewPeriod(DateTime.UtcNow.AddDays(10));
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+        c.Provider.ThrowOnCancelSubscription = true;
+        c.Provider.SubscriptionStatus = ProviderSubscriptionStatus.Cancelled;
+
+        await c.Service.CancelAsync("Solicitado pelo cliente");
+
+        Assert.Equal(SubscriptionStatus.Canceled, c.Sub.Status);
+        Assert.Equal(DateTime.UtcNow.Date, c.Sub.CancelledAt!.Value.Date);
+        Assert.Single(c.Notifier.Subjects);
+    }
+
+    [Fact]
+    public async Task Checkout_InvalidBoletoDocument_DoesNotCancelExistingSubscription()
+    {
+        var c = Build();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.Boleto, "123");
+
+        await Assert.ThrowsAsync<ArgumentException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Equal(0, c.Provider.CancelSubscriptionCalls);
+        Assert.Equal("old-subscription", c.Sub.ExternalSubscriptionId);
+        Assert.Single(c.Payments.Items);
+    }
+
+    [Fact]
+    public async Task Checkout_OneTimePayment_PersistsLocalIntentAndUsesStableGatewayReference()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.Pix);
+        await c.Service.CreateCheckoutAsync(dto);
+
+        var payment = Assert.Single(c.Payments.Items);
+        Assert.Equal("pay-created", payment.ExternalPaymentId);
+        Assert.NotNull(c.Provider.LastOneTimePaymentRequest);
+        Assert.Equal(payment.Id.ToString(), c.Provider.LastOneTimePaymentRequest!.ExternalReference);
+        Assert.Equal(payment.Id.ToString(), c.Provider.LastOneTimePaymentRequest.IdempotencyKey);
+    }
+
+    [Fact]
+    public async Task Webhook_RecoversLocalPaymentWhenGatewayCreatedItBeforeFinalCommit()
+    {
+        var c = Build();
+        var localIntent = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.Pix, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
+        c.Payments.Items.Add(localIntent);
+        c.Provider.ParseResult = new(true, "payment", "evt-recovery", "pay-recovered", null);
+        c.Provider.PaymentInfo = new("pay-recovered", PaymentStatus.Approved, "approved", 99.90m, localIntent.Id.ToString(), PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal("pay-recovered", localIntent.ExternalPaymentId);
+        Assert.Equal(PaymentStatus.Approved, localIntent.Status);
+        Assert.Equal(SubscriptionStatus.Active, c.Sub.Status);
+    }
+
+    [Fact]
+    public async Task Checkout_CardSubscription_PersistsIntentBeforeCallingGateway()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        var ex = await Assert.ThrowsAsync<NotImplementedException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.NotNull(ex);
+        var intent = Assert.Single(c.Payments.Items);
+        Assert.Equal(PaymentMethodType.CreditCard, intent.Method);
+        Assert.Equal(c.TargetPlan.Id, intent.PlanId);
+        Assert.Equal(BillingCycle.Monthly, intent.BillingCycle);
+        Assert.Equal(PaymentStatus.Pending, intent.Status);
+    }
+
+    [Fact]
+    public async Task Checkout_CardSubscription_UsesPersistedIntentIdAsGatewayIdempotencyKey()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        c.Provider.ThrowOnCreateCardSubscription = false;
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        var result = await c.Service.CreateCheckoutAsync(dto);
+
+        var intent = Assert.Single(c.Payments.Items);
+        Assert.Equal(intent.Id, result.PaymentId);
+        Assert.Equal(intent.Id.ToString(), c.Provider.LastCardSubscriptionRequest!.IdempotencyKey);
+        Assert.Equal(c.Sub.Id.ToString(), c.Provider.LastCardSubscriptionRequest.ExternalReference);
+        Assert.Equal("sub-created", c.Sub.ExternalSubscriptionId);
+    }
+
+    [Fact]
+    public async Task Checkout_WhenNewCardSubscriptionCreationFails_DoesNotKeepCancelledOldSubscriptionLinked()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        c.Sub.SetExternalSubscription("FakePay", "old-subscription", PaymentMethodType.CreditCard);
+
+        var dto = new CreateCheckoutDto(c.TargetPlan.Id, BillingCycle.Monthly, PaymentMethodType.CreditCard);
+        await Assert.ThrowsAsync<NotImplementedException>(() => c.Service.CreateCheckoutAsync(dto));
+
+        Assert.Null(c.Sub.ExternalSubscriptionId);
+        Assert.Single(c.Payments.Items);
+        Assert.Equal(PaymentStatus.Pending, c.Payments.Items[0].Status);
+        Assert.Equal(c.TargetPlan.Id, c.Payments.Items[0].PlanId);
+    }
+
+    [Fact]
+    public async Task Webhook_SubscriptionAuthorizedBeforeCheckoutResponse_RecoversLocalSubscriptionAndPlanIntent()
+    {
+        var c = Build();
+        c.Payments.Items.Clear();
+        var intent = new Payment(c.Sub.Id, 99.90m, PaymentMethodType.CreditCard, "FakePay", "BRL", c.TargetPlan.Id, BillingCycle.Monthly);
+        c.Payments.Items.Add(intent);
+        c.Provider.ParseResult = new(true, "subscription_preapproval", "evt-early-sub", null, "preapproval-early");
+        c.Provider.SubscriptionExternalReference = c.Sub.Id.ToString();
+        c.Provider.SubscriptionStatus = ProviderSubscriptionStatus.Authorized;
+
+        Assert.Equal(WebhookProcessResult.Processed, await Send(c));
+
+        Assert.Equal("preapproval-early", c.Sub.ExternalSubscriptionId);
+        Assert.Equal("FakePay", c.Sub.PaymentProvider);
+        Assert.Equal(c.TargetPlan.Id, c.Sub.PlanId);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+    }
 
     [Fact]
     public async Task Webhook_WithInvalidSignature_IsRejectedAndNothingChanges()
@@ -274,6 +455,108 @@ public class BillingWebhookTests
 
         Assert.Equal(periodEnd, c.Sub.CurrentPeriodEnd);
         Assert.Equal(emails, c.Notifier.Subjects.Count);
+    }
+
+    [Fact]
+    public async Task Webhook_ApprovedPaymentWithMismatchedAmount_DoesNotActivateSubscription()
+    {
+        var c = Build();
+        c.Provider.PaymentInfo = new("pay-1", PaymentStatus.Approved, "approved", 1.00m, null, PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal(PaymentStatus.Pending, c.Payment.Status);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+        Assert.Empty(c.Notifier.Subjects);
+    }
+
+    [Fact]
+    public async Task Webhook_RecurringPayment_UsesLastApprovedAmountWhenPlanPriceChanges()
+    {
+        var c = Build();
+        var starter = c.Plans.Items.Single(p => p.Name == "Starter");
+        starter.Update("Starter", 79.90m, 799m, 7, null, null, null);
+
+        var previousApproved = new Payment(c.Sub.Id, 49.90m, PaymentMethodType.CreditCard, "FakePay", "BRL", starter.Id, BillingCycle.Monthly);
+        previousApproved.SetExternalPaymentId("pay-old");
+        previousApproved.MarkApproved();
+        c.Payments.Items.Add(previousApproved);
+
+        c.Provider.ParseResult = new(true, "payment", "evt-recurring-price-change", "pay-recurring", null);
+        c.Provider.PaymentInfo = new("pay-recurring", PaymentStatus.Approved, "approved", 49.90m, c.Sub.Id.ToString(), PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.Contains(c.Payments.Items, p => p.ExternalPaymentId == "pay-recurring" && p.Status == PaymentStatus.Approved);
+        Assert.Equal(SubscriptionStatus.Active, c.Sub.Status);
+        Assert.NotNull(c.Sub.CurrentPeriodEnd);
+    }
+
+    [Fact]
+    public async Task Webhook_RecurringPaymentWithNewCatalogPriceButNoMatchingContractAmount_IsRejected()
+    {
+        var c = Build();
+        var starter = c.Plans.Items.Single(p => p.Name == "Starter");
+        starter.Update("Starter", 79.90m, 799m, 7, null, null, null);
+
+        var previousApproved = new Payment(c.Sub.Id, 49.90m, PaymentMethodType.CreditCard, "FakePay", "BRL", starter.Id, BillingCycle.Monthly);
+        previousApproved.SetExternalPaymentId("pay-old");
+        previousApproved.MarkApproved();
+        c.Payments.Items.Add(previousApproved);
+
+        c.Provider.ParseResult = new(true, "payment", "evt-recurring-price-mismatch", "pay-recurring-new-price", null);
+        c.Provider.PaymentInfo = new("pay-recurring-new-price", PaymentStatus.Approved, "approved", 79.90m, c.Sub.Id.ToString(), PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.DoesNotContain(c.Payments.Items, p => p.ExternalPaymentId == "pay-recurring-new-price");
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+    }
+
+    [Fact]
+    public async Task Webhook_RecurringPaymentWithMismatchedAmount_IsNotRecordedOrActivated()
+    {
+        var c = Build();
+        c.Provider.ParseResult = new(true, "payment", "evt-recurring", "pay-2", null);
+        c.Provider.PaymentInfo = new("pay-2", PaymentStatus.Approved, "approved", 1.00m, c.Sub.Id.ToString(), PaymentMethodType.CreditCard);
+
+        await Send(c);
+
+        Assert.Single(c.Payments.Items);
+        Assert.Equal(SubscriptionStatus.Trialing, c.Sub.Status);
+        Assert.Null(c.Sub.CurrentPeriodEnd);
+        Assert.Empty(c.Notifier.Subjects);
+    }
+
+    [Fact]
+    public async Task Webhook_RefundedLatestPayment_SuspendsSubscriptionAndRecordsRefund()
+    {
+        var c = Build();
+        c.Sub.RenewPeriod(DateTime.UtcNow.AddDays(20));
+        c.Provider.PaymentInfo = new("pay-1", PaymentStatus.Refunded, "refunded", 99.90m, null, PaymentMethodType.Pix);
+
+        await Send(c);
+
+        Assert.Equal(PaymentStatus.Refunded, c.Payment.Status);
+        Assert.Equal(SubscriptionStatus.Suspended, c.Sub.Status);
+        Assert.Contains("PagamentoEstornado", c.Audit.Operations);
+    }
+
+    [Fact]
+    public async Task Webhook_DoesNotPersistRawPayload()
+    {
+        var c = Build();
+        c.Provider.ParseResult = new(true, "payment", "evt-no-payload", "pay-1", null);
+
+        await c.Service.ProcessWebhookAsync(
+            "{\"personal_data\":\"must-not-be-stored\"}",
+            new Dictionary<string, string>(),
+            new Dictionary<string, string>());
+
+        var ev = Assert.Single(c.Events.Items);
+        Assert.Null(ev.RawPayload);
     }
 
     [Fact]

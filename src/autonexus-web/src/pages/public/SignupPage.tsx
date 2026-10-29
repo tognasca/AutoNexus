@@ -29,10 +29,30 @@ export function SignupPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!form.companyName.trim() || !form.adminName.trim()) {
+      setError('Informe o nome da empresa e o nome do administrador.');
+      return;
+    }
+    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.adminEmail.trim())) {
+      setError('Informe um e-mail válido.');
+      return;
+    }
+    if (form.adminPassword.length < 8) {
+      setError('A senha deve ter pelo menos 8 caracteres.');
+      return;
+    }
+    if (!planId) {
+      setError('Selecione um plano antes de continuar.');
+      return;
+    }
+    if (!allAccepted) {
+      setError('Aceite os Termos de Uso, a Política de Privacidade e a Política de Cookies para continuar.');
+      return;
+    }
     setLoading(true);
     try {
       const result = await billingService.signup({
-        ...form, planId, cycle,
+        ...form, companyName: form.companyName.trim(), adminName: form.adminName.trim(), adminEmail: form.adminEmail.trim(), planId, cycle,
         acceptTermsOfUse: terms, acceptPrivacyPolicy: privacy, acceptCookiePolicy: cookies,
       });
       // Já entra logado: mesma chave/formato usados pelo login normal.

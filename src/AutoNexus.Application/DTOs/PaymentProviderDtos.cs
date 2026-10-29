@@ -11,7 +11,8 @@ public record CreateCardSubscriptionRequest(
     string ExternalReference,
     string BackUrl,
     /// <summary>Dias de teste grátis restantes: a primeira cobrança só ocorre depois deles.</summary>
-    int? FreeTrialDays = null
+    int? FreeTrialDays = null,
+    string? IdempotencyKey = null
 );
 
 public record CreateCardSubscriptionResult(
@@ -27,7 +28,9 @@ public record CreateOneTimePaymentRequest(
     string PayerName,
     string? PayerDocument,
     string Description,
-    string ExternalReference
+    string ExternalReference,
+    /// <summary>Stable key reused when retrying the same local payment creation.</summary>
+    string? IdempotencyKey = null
 );
 
 public record CreateOneTimePaymentResult(
