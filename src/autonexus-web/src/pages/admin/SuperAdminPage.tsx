@@ -46,6 +46,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
   const [users, setUsers] = useState<SuperAdminUser[]>([]);
   const [auditLogs, setAuditLogs] = useState<AuditLogEntry[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   const [isTenantModalOpen, setIsTenantModalOpen] = useState(false);
   const [tenantForm, setTenantForm] = useState(emptyTenantForm);
@@ -58,6 +59,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
 
   const loadAll = async () => {
     setLoading(true);
+    setLoadError(null);
     try {
       const [tenantsData, plansData, usersData, auditLogsData] = await Promise.all([
         superAdminService.getTenants(),
@@ -71,6 +73,7 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
       setAuditLogs(auditLogsData);
     } catch (err) {
       console.error('Erro ao carregar painel SuperAdmin:', err);
+      setLoadError(err instanceof Error ? err.message : 'Não foi possível carregar os dados do painel.');
     } finally {
       setLoading(false);
     }
@@ -168,6 +171,18 @@ export function SuperAdminPage({ currentView, onNavigate }: SuperAdminPageProps)
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        {loadError && (
+          <div role="alert" className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">
+            <div>
+              <p className="font-semibold">Falha ao carregar o painel</p>
+              <p className="mt-1 text-xs text-red-200/80">{loadError}</p>
+            </div>
+            <button onClick={loadAll} disabled={loading} className="inline-flex items-center justify-center gap-2 rounded-lg bg-red-500/15 px-3 py-2 text-xs font-bold text-red-100 hover:bg-red-500/25 disabled:opacity-50">
+              <RefreshCw className={`w-3 h-3 ${loading ? 'animate-spin' : ''}`} /> Tentar novamente
+            </button>
+          </div>
+        )}
 
         <div className="flex gap-2 border-b border-nexus-border">
           {tabs.map(t => (
