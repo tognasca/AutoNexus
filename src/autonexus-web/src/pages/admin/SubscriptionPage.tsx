@@ -100,6 +100,12 @@ export function SubscriptionPage({ currentView, onNavigate }: SubscriptionPagePr
 
   const periodicity = (c?: number) => (c === 2 ? 'ano' : 'mês');
 
+  // O status exibido vem do histórico persistido no backend; o frontend nunca ativa a assinatura por conta própria.
+  const checkoutPayment = result ? overview?.paymentHistory.find(p => p.id === result.paymentId) : undefined;
+  const refreshPaymentStatus = async () => {
+    await load();
+  };
+
   return (
     <MainLayout currentView={currentView} onNavigate={onNavigate}>
       <div className="space-y-6 p-4 sm:p-6 w-full">
@@ -261,6 +267,11 @@ export function SubscriptionPage({ currentView, onNavigate }: SubscriptionPagePr
               </>
             ) : (
               <div className="space-y-3 text-xs">
+                <div className={`rounded-lg border px-3 py-3 ${checkoutPayment?.status === 2 ? 'border-emerald-500/40 bg-emerald-500/10' : checkoutPayment?.status === 3 || checkoutPayment?.status === 4 || checkoutPayment?.status === 5 ? 'border-red-500/40 bg-red-500/10' : 'border-amber-500/30 bg-amber-500/10'}`}>
+                  <p className="font-bold text-white">Status do pagamento: {checkoutPayment ? (PaymentStatusLabel[checkoutPayment.status] ?? 'Em processamento') : 'Aguardando confirmação'}</p>
+                  <p className="mt-1 text-slate-400">A confirmação é recebida do Mercado Pago. Atualize para consultar o status mais recente.</p>
+                  <button onClick={refreshPaymentStatus} className="mt-3 rounded-lg bg-slate-800 px-3 py-2 font-semibold text-white hover:bg-slate-700 cursor-pointer">Verificar pagamento</button>
+                </div>
                 {result.method === 1 && (
                   <>
                     <p className="text-slate-300">Escaneie o QR Code ou copie o código Pix. Assim que o pagamento for confirmado, sua assinatura é ativada automaticamente.</p>
