@@ -46,6 +46,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException("Jwt:SecretKey não configurada.");
 
+// Os valores padrão precisam ser idênticos aos usados por JwtTokenGenerator.
+// Sem isso, uma configuração sem Jwt:Issuer/Jwt:Audience gera um token que a
+// própria API rejeita na primeira chamada autenticada (401 / "sessão expirada").
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoNexusApi";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoNexusApp";
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -59,8 +65,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ClockSkew = TimeSpan.Zero
     };
