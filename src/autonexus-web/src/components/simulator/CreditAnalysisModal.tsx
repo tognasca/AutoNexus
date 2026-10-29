@@ -186,13 +186,13 @@ export function CreditAnalysisModal({
         alert('Informe uma data de nascimento válida no passado.');
         return;
       }
-      if (!/^\\d{10,11}$/.test(phone.replace(/\D/g, ''))) {
+      if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ''))) {
         alert('Informe um celular válido com DDD.');
         return;
       }
     }
     if (formStep === 1) {
-      if (!/^\\d{8}$/.test(cep.replace(/\D/g, '')) || !street.trim() || !addressNumber.trim() || !neighborhood.trim() || !city.trim() || state.trim().length !== 2) {
+      if (!/^\d{8}$/.test(cep.replace(/\D/g, '')) || !street.trim() || !addressNumber.trim() || !neighborhood.trim() || !city.trim() || state.trim().length !== 2) {
         alert('Preencha CEP, logradouro, número, bairro, cidade e UF corretamente.');
         return;
       }
