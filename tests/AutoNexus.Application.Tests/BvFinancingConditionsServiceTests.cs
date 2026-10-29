@@ -132,6 +132,48 @@ public sealed class BvFinancingConditionsServiceTests
         Assert.DoesNotContain("private upstream detail", exception.Message);
     }
 
+    [Fact]
+    public async Task GetConditionsAsync_WhenBodyAndHeaderHaveCorrelationIds_PrefersBody()
+    {
+        var handler = new RecordingHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("{\\"correlationId\\":\\"corr-body-priority\\",\\"fault\\":{\\"message\\":\\"private upstream detail\\"}}")
+            };
+            response.Headers.Add("x-correlation-id", "corr-header-fallback");
+            return response;
+        });
+        var service = CreateService(handler, includeCredentials: true);
+
+        var exception = await Assert.ThrowsAsync<BvOpenIntegrationException>(() =>
+            service.GetConditionsAsync(CreateRequest()));
+
+        Assert.Equal("corr-body-priority", exception.CorrelationId);
+        Assert.DoesNotContain("private upstream detail", exception.Message);
+    }
+
+    [Fact]
+    public async Task GetConditionsAsync_WhenErrorBodyIsNotJson_UsesHeaderFallback()
+    {
+        var handler = new RecordingHandler(_ =>
+        {
+            var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
+            {
+                Content = new StringContent("upstream gateway failure")
+            };
+            response.Headers.Add("x-correlation-id", "corr-header-malformed-body");
+            return response;
+        });
+        var service = CreateService(handler, includeCredentials: true);
+
+        var exception = await Assert.ThrowsAsync<BvOpenIntegrationException>(() =>
+            service.GetConditionsAsync(CreateRequest()));
+
+        Assert.Equal("corr-header-malformed-body", exception.CorrelationId);
+        Assert.DoesNotContain("upstream gateway failure", exception.Message);
+    }
+
     private static BvFinancingConditionsRequest CreateRequest() => new(
         ZeroVehicle: false,
         PersonType: "F",
