@@ -318,6 +318,8 @@ export function CreditAnalysisModal({
           </div>
         </div>
 
+        <p className="px-4 py-2 text-[11px] leading-relaxed text-amber-300 bg-amber-950/20 border-b border-slate-800">A taxa e as parcelas são estimativas. O envio e a aprovação dependem de uma integração real ativa com a financeira; o registro no AutoNexus, sozinho, não confirma envio ao banco.</p>
+
         {/* Modal de Câmera Ao Vivo em Execução */}
         {activeCameraField ? (
           <div className="p-6 space-y-4 text-center">
