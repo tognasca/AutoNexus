@@ -21,6 +21,9 @@ var envToConfig = new Dictionary<string, string>
     ["RESEND_API_KEY"] = "Resend:ApiKey",
     ["RESEND_FROM_EMAIL"] = "Resend:FromEmail",
     ["RESEND_FROM_NAME"] = "Resend:FromName",
+    ["BV_OPEN_ACCESS_TOKEN"] = "BvOpen:AccessToken",
+    ["BV_OPEN_COMMERCIAL_PARTNER_CODE"] = "BvOpen:CommercialPartnerCode",
+    ["BV_OPEN_FINANCING_CONDITIONS_ENDPOINT"] = "BvOpen:FinancingConditionsEndpoint",
     ["APPLICATION_URL"] = "Application:Url",
     ["AUTONEXUS_INITIAL_ADMIN_EMAIL"] = "Seed:AdminEmail",
     ["AUTONEXUS_INITIAL_ADMIN_PASSWORD"] = "Seed:AdminPassword",
@@ -46,6 +49,12 @@ builder.Services.AddInfrastructure(builder.Configuration);
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException("Jwt:SecretKey não configurada.");
 
+// Os valores padrão precisam ser idênticos aos usados por JwtTokenGenerator.
+// Sem isso, uma configuração sem Jwt:Issuer/Jwt:Audience gera um token que a
+// própria API rejeita na primeira chamada autenticada (401 / "sessão expirada").
+var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoNexusApi";
+var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoNexusApp";
+
 builder.Services.AddAuthentication(options =>
 {
     options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -59,8 +68,8 @@ builder.Services.AddAuthentication(options =>
         ValidateAudience = true,
         ValidateLifetime = true,
         ValidateIssuerSigningKey = true,
-        ValidIssuer = builder.Configuration["Jwt:Issuer"],
-        ValidAudience = builder.Configuration["Jwt:Audience"],
+        ValidIssuer = jwtIssuer,
+        ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ClockSkew = TimeSpan.Zero
     };
@@ -87,15 +96,26 @@ builder.Services.AddAuthorization();
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("login", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+    {
+        // Em produção, o frontend fica atrás do Nginx/Cloudflare Tunnel.
+        // RemoteIpAddress pode ser o IP do proxy compartilhado por todos os
+        // usuários, fazendo uma conta bloquear o login de outras contas.
+        // O Nginx encaminha CF-Connecting-IP recebido da Cloudflare.
+        var cloudflareClientIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
+        var clientIp = !string.IsNullOrWhiteSpace(cloudflareClientIp)
+            ? cloudflareClientIp.Trim()
+            : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+
+        return RateLimitPartition.GetFixedWindowLimiter(
+            clientIp,
             _ => new FixedWindowRateLimiterOptions
             {
                 PermitLimit = 5,
                 Window = TimeSpan.FromMinutes(1),
                 QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
                 QueueLimit = 0
-            }));
+            });
+    });
 
     options.AddPolicy("signup", context =>
         RateLimitPartition.GetFixedWindowLimiter(

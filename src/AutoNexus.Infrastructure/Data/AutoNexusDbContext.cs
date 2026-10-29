@@ -46,7 +46,11 @@ public class AutoNexusDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
-        modelBuilder.Entity<CreditProposalRecord>().ToTable("credit_proposals");
+        modelBuilder.Entity<CreditProposalRecord>()
+            .ToTable("credit_proposals")
+            .HasIndex(x => x.ProposalNumber);
+        modelBuilder.Entity<CreditProposalRecord>()
+            .HasIndex(x => x.Status);
 
         // --- Multi-tenancy: aplicado de forma centralizada para TODA entidade
         // que herdar de TenantOwnedEntityBase, sem precisar configurar

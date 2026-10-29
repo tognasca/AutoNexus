@@ -23,6 +23,10 @@ interface CreditAnalysisModalProps {
   financedAmount: number;
   months: number;
   installmentValue: number;
+  vehicleId: string;
+  vehiclePrice: number;
+  entryValue: number;
+  tradeValue: number;
   onClose: () => void;
 }
 
@@ -35,6 +39,10 @@ export function CreditAnalysisModal({
   financedAmount,
   months,
   installmentValue,
+  vehicleId,
+  vehiclePrice,
+  entryValue,
+  tradeValue,
   onClose,
 }: CreditAnalysisModalProps) {
   const [customerName, setCustomerName] = useState('');
@@ -72,6 +80,7 @@ export function CreditAnalysisModal({
   const [activeCameraField, setActiveCameraField] = useState<PhotoField | null>(null);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
 
+  const [formStep, setFormStep] = useState(0);
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState<'idle' | 'pending' | 'approved' | 'rejected' | 'review' | 'unavailable'>('idle');
   const [statusMessage, setStatusMessage] = useState('');
@@ -166,6 +175,35 @@ export function CreditAnalysisModal({
     }
   };
 
+  const handleWizardSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (formStep === 0) {
+      if (!customerName.trim() || !isValidCpfCnpj(cpf) || cpf.replace(/\D/g, '').length !== 11) {
+        alert('Informe o nome do cliente e um CPF válido com dígitos verificadores corretos.');
+        return;
+      }
+      if (!birthDate || Number.isNaN(Date.parse(birthDate)) || new Date(birthDate) >= new Date()) {
+        alert('Informe uma data de nascimento válida no passado.');
+        return;
+      }
+      if (!/^\d{10,11}$/.test(phone.replace(/\D/g, ''))) {
+        alert('Informe um celular válido com DDD.');
+        return;
+      }
+    }
+    if (formStep === 1) {
+      if (!/^\d{8}$/.test(cep.replace(/\D/g, '')) || !street.trim() || !addressNumber.trim() || !neighborhood.trim() || !city.trim() || state.trim().length !== 2) {
+        alert('Preencha CEP, logradouro, número, bairro, cidade e UF corretamente.');
+        return;
+      }
+    }
+    if (formStep < 2) {
+      setFormStep(current => current + 1);
+      return;
+    }
+    void handleSendToBank(e);
+  };
+
   const handleSendToBank = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!customerName.trim() || !isValidCpfCnpj(cpf) || cpf.replace(/\D/g, '').length !== 11) {
@@ -193,6 +231,10 @@ export function CreditAnalysisModal({
     try {
       const payload = {
         bankId,
+        vehicleId,
+        vehiclePrice,
+        entryValue,
+        tradeValue,
         bankName,
         customerName,
         customerCpf: cpf.replace(/\D/g, ''),
@@ -276,6 +318,8 @@ export function CreditAnalysisModal({
           </div>
         </div>
 
+        <p className="px-4 py-2 text-[11px] leading-relaxed text-amber-300 bg-amber-950/20 border-b border-slate-800">A taxa e as parcelas são estimativas. O envio e a aprovação dependem de uma integração real ativa com a financeira; o registro no AutoNexus, sozinho, não confirma envio ao banco.</p>
+
         {/* Modal de Câmera Ao Vivo em Execução */}
         {activeCameraField ? (
           <div className="p-6 space-y-4 text-center">
@@ -313,8 +357,16 @@ export function CreditAnalysisModal({
             </button>
           </div>
         ) : status === 'idle' ? (
-          <form onSubmit={handleSendToBank} className="p-6 space-y-4">
+          <form onSubmit={handleWizardSubmit} className="p-6 space-y-4">
+            <div className="flex items-center gap-2" aria-label="Etapas da ficha">
+              {['Dados básicos', 'Endereço', 'Profissão e documentos'].map((label, index) => (
+                <div key={label} className={`flex-1 border-b-2 pb-2 text-[10px] sm:text-xs ${formStep === index ? 'border-blue-400 text-blue-300 font-bold' : formStep > index ? 'border-emerald-500 text-emerald-400' : 'border-slate-700 text-slate-500'}`}>
+                  {index + 1}. {label}
+                </div>
+              ))}
+            </div>
             
+            {formStep === 0 && <div className="space-y-4">
             {/* Inputs de Dados Pessoais */}
             <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
               <User className="w-4 h-4" /> Dados do Proponente
@@ -349,6 +401,7 @@ export function CreditAnalysisModal({
                 <label className="text-xs text-slate-400 block mb-1">Data de Nascimento</label>
                 <input
                   type="date"
+                  required
                   value={birthDate}
                   onChange={e => setBirthDate(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
@@ -384,6 +437,8 @@ export function CreditAnalysisModal({
                 <div><label className="text-xs text-slate-400 block mb-1">Nacionalidade</label><input value={nationality} onChange={e => setNationality(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
               </div>
             </div>
+            </div>}
+            {formStep === 1 && <div className="space-y-4">
             <div className="border-t border-slate-800 pt-4 space-y-3">
               <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Endereço residencial</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -398,6 +453,8 @@ export function CreditAnalysisModal({
                 <div><label className="text-xs text-slate-400 block mb-1">Tempo no endereço (meses)</label><input type="number" min="0" max="1200" value={residenceMonths} onChange={e => setResidenceMonths(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white" /></div>
               </div>
             </div>
+            </div>}
+            {formStep === 2 && <div className="space-y-4">
             <div className="border-t border-slate-800 pt-4 space-y-3">
               <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider">Dados profissionais e renda</h4>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -517,8 +574,9 @@ export function CreditAnalysisModal({
               )}
             </div>
 
+            </div>}
             {/* Botões de Ação */}
-            <div className="flex justify-end gap-3 pt-4 border-t border-slate-800">
+            <div className="flex justify-between gap-3 pt-4 border-t border-slate-800">
               <button
                 type="button"
                 onClick={onClose}
@@ -526,13 +584,14 @@ export function CreditAnalysisModal({
               >
                 Cancelar
               </button>
+              {formStep > 0 && <button type="button" onClick={() => setFormStep(current => Math.max(0, current - 1))} className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-medium rounded-xl transition-colors">Voltar</button>}
               <button
                 type="submit"
                 disabled={loading}
                 className="inline-flex items-center gap-2 px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl transition-colors shadow-sm disabled:opacity-50"
               >
                 <Send className="w-4 h-4" />
-                {loading ? 'Enviando...' : 'Rodar Ficha na Mesa do Banco'}
+                {loading ? 'Enviando...' : formStep < 2 ? 'Continuar' : 'Enviar proposta'}
               </button>
             </div>
           </form>

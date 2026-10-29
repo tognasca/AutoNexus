@@ -44,9 +44,10 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
   const [tradeValue, setTradeValue] = useState<number>(0);
 
   // Financiamento
-  const [financedValue] = useState<number>(0);
-  const [installmentsCount] = useState<number>(0);
-  const [installmentValue] = useState<number>(0);
+  const [financedValue, setFinancedValue] = useState<number>(0);
+  const [installmentsCount, setInstallmentsCount] = useState<number>(0);
+  const [installmentValue, setInstallmentValue] = useState<number>(0);
+  const usaFinanciamento = paymentMethod.toLowerCase().includes('financiamento');
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -65,6 +66,10 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
     }
     if (saleValue <= 0 || entryValue < 0 || entryValue > saleValue) {
       alert('Confira os valores: a venda deve ser maior que zero e a entrada não pode superar o valor do veículo.');
+      return;
+    }
+    if (usaFinanciamento && (financedValue <= 0 || installmentsCount <= 0 || installmentValue <= 0)) {
+      alert('Para uma venda financiada, informe o saldo financiado, a quantidade de parcelas e o valor de cada parcela.');
       return;
     }
 
@@ -204,28 +209,50 @@ export const ContractFormModal: React.FC<ContractFormModalProps> = ({ vehicle, o
             <h4 className="text-xs font-bold text-emerald-400 uppercase tracking-wider flex items-center gap-2">
               <DollarSign className="w-4 h-4" /> Valores e Condições
             </h4>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Valor do Veículo</label>
+                <label htmlFor="contract-sale-value" className="text-xs font-semibold text-slate-300 block mb-1">Valor do Veículo</label>
                 <CurrencyInput value={saleValue} onChange={setSaleValue} />
               </div>
               <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Entrada (PIX/Dinheiro)</label>
+                <label htmlFor="contract-entry-value" className="text-xs font-semibold text-slate-300 block mb-1">Entrada (PIX/Dinheiro)</label>
                 <CurrencyInput value={entryValue} onChange={setEntryValue} />
               </div>
-              <div>
-                <label className="text-[11px] text-slate-400 block mb-1">Forma de Pagamento</label>
+              <div className="sm:col-span-2 rounded-xl border border-emerald-500/40 bg-emerald-500/5 p-3">
+                <label htmlFor="contract-payment-method" className="text-xs font-bold text-emerald-300 block mb-2">Forma de Pagamento *</label>
                 <select
+                  id="contract-payment-method"
+                  name="paymentMethod"
+                  aria-label="Forma de Pagamento"
                   value={paymentMethod}
                   onChange={e => setPaymentMethod(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm outline-none text-white"
+                  required
+                  className="w-full min-h-11 bg-slate-950 border border-emerald-500/50 rounded-lg px-3 py-3 text-sm font-semibold outline-none text-white focus:border-emerald-400 focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value="PIX / Transferência">PIX / Transferência</option>
                   <option value="Financiamento Bancário">Financiamento Bancário</option>
                   <option value="Cartão de Crédito">Cartão de Crédito</option>
                   <option value="Entrada + Financiamento">Entrada + Financiamento</option>
                 </select>
+                <p className="mt-2 text-[11px] text-slate-400">Selecione como o comprador pagará o veículo. Essa informação será exibida no documento gerado.</p>
               </div>
+              {usaFinanciamento && (
+                <div className="sm:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3 rounded-xl border border-amber-500/40 bg-amber-500/5 p-3">
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Saldo Financiado (R$) *</label>
+                    <CurrencyInput value={financedValue} onChange={setFinancedValue} />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Quantidade de Parcelas *</label>
+                    <input type="number" min="1" step="1" value={installmentsCount || ''} onChange={e => setInstallmentsCount(Math.max(0, Number(e.target.value) || 0))} className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white" required />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-slate-300 block mb-1">Valor da Parcela (R$) *</label>
+                    <CurrencyInput value={installmentValue} onChange={setInstallmentValue} />
+                  </div>
+                  <p className="sm:col-span-3 text-[11px] text-slate-400">Esses dados serão registrados no contrato. Confirme os valores com a instituição financeira.</p>
+                </div>
+              )}
             </div>
           </div>
 
