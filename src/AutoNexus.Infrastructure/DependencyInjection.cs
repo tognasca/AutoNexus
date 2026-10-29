@@ -3,6 +3,7 @@ using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
 using AutoNexus.Infrastructure.Integrations.Adapters;
 using AutoNexus.Infrastructure.Repositories;
+using AutoNexus.Infrastructure.Integrations;
 using AutoNexus.Infrastructure.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -43,6 +44,8 @@ public static class DependencyInjection
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IBankAdapter, SantanderBankAdapter>();
+        services.AddHttpClient("BvOpen", client => client.Timeout = TimeSpan.FromSeconds(30));
+        services.AddScoped<IBvFinancingConditionsService, BvFinancingConditionsService>();
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
