@@ -136,7 +136,7 @@ public class BillingService : IBillingService
 
             var trialDays = BillingMapper.TrialDaysRemaining(sub);
             var card = await _provider.CreateCardSubscriptionAsync(new CreateCardSubscriptionRequest(
-                plan.Name, amount, dto.Cycle, payer.Email, sub.Id.ToString(), $"{AppUrl}/",
+                plan.Name, amount, dto.Cycle, payer.Email, sub.Id.ToString(), $"{AppUrl}/?view=subscription",
                 trialDays > 0 ? trialDays : null, payment.Id.ToString()), ct);
 
             sub.SetExternalSubscription(_provider.ProviderName, card.ExternalSubscriptionId, PaymentMethodType.CreditCard);
