@@ -1,0 +1,4 @@
+services:
+  frontend:
+    volumes:
+      - ./deploy/.well-known/assetlinks.json:/usr/share/nginx/html/.well-known/assetlinks.json:ro

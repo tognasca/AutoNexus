@@ -1,0 +1,12 @@
+{
+    "target":  {
+                   "sha256_cert_fingerprints":  [
+                                                    "0D:3C:B5:28:21:23:A2:D4:BE:5F:87:A9:9A:FA:44:31:98:93:22:F5:8B:7F:12:FC:5E:95:88:3D:68:84:BC:F2"
+                                                ],
+                   "namespace":  "android_app",
+                   "package_name":  "br.com.ademartognasca.autonexus.twa"
+               },
+    "relation":  [
+                     "delegate_permission/common.handle_all_urls"
+                 ]
+}
