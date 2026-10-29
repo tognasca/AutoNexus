@@ -38,9 +38,8 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // SuperAdmin não pertence a nenhuma empresa, então não tem "dashboard"
-  // (nem nenhum outro módulo operacional) — manda ele direto pro próprio
-  // painel assim que a sessão carrega.
+  // SuperAdmin não pertence a nenhuma empresa. Ao entrar no sistema (/app),
+  // ele vai direto para o próprio painel.
   useEffect(() => {
     if (user?.profile === UserProfileEnum.SuperAdmin && currentView === 'dashboard') {
       setCurrentView('superadmin');
@@ -48,15 +47,18 @@ function AppContent() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Quando o backend responde 402 (assinatura necessária), leva o cliente direto para a tela de assinatura.
   useEffect(() => {
     const goToSubscription = () => setCurrentView('subscription');
     window.addEventListener('autonexus:subscription-required', goToSubscription);
     return () => window.removeEventListener('autonexus:subscription-required', goToSubscription);
   }, []);
 
-  // Páginas públicas (sem login): landing/planos, cadastro, login e documentos legais
   const publicPath = window.location.pathname;
+
+  // A raiz é SEMPRE a página comercial, independentemente de existir sessão salva.
+  if (publicPath === '/') return <PricingPage />;
+
+  // Páginas públicas.
   if (publicPath === '/entrar') return <LoginPage />;
   if (publicPath === '/precos') return <PricingPage />;
   if (publicPath.startsWith('/loja/')) return <PublicCatalogPage />;
@@ -67,14 +69,14 @@ function AppContent() {
   if (publicPath === '/privacidade') return <LegalPage slug="privacidade" />;
   if (publicPath === '/cookies') return <LegalPage slug="cookies" />;
 
-  // 1. Se a URL do navegador for /catalogo, renderiza a vitrine pública direto (sem exigir login)
+  // Vitrine pública.
   if (isPublicCatalogRoute) {
     return (
       <PublicCatalogPage
         currentView="catalog"
         onNavigate={(view) => {
           if (view !== 'catalog') {
-            window.history.pushState({}, '', '/');
+            window.history.pushState({}, '', '/app');
             setIsPublicCatalogRoute(false);
             setCurrentView(view);
           }
@@ -83,7 +85,23 @@ function AppContent() {
     );
   }
 
-  // 2. Estado de Carregamento
+  // /app é a entrada autenticada do sistema.
+  if (publicPath === '/app') {
+    if (loading) {
+      return (
+        <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
+          <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
+          <span>Carregando AutoNexus...</span>
+        </div>
+      );
+    }
+
+    if (!isAuthenticated || !user) {
+      window.location.replace('/entrar');
+      return null;
+    }
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
@@ -93,13 +111,10 @@ function AppContent() {
     );
   }
 
-  // 3. A raiz é a landing comercial para visitantes; o login fica em /entrar.
-  // Usuários autenticados continuam entrando normalmente no sistema.
   if (!isAuthenticated || !user) {
-    return <PricingPage />;
+    return <LoginPage />;
   }
 
-  // 4. Manipulador de navegação interna
   const handleNavigate = (view: string) => {
     if (view === 'catalog') {
       window.history.pushState({}, '', '/catalogo');
@@ -115,7 +130,6 @@ function AppContent() {
   };
 
   const renderContent = () => {
-    // Garante que a visão atual seja permitida para o perfil do usuário
     if (!canAccessView(user?.profile, currentView)) {
       const homeView = user?.profile === UserProfileEnum.SuperAdmin ? 'superadmin' : 'dashboard';
       return (
