@@ -18,10 +18,12 @@ export async function request<T>(endpoint: string, options: RequestInit = {}): P
     headers,
   });
 
-  if (response.status === 401) {
+  if (response.status === 401 && !endpoint.endsWith('/auth/login')) {
+    // 401 no login significa credenciais inválidas; não é sessão expirada.
+    // Nas demais rotas, o token salvo foi rejeitado e deve ser renovado via login.
     localStorage.removeItem('autonexus_token');
     localStorage.removeItem('autonexus_user');
-    window.location.reload();
+    window.location.replace('/entrar');
     throw new Error('Sessão expirada. Faça login novamente.');
   }
 
@@ -62,7 +64,7 @@ export async function downloadFile(endpoint: string, fileName?: string): Promise
   if (response.status === 401) {
     localStorage.removeItem('autonexus_token');
     localStorage.removeItem('autonexus_user');
-    window.location.reload();
+    window.location.replace('/entrar');
     throw new Error('Sessão expirada. Faça login novamente.');
   }
 
