@@ -61,6 +61,15 @@ public class CreditController : ControllerBase
             request.MonthlyIncome <= 0)
             return BadRequest(new { message = "Os dados obrigatórios da proposta são inválidos." });
 
+        if (request.VehiclePrice < 0 || request.EntryValue < 0 || request.TradeValue < 0)
+            return BadRequest(new { message = "Os valores do veículo, da entrada e da troca não podem ser negativos." });
+
+        // Valida o contexto completo quando enviado pelo simulador atualizado.
+        // Mantém compatibilidade com clientes antigos que ainda não enviam esses campos.
+        if (request.VehiclePrice > 0 &&
+            Math.Abs(request.VehiclePrice - request.EntryValue - request.TradeValue - request.FinancedAmount) > 0.02m)
+            return BadRequest(new { message = "Os valores da negociação não fecham com o saldo a financiar. Recalcule a simulação." });
+
         var proposalRequest = new CreditProposalRequest(
             BankId: request.BankId,
             BankName: request.BankName,
