@@ -25,6 +25,9 @@ public interface ITenantContext
     /// </summary>
     bool HasTenant { get; }
 
+    /// <summary>True when running inside an HTTP request. Trusted startup/background scopes may have no HttpContext.</summary>
+    bool HasHttpContext { get; }
+
     /// <summary>
     /// Id do usuário autenticado na requisição atual, lido do claim "sub"
     /// do JWT. Null fora de uma requisição autenticada (seed, requisições

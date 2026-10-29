@@ -52,6 +52,15 @@ public class VehiclesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateVehicleDto dto, CancellationToken cancellationToken)
     {
+        if (dto == null)
+            return BadRequest(new { message = "Os dados do veículo são obrigatórios." });
+
+        var validationError = ValidateVehicleInput(
+            dto.VehicleTypeId, dto.Brand, dto.Model, dto.ManufacturingYear,
+            dto.ModelYear, dto.Plate, dto.Mileage, dto.PurchaseValue, dto.ListedValue);
+        if (validationError != null)
+            return BadRequest(new { message = validationError });
+
         var vehicleId = await _vehicleService.CreateAsync(dto, cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = vehicleId }, new { id = vehicleId });
     }
@@ -59,6 +68,15 @@ public class VehiclesController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateVehicleDto dto, CancellationToken cancellationToken)
     {
+        if (dto == null)
+            return BadRequest(new { message = "Os dados do veículo são obrigatórios." });
+
+        var validationError = ValidateVehicleInput(
+            dto.VehicleTypeId, dto.Brand, dto.Model, dto.ManufacturingYear,
+            dto.ModelYear, dto.Plate, dto.Mileage, dto.PurchaseValue, dto.ListedValue);
+        if (validationError != null)
+            return BadRequest(new { message = validationError });
+
         await _vehicleService.UpdateAsync(id, dto, cancellationToken);
         return Ok(new { message = "Veículo atualizado com sucesso." });
     }
@@ -171,4 +189,41 @@ public class VehiclesController : ControllerBase
         await _vehicleService.DeleteCostAsync(id, costId, cancellationToken);
         return NoContent();
     }
+    private static string? ValidateVehicleInput(
+        Guid vehicleTypeId,
+        string brand,
+        string model,
+        int manufacturingYear,
+        int modelYear,
+        string? plate,
+        int mileage,
+        decimal purchaseValue,
+        decimal? listedValue)
+    {
+        var currentYear = DateTime.UtcNow.Year;
+        if (vehicleTypeId == Guid.Empty)
+            return "Selecione o tipo do veículo.";
+        if (string.IsNullOrWhiteSpace(brand))
+            return "A marca do veículo é obrigatória.";
+        if (string.IsNullOrWhiteSpace(model))
+            return "O modelo do veículo é obrigatório.";
+        if (manufacturingYear < 1900 || manufacturingYear > currentYear + 1)
+            return "O ano de fabricação informado é inválido.";
+        if (modelYear < manufacturingYear || modelYear > currentYear + 2)
+            return "O ano do modelo deve ser igual ou posterior ao ano de fabricação e estar dentro de um intervalo válido.";
+        if (mileage < 0)
+            return "A quilometragem não pode ser negativa.";
+        if (purchaseValue < 0)
+            return "O valor de compra não pode ser negativo.";
+        if (listedValue.HasValue && listedValue.Value < 0)
+            return "O valor anunciado não pode ser negativo.";
+        if (!string.IsNullOrWhiteSpace(plate))
+        {
+            var normalizedPlate = plate.Trim().ToUpperInvariant();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(normalizedPlate, @"^(?:[A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})$"))
+                return "A placa deve seguir o padrão antigo (ABC1234) ou Mercosul (ABC1D23).";
+        }
+        return null;
+    }
+
 }

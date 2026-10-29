@@ -9,6 +9,9 @@ public interface IPaymentRepository
 
     Task<Payment?> GetByExternalPaymentIdAsync(string externalPaymentId, CancellationToken cancellationToken = default);
 
+    /// <summary>Lookup by local payment ID, including webhook processing without tenant context.</summary>
+    Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default);
+
     /// <summary>Pagamento pendente criado no checkout de cartão, ainda sem id do gateway (a primeira cobrança recorrente ainda não chegou).</summary>
     Task<Payment?> GetPendingWithoutExternalIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default);
 

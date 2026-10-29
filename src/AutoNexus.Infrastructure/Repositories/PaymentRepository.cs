@@ -24,6 +24,10 @@ public class PaymentRepository : IPaymentRepository
         => _context.Payments.IgnoreQueryFilters()
             .FirstOrDefaultAsync(p => p.ExternalPaymentId == externalPaymentId, cancellationToken);
 
+    public Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default)
+        => _context.Payments.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(p => p.Id == paymentId, cancellationToken);
+
     public Task<Payment?> GetPendingWithoutExternalIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default)
         => _context.Payments.IgnoreQueryFilters()
             .Where(p => p.SubscriptionId == subscriptionId && p.ExternalPaymentId == null && p.Status == Domain.Enums.PaymentStatus.Pending)

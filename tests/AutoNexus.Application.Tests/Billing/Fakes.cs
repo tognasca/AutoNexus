@@ -13,12 +13,14 @@ internal class FakeUow : IUnitOfWork
     public int Commits { get; private set; }
     public Task<int> CommitAsync(CancellationToken cancellationToken = default) { Commits++; return Task.FromResult(0); }
     public void DiscardChanges() { }
+    public Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default) => operation();
 }
 
 internal class FakeTenantContext : ITenantContext
 {
     public Guid TenantId { get; set; } = Guid.NewGuid();
     public bool HasTenant { get; set; } = true;
+    public bool HasHttpContext { get; set; } = true;
     public Guid? UserId { get; set; } = Guid.NewGuid();
 }
 
@@ -79,6 +81,7 @@ internal class FakePaymentRepo : IPaymentRepository
     public List<Payment> Items { get; } = new();
     public Task<List<Payment>> GetBySubscriptionAsync(Guid subscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(Items.Where(p => p.SubscriptionId == subscriptionId).ToList());
     public Task<Payment?> GetByExternalPaymentIdAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(p => p.ExternalPaymentId == externalPaymentId));
+    public Task<Payment?> GetByIdAsync(Guid paymentId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(p => p.Id == paymentId));
     public Task<Payment?> GetPendingWithoutExternalIdAsync(Guid subscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(p => p.SubscriptionId == subscriptionId && p.ExternalPaymentId == null && p.Status == PaymentStatus.Pending));
     public Task AddAsync(Payment payment, CancellationToken cancellationToken = default) { Items.Add(payment); return Task.CompletedTask; }
     public Task AddForTenantAsync(Payment payment, Guid tenantId, CancellationToken cancellationToken = default) { Items.Add(payment); return Task.CompletedTask; }
@@ -90,6 +93,11 @@ internal class FakeEventRepo : IWebhookEventRepository
     public List<WebhookEvent> Items { get; } = new();
     public Task<WebhookEvent?> GetByExternalEventIdAsync(string provider, string externalEventId, CancellationToken cancellationToken = default) => Task.FromResult(Items.FirstOrDefault(e => e.Provider == provider && e.ExternalEventId == externalEventId));
     public Task AddAsync(WebhookEvent webhookEvent, CancellationToken cancellationToken = default) { Items.Add(webhookEvent); return Task.CompletedTask; }
+    public Task<bool> TryAcquireProcessingAsync(string provider, string externalEventId, CancellationToken cancellationToken = default)
+    {
+        var item = Items.FirstOrDefault(e => e.Provider == provider && e.ExternalEventId == externalEventId);
+        return Task.FromResult(item?.TryStartProcessing(DateTime.UtcNow, TimeSpan.FromMinutes(5)) ?? false);
+    }
     public void Update(WebhookEvent webhookEvent) { }
 }
 
@@ -113,10 +121,33 @@ internal class FakePaymentProvider : IPaymentProvider
     public string ProviderName => "FakePay";
     public WebhookParseResult ParseResult { get; set; } = new(true, "payment", "evt-1", "pay-1", null);
     public PaymentStatusResult PaymentInfo { get; set; } = new("pay-1", PaymentStatus.Approved, "approved", 99.90m, null, PaymentMethodType.Pix);
-    public Task<CreateCardSubscriptionResult> CreateCardSubscriptionAsync(CreateCardSubscriptionRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
-    public Task<CreateOneTimePaymentResult> CreateOneTimePaymentAsync(CreateOneTimePaymentRequest request, CancellationToken cancellationToken = default) => throw new NotImplementedException();
+    public CreateCardSubscriptionRequest? LastCardSubscriptionRequest { get; private set; }
+    public bool ThrowOnCreateCardSubscription { get; set; } = true;
+    public Task<CreateCardSubscriptionResult> CreateCardSubscriptionAsync(CreateCardSubscriptionRequest request, CancellationToken cancellationToken = default)
+    {
+        LastCardSubscriptionRequest = request;
+        if (ThrowOnCreateCardSubscription) throw new NotImplementedException();
+        return Task.FromResult(new CreateCardSubscriptionResult("sub-created", "https://checkout.test/card"));
+    }
+    public CreateOneTimePaymentRequest? LastOneTimePaymentRequest { get; private set; }
+    public CreateOneTimePaymentResult OneTimePaymentResult { get; set; } = new("pay-created", PaymentStatus.Pending, "pix-code", "qr-base64");
+    public Task<CreateOneTimePaymentResult> CreateOneTimePaymentAsync(CreateOneTimePaymentRequest request, CancellationToken cancellationToken = default)
+    {
+        LastOneTimePaymentRequest = request;
+        return Task.FromResult(OneTimePaymentResult);
+    }
     public Task<PaymentStatusResult> GetPaymentStatusAsync(string externalPaymentId, CancellationToken cancellationToken = default) => Task.FromResult(PaymentInfo);
-    public Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(ProviderSubscriptionStatus.Unknown);
-    public Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.CompletedTask;
+    public ProviderSubscriptionStatus SubscriptionStatus { get; set; } = ProviderSubscriptionStatus.Unknown;
+    public string? SubscriptionExternalReference { get; set; }
+    public Task<ProviderSubscriptionStatus> GetSubscriptionStatusAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(SubscriptionStatus);
+    public Task<string?> GetSubscriptionExternalReferenceAsync(string externalSubscriptionId, CancellationToken cancellationToken = default) => Task.FromResult(SubscriptionExternalReference);
+    public bool ThrowOnCancelSubscription { get; set; }
+    public int CancelSubscriptionCalls { get; private set; }
+    public Task CancelSubscriptionAsync(string externalSubscriptionId, CancellationToken cancellationToken = default)
+    {
+        CancelSubscriptionCalls++;
+        if (ThrowOnCancelSubscription) throw new InvalidOperationException("Gateway cancellation failed");
+        return Task.CompletedTask;
+    }
     public WebhookParseResult ParseAndValidateWebhook(string rawBody, IDictionary<string, string> headers, IDictionary<string, string> queryParams) => ParseResult;
 }

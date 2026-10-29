@@ -1,3 +1,5 @@
+using System.Data;
+using Microsoft.EntityFrameworkCore;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
 
@@ -20,5 +22,12 @@ public class UnitOfWork : IUnitOfWork
     public void DiscardChanges()
     {
         _context.ChangeTracker.Clear();
+    }
+
+    public async Task ExecuteInTransactionAsync(Func<Task> operation, CancellationToken cancellationToken = default)
+    {
+        await using var transaction = await _context.Database.BeginTransactionAsync(IsolationLevel.Serializable, cancellationToken);
+        await operation();
+        await transaction.CommitAsync(cancellationToken);
     }
 }

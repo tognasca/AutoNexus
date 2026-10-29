@@ -48,7 +48,13 @@ public class SubscriptionAccessService : ISubscriptionAccessService
     public async Task<SubscriptionAccessResult> EvaluateAsync(CancellationToken cancellationToken = default)
     {
         var sub = await _subscriptions.GetCurrentAsync(cancellationToken);
-        if (sub == null) return new SubscriptionAccessResult(true, null, null);
+        // Uma requisição autenticada de tenant sem assinatura não deve ganhar acesso por omissão.
+        // Rotas de cadastro, cobrança e endpoints públicos são tratadas pelo middleware antes desta avaliação.
+        if (sub == null)
+            return new SubscriptionAccessResult(
+                false,
+                null,
+                "Sua empresa não possui uma assinatura válida. Escolha um plano para continuar.");
 
         var now = DateTime.UtcNow;
         if (ExpireTrialIfNeeded(sub, now))

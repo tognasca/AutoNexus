@@ -73,6 +73,12 @@ public class BillingService : IBillingService
         var payer = await _users.GetByIdAsync(_tenantContext.UserId.Value, ct) ?? throw new KeyNotFoundException("Usuário não encontrado.");
         var currentPlan = await _plans.GetByIdAsync(sub.PlanId, ct);
         var amount = plan.GetPriceForCycle(dto.Cycle);
+        var document = new string((dto.PayerDocument ?? string.Empty).Where(char.IsDigit).ToArray());
+
+        // Valide os dados do pagamento antes de cancelar qualquer assinatura
+        // recorrente existente. Uma entrada inválida não pode causar efeito externo.
+        if (dto.Method == PaymentMethodType.Boleto && document.Length is not (11 or 14))
+            throw new ArgumentException("Informe um CPF ou CNPJ válido para gerar o boleto.");
 
         var operation = sub.Status is SubscriptionStatus.Trialing or SubscriptionStatus.Expired or SubscriptionStatus.Canceled
             ? "CriarAssinatura"
@@ -82,38 +88,108 @@ public class BillingService : IBillingService
         // Evita cobrança duplicada: qualquer assinatura recorrente anterior no
         // gateway é cancelada antes de criar a nova forma de cobrança. O
         // período já pago continua valendo (CurrentPeriodEnd).
-        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId) && sub.PaymentProvider == _provider.ProviderName)
+        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId))
         {
-            try { await _provider.CancelSubscriptionAsync(sub.ExternalSubscriptionId, ct); }
-            catch (Exception ex) { _logger.LogWarning(ex, "Não foi possível cancelar a assinatura anterior {Id} no gateway.", sub.ExternalSubscriptionId); }
+            if (!string.Equals(sub.PaymentProvider, _provider.ProviderName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "A assinatura atual pertence a outro gateway de pagamento. A troca foi bloqueada para evitar cobranças duplicadas; é necessária reconciliação administrativa.");
+            }
+
+            try
+            {
+                await CancelExternalSubscriptionIdempotentlyAsync(sub.ExternalSubscriptionId, ct);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex,
+                    "Checkout interrompido: não foi possível confirmar o cancelamento da assinatura anterior {Id} no gateway.",
+                    sub.ExternalSubscriptionId);
+                // Fail closed: não criamos outra cobrança enquanto a anterior
+                // pode continuar ativa. O usuário pode tentar novamente após
+                // a confirmação do gateway, evitando assinaturas duplicadas.
+                throw new InvalidOperationException(
+                    "Não foi possível confirmar o cancelamento da cobrança anterior. Nenhuma nova cobrança foi criada. Tente novamente em instantes.");
+            }
+
+            // O cancelamento remoto já foi confirmado. Persistir a remoção do ID
+            // evita que a aplicação continue tratando uma assinatura cancelada no
+            // gateway como recorrência ativa se a criação da nova cobrança falhar.
+            sub.ClearExternalSubscription();
+            _subs.Update(sub);
+            await _uow.CommitAsync(ct);
         }
 
         CheckoutResultDto result;
         Payment payment;
+        var paymentAlreadyPersisted = false;
 
         if (dto.Method == PaymentMethodType.CreditCard)
         {
+            // Grave a intenção local antes de chamar o gateway. O webhook de
+            // autorização pode chegar antes da resposta do checkout; a intenção
+            // guarda o plano/ciclo contratados e também fornece uma chave estável
+            // para retries idempotentes no Mercado Pago.
+            payment = await GetOrCreatePendingIntentAsync(
+                sub, plan, amount, PaymentMethodType.CreditCard, dto.Cycle, ct);
+            paymentAlreadyPersisted = true;
+
             var trialDays = BillingMapper.TrialDaysRemaining(sub);
             var card = await _provider.CreateCardSubscriptionAsync(new CreateCardSubscriptionRequest(
-                plan.Name, amount, dto.Cycle, payer.Email, sub.Id.ToString(), $"{AppUrl}/", trialDays > 0 ? trialDays : null), ct);
+                plan.Name, amount, dto.Cycle, payer.Email, sub.Id.ToString(), $"{AppUrl}/",
+                trialDays > 0 ? trialDays : null, payment.Id.ToString()), ct);
 
             sub.SetExternalSubscription(_provider.ProviderName, card.ExternalSubscriptionId, PaymentMethodType.CreditCard);
-            payment = new Payment(sub.Id, amount, PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", plan.Id, dto.Cycle);
             result = new CheckoutResultDto(payment.Id, PaymentMethodType.CreditCard, PaymentStatus.Pending, card.CheckoutUrl, null, null);
         }
         else
         {
-            var document = new string((dto.PayerDocument ?? string.Empty).Where(char.IsDigit).ToArray());
-            if (dto.Method == PaymentMethodType.Boleto && document.Length is not (11 or 14))
-                throw new ArgumentException("Informe um CPF ou CNPJ válido para gerar o boleto.");
+            // Reutiliza a mesma intenção pendente em retries: o ID local vira a
+            // external_reference e a chave de idempotência estável no gateway.
+            // Assim um timeout/resposta perdida não precisa criar outra cobrança.
+            var candidates = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                .Where(p => p.Status == PaymentStatus.Pending
+                    && p.Amount == amount
+                    && p.Method == dto.Method
+                    && p.PlanId == plan.Id
+                    && p.BillingCycle == dto.Cycle)
+                .OrderByDescending(p => p.CreatedAt);
+
+            payment = null!;
+            foreach (var candidate in candidates)
+            {
+                if (string.IsNullOrWhiteSpace(candidate.ExternalPaymentId))
+                {
+                    payment = candidate;
+                    break;
+                }
+
+                // Um commit pode ter sido concluído no banco mesmo que a API tenha
+                // perdido a confirmação. Só reutiliza um pagamento com ID externo
+                // quando o gateway confirma que ele usa a mesma external_reference.
+                var existingInfo = await _provider.GetPaymentStatusAsync(candidate.ExternalPaymentId, ct);
+                if (string.Equals(existingInfo.ExternalReference, candidate.Id.ToString(), StringComparison.OrdinalIgnoreCase))
+                {
+                    payment = candidate;
+                    break;
+                }
+            }
+
+            if (payment == null)
+            {
+                // Revalida e cria sob transação serializável para duas requisições
+                // simultâneas não gerarem duas intenções locais para o mesmo checkout.
+                payment = await GetOrCreatePendingIntentAsync(sub, plan, amount, dto.Method, dto.Cycle, ct);
+            }
+            paymentAlreadyPersisted = true;
 
             var one = await _provider.CreateOneTimePaymentAsync(new CreateOneTimePaymentRequest(
                 amount, dto.Method, payer.Email, payer.Name, document.Length > 0 ? document : null,
-                $"AutoNexus {plan.Name} ({(dto.Cycle == BillingCycle.Annual ? "anual" : "mensal")})", sub.Id.ToString()), ct);
+                $"AutoNexus {plan.Name} ({(dto.Cycle == BillingCycle.Annual ? "anual" : "mensal")})",
+                payment.Id.ToString(), payment.Id.ToString()), ct);
 
             if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId)) sub.ClearExternalSubscription();
             sub.SetPaymentMethod(dto.Method);
-            payment = new Payment(sub.Id, amount, dto.Method, _provider.ProviderName, "BRL", plan.Id, dto.Cycle);
             payment.SetExternalPaymentId(one.ExternalPaymentId);
             result = new CheckoutResultDto(payment.Id, dto.Method, one.Status,
                 dto.Method == PaymentMethodType.Boleto ? one.PaymentDetail : null,
@@ -121,7 +197,8 @@ public class BillingService : IBillingService
                 one.QrCodeBase64);
         }
 
-        await _payments.AddAsync(payment, ct);
+        if (!paymentAlreadyPersisted) await _payments.AddAsync(payment, ct);
+        else _payments.Update(payment);
         _subs.Update(sub);
         await _audit.LogAsync(operation, "TenantSubscription", sub.Id.ToString(),
             $"Plano {plan.Name}, {amount.ToString("C", PtBr)} ({dto.Cycle}), meio: {dto.Method}", ct);
@@ -133,19 +210,54 @@ public class BillingService : IBillingService
         return result;
     }
 
+    private async Task<Payment> GetOrCreatePendingIntentAsync(
+        TenantSubscription sub, Plan plan, decimal amount, PaymentMethodType method, BillingCycle cycle, CancellationToken ct)
+    {
+        Payment? intent = null;
+        await _uow.ExecuteInTransactionAsync(async () =>
+        {
+            intent = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                .Where(p => p.Status == PaymentStatus.Pending
+                    && p.ExternalPaymentId == null
+                    && p.Method == method
+                    && p.Amount == amount
+                    && p.PlanId == plan.Id
+                    && p.BillingCycle == cycle)
+                .OrderByDescending(p => p.CreatedAt)
+                .FirstOrDefault();
+
+            if (intent == null)
+            {
+                intent = new Payment(sub.Id, amount, method, _provider.ProviderName, "BRL", plan.Id, cycle);
+                await _payments.AddAsync(intent, ct);
+                await _uow.CommitAsync(ct);
+            }
+        }, ct);
+
+        return intent ?? throw new InvalidOperationException("Não foi possível preparar a intenção de cobrança. Tente novamente.");
+    }
+
     public async Task CancelAsync(string? reason, CancellationToken ct = default)
     {
         var sub = await _subs.GetCurrentAsync(ct) ?? throw new KeyNotFoundException("Sua empresa não tem assinatura.");
         if (sub.Status == SubscriptionStatus.Canceled) return;
 
-        // Se o gateway falhar, NÃO cancelamos localmente — senão o cliente
-        // continuaria sendo cobrado sem enxergar a assinatura como ativa.
-        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId) && sub.PaymentProvider == _provider.ProviderName)
+        // Uma assinatura externa existente precisa ser cancelada no MESMO gateway
+        // que a criou. Nunca marcar como cancelada apenas localmente quando o
+        // gateway configurado não é o dono da assinatura: isso esconderia uma
+        // cobrança potencialmente ainda ativa.
+        if (!string.IsNullOrEmpty(sub.ExternalSubscriptionId))
         {
-            try { await _provider.CancelSubscriptionAsync(sub.ExternalSubscriptionId, ct); }
+            if (!string.Equals(sub.PaymentProvider, _provider.ProviderName, StringComparison.Ordinal))
+            {
+                throw new InvalidOperationException(
+                    "A assinatura atual pertence a outro gateway de pagamento. O cancelamento foi bloqueado para evitar cobrança ativa sem controle local; é necessária reconciliação administrativa.");
+            }
+
+            try { await CancelExternalSubscriptionIdempotentlyAsync(sub.ExternalSubscriptionId, ct); }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Falha ao cancelar assinatura {Id} no gateway.", sub.ExternalSubscriptionId);
+                _logger.LogError(ex, "Falha ao confirmar cancelamento da assinatura {Id} no gateway.", sub.ExternalSubscriptionId);
                 throw new InvalidOperationException("Não foi possível cancelar agora. Tente novamente em instantes.");
             }
         }
@@ -156,6 +268,44 @@ public class BillingService : IBillingService
             string.IsNullOrWhiteSpace(reason) ? "Sem motivo informado" : $"Motivo: {reason}", ct);
         await _uow.CommitAsync(ct);
         await _notifier.NotifyAdminAsync(sub.TenantId, EmailTemplates.AssinaturaCancelada(sub.EndDate), ct);
+    }
+
+    /// <summary>
+    /// Trata como sucesso uma resposta de cancelamento ambígua somente quando
+    /// uma consulta independente ao gateway confirma que a assinatura já está cancelada.
+    /// Isso torna retries seguros quando o gateway cancelou, mas a resposta se perdeu.
+    /// </summary>
+    private async Task CancelExternalSubscriptionIdempotentlyAsync(string externalSubscriptionId, CancellationToken ct)
+    {
+        try
+        {
+            await _provider.CancelSubscriptionAsync(externalSubscriptionId, ct);
+        }
+        catch (Exception cancelException)
+        {
+            try
+            {
+                var status = await _provider.GetSubscriptionStatusAsync(externalSubscriptionId, ct);
+                if (status == ProviderSubscriptionStatus.Cancelled)
+                {
+                    _logger.LogWarning(
+                        "O gateway retornou erro ao cancelar {Id}, mas a consulta confirmou que já está cancelada.",
+                        externalSubscriptionId);
+                    return;
+                }
+            }
+            catch (Exception verificationException)
+            {
+                _logger.LogWarning(verificationException,
+                    "Não foi possível verificar o estado da assinatura {Id} após falha no cancelamento.",
+                    externalSubscriptionId);
+            }
+
+            // Mantém a falha original: sem confirmação explícita, não prosseguir
+            // com um novo checkout nem marcar o cancelamento local como concluído.
+            System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(cancelException).Throw();
+            throw;
+        }
     }
 
     // ------------------------------------------------------------------ webhook
@@ -171,24 +321,48 @@ public class BillingService : IBillingService
 
         if (existing == null)
         {
-            var payloadCopy = rawBody.Length > 4000 ? rawBody[..4000] : rawBody;
-            await _events.AddAsync(new WebhookEvent(provider, parsed.ExternalEventId, parsed.EventType ?? "unknown", payloadCopy), ct);
-            // O índice único (Provider, ExternalEventId) garante no banco que duas entregas simultâneas não passam juntas.
-            await _uow.CommitAsync(ct);
+            // Não persistir o corpo bruto: payloads do provedor podem conter dados pessoais.
+            // O tipo do evento, o ID externo e os metadados bastam para deduplicação.
+            await _events.AddAsync(new WebhookEvent(provider, parsed.ExternalEventId, parsed.EventType ?? "unknown", null), ct);
+            try
+            {
+                await _uow.CommitAsync(ct);
+            }
+            catch (Exception)
+            {
+                // O commit pode falhar porque outra instância inseriu o mesmo evento
+                // ou porque a confirmação da gravação foi perdida. Releia o registro:
+                // só continua se ele realmente existir; caso contrário, propaga o erro.
+                _uow.DiscardChanges();
+                existing = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
+                if (existing == null) throw;
+            }
         }
+
+        // Claim atômico no banco: somente uma instância pode processar o evento.
+        // Um claim abandonado por queda do processo pode ser retomado após 5 minutos.
+        if (!await _events.TryAcquireProcessingAsync(provider, parsed.ExternalEventId, ct))
+            return WebhookProcessResult.Duplicate;
 
         var outbox = new List<Notification>();
         try
         {
-            if (!string.IsNullOrEmpty(parsed.ExternalPaymentId))
-                await ApplyPaymentAsync(parsed.ExternalPaymentId, outbox, ct);
-            else if (!string.IsNullOrEmpty(parsed.ExternalSubscriptionId))
-                await ApplySubscriptionStatusAsync(parsed.ExternalSubscriptionId, outbox, ct);
+            // Eventos diferentes podem apontar para o mesmo pagamento. A transação
+            // serializável protege a transição financeira e a renovação da assinatura
+            // como uma única operação atômica; conflito serializável é retornado ao
+            // gateway como 500 para que ele reenvie o evento.
+            await _uow.ExecuteInTransactionAsync(async () =>
+            {
+                if (!string.IsNullOrEmpty(parsed.ExternalPaymentId))
+                    await ApplyPaymentAsync(parsed.ExternalPaymentId, outbox, ct);
+                else if (!string.IsNullOrEmpty(parsed.ExternalSubscriptionId))
+                    await ApplySubscriptionStatusAsync(parsed.ExternalSubscriptionId, outbox, ct);
 
-            var ev = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
-            ev?.MarkProcessed();
-            if (ev != null) _events.Update(ev);
-            await _uow.CommitAsync(ct);
+                var ev = await _events.GetByExternalEventIdAsync(provider, parsed.ExternalEventId, ct);
+                ev?.MarkProcessed();
+                if (ev != null) _events.Update(ev);
+                await _uow.CommitAsync(ct);
+            }, ct);
         }
         catch (Exception ex)
         {
@@ -221,28 +395,69 @@ public class BillingService : IBillingService
 
         if (payment == null)
         {
-            // Primeira cobrança do cartão (Payment pendente criado no checkout, ainda sem id do gateway) ou renovação recorrente.
-            if (!Guid.TryParse(info.ExternalReference, out var subscriptionId))
+            // Primeiro tenta localizar a intenção local pelo ID que enviamos em
+            // external_reference. Se não existir, mantém compatibilidade com
+            // cobranças recorrentes antigas que usam o ID da assinatura.
+            if (!Guid.TryParse(info.ExternalReference, out var referenceId))
             {
                 _logger.LogWarning("Pagamento {Id} do gateway sem external_reference válido — ignorado.", externalPaymentId);
                 return;
             }
-            sub = await _subs.GetByIdAsync(subscriptionId, ct);
-            if (sub == null) return;
 
-            payment = await _payments.GetPendingWithoutExternalIdAsync(sub.Id, ct);
-            if (payment == null)
+            payment = await _payments.GetByIdAsync(referenceId, ct);
+            if (payment != null)
             {
-                payment = new Payment(sub.Id, info.Amount, info.Method ?? PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", sub.PlanId, sub.BillingCycle);
-                await _payments.AddForTenantAsync(payment, sub.TenantId, ct);
-                isNewPayment = true;
+                sub = await _subs.GetByIdAsync(payment.SubscriptionId, ct);
+                if (sub == null) return;
+                payment.SetExternalPaymentId(externalPaymentId);
             }
-            payment.SetExternalPaymentId(externalPaymentId);
+            else
+            {
+                sub = await _subs.GetByIdAsync(referenceId, ct);
+                if (sub == null) return;
+
+                payment = await _payments.GetPendingWithoutExternalIdAsync(sub.Id, ct);
+                if (payment == null)
+                {
+                    // Renovação recorrente sem checkout pendente: o catálogo pode ter
+                    // mudado desde a contratação. A última cobrança aprovada é o snapshot
+                    // financeiro efetivamente aceito para esta assinatura; não use o preço
+                    // comercial atual para reescrever retroativamente o contrato.
+                    var lastApprovedPayment = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                        .Where(p => p.Status == PaymentStatus.Approved)
+                        .OrderByDescending(p => p.PaidAt ?? p.CreatedAt)
+                        .FirstOrDefault();
+                    var expectedAmount = lastApprovedPayment?.Amount;
+                    if (expectedAmount is null || info.Amount != expectedAmount.Value)
+                    {
+                        _logger.LogError(
+                            "Pagamento recorrente {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} não corresponde ao último valor contratado/aprovado {ExpectedAmount} da assinatura {SubscriptionId}. Exige reconciliação.",
+                            externalPaymentId, info.Amount, expectedAmount, sub.Id);
+                        return;
+                    }
+
+                    payment = new Payment(sub.Id, info.Amount, info.Method ?? PaymentMethodType.CreditCard, _provider.ProviderName, "BRL", sub.PlanId, sub.BillingCycle);
+                    await _payments.AddForTenantAsync(payment, sub.TenantId, ct);
+                    isNewPayment = true;
+                }
+                payment.SetExternalPaymentId(externalPaymentId);
+            }
         }
         else
         {
             sub = await _subs.GetByIdAsync(payment.SubscriptionId, ct);
             if (sub == null) return;
+        }
+
+        // Nunca liberar uma assinatura com valor divergente do checkout local.
+        // Para pagamentos criados no checkout, o valor persistido é a referência
+        // esperada; divergências exigem reconciliação manual e não podem ativar o plano.
+        if (!isNewPayment && info.Amount != payment.Amount)
+        {
+            _logger.LogError(
+                "Pagamento {ExternalPaymentId} ignorado: valor do gateway {GatewayAmount} diverge do valor esperado {ExpectedAmount} para o pagamento local {PaymentId}.",
+                externalPaymentId, info.Amount, payment.Amount, payment.Id);
+            return;
         }
 
         switch (info.Status)
@@ -267,7 +482,20 @@ public class BillingService : IBillingService
 
             case PaymentStatus.Refunded:
                 payment.MarkRefunded();
-                await _audit.LogForTenantAsync(sub.TenantId, null, "PagamentoEstornado", "Payment", payment.Id.ToString(), "Revisar acesso manualmente", ct);
+                // Estorno do pagamento mais recente não pode manter a empresa ativa
+                // com base em uma cobrança devolvida. Se houver pagamento aprovado
+                // posterior, preserva o estado atual e deixa a reconciliação para esse ciclo.
+                var hasNewerApprovedPayment = (await _payments.GetBySubscriptionAsync(sub.Id, ct))
+                    .Any(p => p.Id != payment.Id
+                        && p.Status == PaymentStatus.Approved
+                        && (p.PaidAt ?? p.CreatedAt) > (payment.PaidAt ?? payment.CreatedAt));
+                if (!hasNewerApprovedPayment && sub.Status == SubscriptionStatus.Active)
+                    sub.Suspend();
+                _subs.Update(sub);
+                await _audit.LogForTenantAsync(
+                    sub.TenantId, null, "PagamentoEstornado", "Payment", payment.Id.ToString(),
+                    hasNewerApprovedPayment ? "Estorno registrado; existe pagamento aprovado posterior." : "Estorno do pagamento mais recente; acesso suspenso para reconciliação.",
+                    ct);
                 break;
 
             default:
@@ -317,6 +545,24 @@ public class BillingService : IBillingService
     private async Task ApplySubscriptionStatusAsync(string externalSubscriptionId, List<Notification> outbox, CancellationToken ct)
     {
         var sub = await _subs.GetByExternalSubscriptionIdAsync(externalSubscriptionId, ct);
+        if (sub == null)
+        {
+            // O gateway pode emitir o webhook antes de o checkout salvar o ID
+            // externo na assinatura local. O external_reference do preapproval
+            // contém o ID interno estável do tenant subscription e permite recuperar
+            // essa associação sem descartar o evento de autorização.
+            var externalReference = await _provider.GetSubscriptionExternalReferenceAsync(externalSubscriptionId, ct);
+            if (Guid.TryParse(externalReference, out var subscriptionId))
+            {
+                sub = await _subs.GetByIdAsync(subscriptionId, ct);
+                if (sub != null)
+                {
+                    sub.SetExternalSubscription(_provider.ProviderName, externalSubscriptionId, PaymentMethodType.CreditCard);
+                    _subs.Update(sub);
+                }
+            }
+        }
+
         if (sub == null) return; // assinatura antiga (já substituída) ou desconhecida
 
         var status = await _provider.GetSubscriptionStatusAsync(externalSubscriptionId, ct);
