@@ -26,7 +26,12 @@ public class UserRepository : IUserRepository
 
     public async Task<User?> GetByEmailAsync(string email, CancellationToken cancellationToken = default)
     {
-        return await _context.Users.FirstOrDefaultAsync(u => u.Email == email.ToLower().Trim(), cancellationToken);
+        // Login e recuperação de senha acontecem antes de haver um tenant autenticado.
+        // O filtro global de tenant oculta todas as entidades tenant-owned nesse momento;
+        // por isso, a busca por e-mail precisa ignorá-lo explicitamente. O AuthService
+        // valida a senha e, no login, confirma em seguida que o tenant está ativo.
+        return await _context.Users.IgnoreQueryFilters()
+            .FirstOrDefaultAsync(u => u.Email == email.ToLower().Trim(), cancellationToken);
     }
 
     public async Task<int> CountAsync(CancellationToken cancellationToken = default)
