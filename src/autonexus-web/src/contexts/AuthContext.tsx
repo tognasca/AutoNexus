@@ -31,12 +31,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('autonexus_token', response.token);
     localStorage.setItem('autonexus_user', JSON.stringify(response));
     setUser(response);
+
+    // A página raiz é comercial. O login sempre leva para a área autenticada.
+    window.location.replace('/app');
   };
 
   const logout = () => {
     localStorage.removeItem('autonexus_token');
     localStorage.removeItem('autonexus_user');
     setUser(null);
+    window.location.replace('/');
   };
 
   return (
