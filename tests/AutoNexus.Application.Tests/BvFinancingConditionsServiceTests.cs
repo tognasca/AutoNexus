@@ -139,7 +139,7 @@ public sealed class BvFinancingConditionsServiceTests
         {
             var response = new HttpResponseMessage(HttpStatusCode.Forbidden)
             {
-                Content = new StringContent("{\\"correlationId\\":\\"corr-body-priority\\",\\"fault\\":{\\"message\\":\\"private upstream detail\\"}}")
+                Content = new StringContent("""{"correlationId":"corr-body-priority","fault":{"message":"private upstream detail"}}""")
             };
             response.Headers.Add("x-correlation-id", "corr-header-fallback");
             return response;
