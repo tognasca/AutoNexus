@@ -225,11 +225,24 @@ export const ContractPrintModal: React.FC<ContractPrintModalProps> = ({ data, on
                 <p className="font-bold text-slate-900">{formatCurrency(data.financials.financedValue)}</p>
               </div>
             </div>
-            {data.financials.installmentsCount > 0 && (
-              <p className="text-xs text-slate-700 italic">
-                * Financiamento aprovado em {data.financials.installmentsCount}x de {formatCurrency(data.financials.installmentValue)} via {data.financials.paymentMethod}.
+            <div className="mt-2 rounded border border-slate-300 bg-white p-3">
+              <p className="text-[10px] text-slate-500 uppercase font-bold">Modalidade da Venda</p>
+              <p className="font-bold text-slate-900">
+                {data.financials.paymentMethod?.toLowerCase().includes('financiamento')
+                  ? 'VENDA COM FINANCIAMENTO'
+                  : 'VENDA SEM FINANCIAMENTO'}
               </p>
-            )}
+              <p className="mt-1 text-[10px] text-slate-500 uppercase font-bold">Forma de Pagamento</p>
+              <p className="font-bold text-slate-900">{data.financials.paymentMethod || 'Não informada'}</p>
+              {data.financials.paymentMethod?.toLowerCase().includes('financiamento') && (
+                <p className="mt-1 text-xs text-slate-700">
+                  Saldo financiado: {formatCurrency(data.financials.financedValue)}.
+                  {data.financials.installmentsCount > 0
+                    ? ` Condição: ${data.financials.installmentsCount}x de ${formatCurrency(data.financials.installmentValue)}.`
+                    : ' Quantidade de parcelas e valor da parcela não informados.'}
+                </p>
+              )}
+            </div>
           </section>
 
           {/* Cláusulas Jurídicas de Garantia e Responsabilidade */}

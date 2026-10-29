@@ -33,7 +33,7 @@ export function SignupPage() {
       setError('Informe o nome da empresa e o nome do administrador.');
       return;
     }
-    if (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(form.adminEmail.trim())) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.adminEmail.trim())) {
       setError('Informe um e-mail válido.');
       return;
     }

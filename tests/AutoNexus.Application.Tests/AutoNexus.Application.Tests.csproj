@@ -24,6 +24,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\AutoNexus.Application\AutoNexus.Application.csproj" />
+    <ProjectReference Include="..\..\src\AutoNexus.Infrastructure\AutoNexus.Infrastructure.csproj" />
   </ItemGroup>
 
 </Project>

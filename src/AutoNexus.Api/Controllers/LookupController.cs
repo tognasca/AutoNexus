@@ -1,5 +1,7 @@
 using AutoNexus.Application.DTOs;
 using AutoNexus.Domain.Interfaces;
+using AutoNexus.Domain.Entities;
+using AutoNexus.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -11,10 +13,14 @@ namespace AutoNexus.Api.Controllers;
 public class LookupsController : ControllerBase
 {
     private readonly ILookupRepository _lookupRepository;
+    private readonly AutoNexusDbContext _context;
+    private readonly ITenantContext _tenantContext;
 
-    public LookupsController(ILookupRepository lookupRepository)
+    public LookupsController(ILookupRepository lookupRepository, AutoNexusDbContext context, ITenantContext tenantContext)
     {
         _lookupRepository = lookupRepository;
+        _context = context;
+        _tenantContext = tenantContext;
     }
 
     [HttpGet("vehicle-types")]
@@ -55,38 +61,36 @@ public class LookupsController : ControllerBase
     }
 
     [HttpGet("document-categories")]
-    [AllowAnonymous]
+    [Authorize]
     public async Task<IActionResult> GetDocumentCategories(CancellationToken cancellationToken)
     {
-        try
-        {
-            var items = await _lookupRepository.GetDocumentCategoriesAsync(true, cancellationToken);
-            var dtos = items.Select(x => new LookupItemDto(x.Id, x.Name, x.Description)).ToList();
+        if (!_tenantContext.HasTenant)
+            return Forbid();
 
-            if (dtos.Count == 0)
-            {
-                return Ok(new[]
-                {
-                    new LookupItemDto(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Laudo Cautelar", "Laudo de vistoria cautelar"),
-                    new LookupItemDto(Guid.Parse("22222222-2222-2222-2222-222222222222"), "CRLV / Documento", "Documento do veículo"),
-                    new LookupItemDto(Guid.Parse("33333333-3333-3333-3333-333333333333"), "Nota Fiscal", "Nota fiscal de compra/venda"),
-                    new LookupItemDto(Guid.Parse("44444444-4444-4444-4444-444444444444"), "Comprovante de Revisão", "Histórico de manutenções"),
-                    new LookupItemDto(Guid.Parse("55555555-5555-5555-5555-555555555555"), "Outros", "Outros documentos")
-                });
-            }
+        // DocumentCategory é tenant-owned. A rota precisa do JWT para que o
+        // filtro global do AutoNexusDbContext carregue apenas as categorias
+        // da empresa autenticada; devolver IDs fictícios causava violação de FK
+        // no upload, pois esses IDs nunca existiam em document_categories.
+        var categories = (await _lookupRepository.GetDocumentCategoriesAsync(true, cancellationToken)).ToList();
 
-            return Ok(dtos);
-        }
-        catch
+        if (categories.Count == 0)
         {
-            return Ok(new[]
+            var defaults = new[]
             {
-                new LookupItemDto(Guid.Parse("11111111-1111-1111-1111-111111111111"), "Laudo Cautelar", "Laudo de vistoria cautelar"),
-                new LookupItemDto(Guid.Parse("22222222-2222-2222-2222-222222222222"), "CRLV / Documento", "Documento do veículo"),
-                new LookupItemDto(Guid.Parse("33333333-3333-3333-3333-333333333333"), "Nota Fiscal", "Nota fiscal de compra/venda"),
-                new LookupItemDto(Guid.Parse("44444444-4444-4444-4444-444444444444"), "Comprovante de Revisão", "Histórico de manutenções"),
-                new LookupItemDto(Guid.Parse("55555555-5555-5555-5555-555555555555"), "Outros", "Outros documentos")
-            });
+                new DocumentCategory("Laudo Cautelar", "Laudo de vistoria cautelar"),
+                new DocumentCategory("CRLV / Documento", "Documento oficial do veículo"),
+                new DocumentCategory("Nota Fiscal", "Nota fiscal de compra ou venda"),
+                new DocumentCategory("Comprovante de Revisão", "Histórico de revisões e manutenções"),
+                new DocumentCategory("Outros", "Outros documentos do veículo")
+            };
+
+            // O SaveChanges preenche TenantId com o tenant obtido do JWT validado.
+            await _context.DocumentCategories.AddRangeAsync(defaults, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+
+            categories = (await _lookupRepository.GetDocumentCategoriesAsync(true, cancellationToken)).ToList();
         }
+
+        return Ok(categories.Select(x => new LookupItemDto(x.Id, x.Name, x.Description)).ToList());
     }
 }
