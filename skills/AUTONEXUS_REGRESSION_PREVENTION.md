@@ -27,3 +27,16 @@ O endpoint `POST /api/auth/login` passou a responder `401 {"message":"Credenciai
 
 ## Regra de segurança
 A busca pré-autenticação pode localizar um usuário por e-mail, mas nunca deve emitir token até validar senha, usuário ativo e tenant ativo (exceto SuperAdmin conforme regra de domínio). O isolamento multi-tenant deve permanecer aplicado a todas as consultas de dados após autenticação.
+
+
+## Financiamento: integridade da simulação e ficha em etapas
+
+- A tela do simulador deve enviar para a proposta o contexto completo da negociação: identificador do veículo quando houver, preço, entrada, valor estimado de troca, saldo financiado, prazo e parcela.
+- Ao alterar DTOs de proposta, atualizar de forma coordenada o payload React, DTO do controller e modelo de domínio. A serialização segura persistida em `RequestDataJson` deve continuar excluindo fotos Base64.
+- Validar no backend que valores de preço, entrada e troca não são negativos. Quando o cliente enviar o preço do veículo, validar a consistência: preço - entrada - troca = saldo a financiar (tolerância máxima de R$ 0,02). Manter compatibilidade temporária com clientes antigos que ainda não enviem os novos campos.
+- Não afirmar que taxas são "em tempo real" se forem valores padrão estáticos no frontend.
+- Não simular aprovação bancária. Se não houver adaptador/API real configurado ou confirmação válida, informar que a proposta foi registrada localmente e que o envio/aprovação não foi confirmado.
+- Evitar uma ficha única longa: usar etapas com validação por etapa, preservando os dados preenchidos ao avançar/voltar.
+- Data de nascimento e dados necessários à operação precisam ser validados antes do envio; campos opcionais não devem ser tornados obrigatórios sem justificativa da financeira.
+- Fotos/selfies e documentos são dados pessoais sensíveis em contexto de identificação: nunca gravar Base64 em logs nem no JSON persistido; revisar base legal, aviso de privacidade, controle de acesso, retenção e exclusão antes de produção.
+- Antes de merge, confirmar build/lint do frontend e build/testes .NET. Após merge, deployment e teste de ponta a ponta são etapas distintas; não declarar produção validada apenas pelo CI.
