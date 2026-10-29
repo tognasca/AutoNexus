@@ -18,22 +18,35 @@ public class BillingMaintenanceWorker : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        // pequena espera para a aplicação terminar de subir (migrations/seed)
-        await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
-
-        while (!stoppingToken.IsCancellationRequested)
+        try
         {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                await scope.ServiceProvider.GetRequiredService<IBillingMaintenanceService>().RunAsync(stoppingToken);
-            }
-            catch (Exception ex) when (ex is not OperationCanceledException)
-            {
-                _logger.LogError(ex, "Falha na rotina de manutenção de assinaturas.");
-            }
+            // Pequena espera para a aplicação terminar de subir (migrations/seed).
+            await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
 
-            await Task.Delay(_interval, stoppingToken);
+            while (!stoppingToken.IsCancellationRequested)
+            {
+                try
+                {
+                    using var scope = _scopeFactory.CreateScope();
+                    await scope.ServiceProvider.GetRequiredService<IBillingMaintenanceService>().RunAsync(stoppingToken);
+                }
+                catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+                {
+                    // Encerramento normal do host: não registrar como falha do worker.
+                    break;
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Falha na rotina de manutenção de assinaturas.");
+                }
+
+                await Task.Delay(_interval, stoppingToken);
+            }
+        }
+        catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
+        {
+            // O host foi encerrado enquanto o worker aguardava a primeira execução
+            // ou o próximo ciclo. Esse cancelamento é esperado.
         }
     }
 }
