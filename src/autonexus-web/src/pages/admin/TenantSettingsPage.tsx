@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { tenantSettingsService, TenantSettings } from '../../services/tenantSettingsService';
 import { MainLayout } from '../../components/layout/MainLayout';
-import { Building2, Save, RefreshCw, CheckCircle2 } from 'lucide-react';
+import { Building2, Save, RefreshCw, CheckCircle2, MessageCircle, ExternalLink } from 'lucide-react';
 
 interface TenantSettingsPageProps {
   currentView?: string;
@@ -12,6 +12,7 @@ const emptySettings: TenantSettings = {
   companyName: '',
   logoUrl: '',
   primaryColor: '#15171B',
+  whatsappNumber: '',
   timeZone: 'America/Sao_Paulo',
   currency: 'BRL',
 };
@@ -26,7 +27,7 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
     setLoading(true);
     try {
       const data = await tenantSettingsService.get();
-      setForm(data);
+      setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
     } catch (err) {
       console.error('Erro ao carregar configurações da empresa:', err);
     } finally {
@@ -43,8 +44,11 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
     setSaving(true);
     setSaved(false);
     try {
-      const updated = await tenantSettingsService.update(form);
-      setForm(updated);
+      const updated = await tenantSettingsService.update({
+        ...form,
+        whatsappNumber: form.whatsappNumber?.trim() || null,
+      });
+      setForm({ ...updated, whatsappNumber: updated.whatsappNumber ?? '' });
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
@@ -71,6 +75,7 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
           <button
             onClick={load}
             className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition-colors cursor-pointer"
+            aria-label="Atualizar configurações"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
@@ -103,7 +108,7 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-slate-400 block mb-1">Cor Primária</label>
                   <div className="flex items-center gap-2">
@@ -133,6 +138,34 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                     <option value="EUR">Euro (EUR)</option>
                   </select>
                 </div>
+              </div>
+
+              <div>
+                <label className="text-slate-400 block mb-1">WhatsApp Comercial</label>
+                <div className="relative">
+                  <MessageCircle className="absolute left-3 top-2.5 w-4 h-4 text-emerald-400" />
+                  <input
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="5511999999999"
+                    value={form.whatsappNumber ?? ''}
+                    onChange={e => setForm({ ...form, whatsappNumber: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3 py-2 text-sm text-white outline-none focus:border-emerald-500"
+                  />
+                </div>
+                <p className="text-[11px] text-slate-500 mt-1">
+                  Informe DDI + DDD + número. Ex.: 5511999999999. O catálogo usará este número para os botões de atendimento.
+                </p>
+                {form.whatsappNumber && (
+                  <a
+                    href={`https://wa.me/${form.whatsappNumber.replace(/\D/g, '')}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 mt-2 text-[11px] text-emerald-400 hover:text-emerald-300"
+                  >
+                    <ExternalLink className="w-3.5 h-3.5" /> Testar WhatsApp
+                  </a>
+                )}
               </div>
 
               <div>
