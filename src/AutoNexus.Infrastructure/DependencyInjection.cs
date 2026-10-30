@@ -21,8 +21,6 @@ public static class DependencyInjection
         services.AddDbContext<AutoNexusDbContext>(options =>
             options.UseNpgsql(connectionString));
 
-        // Multi-tenancy: ITenantContext precisa de acesso ao HttpContext para
-        // ler o claim "tenant_id" do usuário autenticado (ver TenantContext).
         services.AddHttpContextAccessor();
         services.AddScoped<ITenantContext, TenantContext>();
 
@@ -39,8 +37,9 @@ public static class DependencyInjection
         services.AddScoped<IDocumentRepository, DocumentRepository>();
         services.AddScoped<IBuyerLinkRepository, BuyerLinkRepository>();
         services.AddScoped<IAcceptanceRepository, AcceptanceRepository>();
-        services.AddScoped<IBankConfigRepository, BankConfigRepository>(); // Registrado aqui
+        services.AddScoped<IBankConfigRepository, BankConfigRepository>();
         services.AddScoped<ICreditProposalRepository, CreditProposalRepository>();
+        services.AddScoped<IFinancingProposalService, FinancingProposalService>();
         services.AddScoped<IPasswordHasher, PasswordHasher>();
         services.AddScoped<IJwtTokenGenerator, JwtTokenGenerator>();
         services.AddScoped<IBankAdapter, SantanderBankAdapter>();
@@ -50,7 +49,6 @@ public static class DependencyInjection
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
 
-        // Billing / SaaS comercial
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IWebhookEventRepository, WebhookEventRepository>();
         services.AddScoped<ILegalDocumentRepository, LegalDocumentRepository>();
