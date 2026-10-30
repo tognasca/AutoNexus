@@ -27,4 +27,15 @@ public sealed class CreditProposalRepository : ICreditProposalRepository
         _context.Set<CreditProposalRecord>()
             .AsNoTracking()
             .FirstOrDefaultAsync(p => p.ProposalNumber == proposalNumber, cancellationToken);
+
+    public Task<CreditProposalRecord?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default) =>
+        _context.Set<CreditProposalRecord>()
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+
+    public async Task<IReadOnlyList<CreditProposalRecord>> GetAllAsync(CancellationToken cancellationToken = default) =>
+        await _context.Set<CreditProposalRecord>()
+            .AsNoTracking()
+            .OrderByDescending(p => p.CreatedAt)
+            .ToListAsync(cancellationToken);
 }
