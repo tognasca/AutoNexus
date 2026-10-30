@@ -56,6 +56,7 @@ public record TenantSettingDto(
     string CompanyName,
     string? LogoUrl,
     string PrimaryColor,
+    string? WhatsAppNumber,
     string TimeZone,
     string Currency
 );
