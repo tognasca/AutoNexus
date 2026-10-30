@@ -8,6 +8,8 @@ namespace AutoNexus.Application.Services;
 
 public class CreditService : IBankCreditService
 {
+    private const string ExternalSubmissionFlag = "AUTONEXUS_ENABLE_EXTERNAL_CREDIT_SUBMISSION";
+
     private readonly IBankConfigRepository? _bankConfigRepository;
     private readonly ICreditProposalRepository? _proposalRepository;
     private readonly IEnumerable<IBankAdapter> _adapters;
@@ -40,6 +42,22 @@ public class CreditService : IBankCreditService
         if (_proposalRepository != null)
             await _proposalRepository.AddAsync(record);
 
+        // Until a real financial institution is explicitly enabled for production/homologation,
+        // this endpoint is registration-only. It must never turn a simulation into an approval
+        // and must never call a bank just because credentials/configuration happen to exist.
+        if (!IsExternalSubmissionEnabled())
+        {
+            var draft = new CreditProposalResponse(
+                "Draft",
+                $"AUTO-{record.Id:N}",
+                "Cadastro de financiamento salvo. Esta é apenas uma simulação; não representa pré-aprovação, aprovação, reserva de limite ou envio à instituição financeira.",
+                null, null, null);
+            record.SetResult(draft);
+            if (_proposalRepository != null)
+                await _proposalRepository.UpdateAsync(record);
+            return draft;
+        }
+
         if (_bankConfigRepository != null)
         {
             var config = await _bankConfigRepository.GetByCodeAsync(request.BankId);
@@ -68,7 +86,7 @@ public class CreditService : IBankCreditService
                             result = new CreditProposalResponse(
                                 "Unavailable",
                                 $"AUTO-{record.Id:N}",
-                                "O banco não confirmou o recebimento da proposta. Nenhuma aprovação foi confirmada.",
+                                "A instituição financeira não confirmou o recebimento da proposta. Nenhuma aprovação foi confirmada.",
                                 null, null, null);
                         }
                         else
@@ -89,12 +107,10 @@ public class CreditService : IBankCreditService
             }
         }
 
-        // Never simulate a bank decision. No configured/working integration means
-        // no real submission and therefore no approval.
         var unavailable = new CreditProposalResponse(
             "Unavailable",
             $"AUTO-{record.Id:N}",
-            "A integração real deste banco não está configurada ou está indisponível. A proposta foi registrada no AutoNexus, mas não foi enviada ao banco e não há aprovação confirmada.",
+            "A integração real deste banco não está configurada ou está indisponível. O cadastro foi registrado no AutoNexus, mas não foi enviado ao banco e não há aprovação confirmada.",
             null, null, null);
         record.SetResult(unavailable);
         if (_proposalRepository != null)
@@ -118,5 +134,13 @@ public class CreditService : IBankCreditService
             proposal.ProposalNumber ?? proposalNumber,
             proposal.Message,
             null, null, null);
+    }
+
+    private static bool IsExternalSubmissionEnabled()
+    {
+        return string.Equals(
+            Environment.GetEnvironmentVariable(ExternalSubmissionFlag),
+            "true",
+            StringComparison.OrdinalIgnoreCase);
     }
 }
