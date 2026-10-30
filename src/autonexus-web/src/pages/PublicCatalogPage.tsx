@@ -161,7 +161,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                     style={{
                         backgroundImage: vehicles[0]?.mainPhotoUrl
                             ? `linear-gradient(90deg, rgba(3,10,20,.96) 0%, rgba(3,10,20,.78) 48%, rgba(3,10,20,.18) 100%), url("${getPhotoUrl(vehicles[0].mainPhotoUrl)}")`
-                            : 'radial-gradient(circle at 78% 30%, rgba(11,132,243,.38), transparent 35%), linear-gradient(120deg, #071426, #10263c)',
+                            : 'radial-gradient(circle at 78% 30%, color-mix(in srgb, var(--store-accent) 38%, transparent), transparent 35%), linear-gradient(120deg, #071426, #10263c)',
                         backgroundSize: 'cover',
                         backgroundPosition: 'center'
                     }}
@@ -325,7 +325,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
 
                         <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
                             <div>
-                                <span className="text-xs font-bold text-nexus-accent uppercase tracking-wider">{selectedVehicle.brand}</span>
+                                <span className="text-xs font-bold text-[var(--store-accent)] uppercase tracking-wider">{selectedVehicle.brand}</span>
                                 <h2 className="text-xl font-bold text-white">{selectedVehicle.model} {selectedVehicle.version}</h2>
                             </div>
                             <button
@@ -381,7 +381,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                             <button
                                                 key={idx}
                                                 onClick={() => setActivePhotoIndex(idx)}
-                                                className={`w-20 h-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activePhotoIndex === idx ? 'border-nexus-accent scale-105 shadow-md' : 'border-slate-800 opacity-60 hover:opacity-100'
+                                                className={`w-20 h-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activePhotoIndex === idx ? 'border-[var(--store-accent)] scale-105 shadow-md' : 'border-slate-800 opacity-60 hover:opacity-100'
                                                     }`}
                                             >
                                                 <img src={photoUrl} alt="Thumbnail" className="w-full h-full object-cover" />
