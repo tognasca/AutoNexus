@@ -13,7 +13,7 @@ import { BankConfigPage } from './pages/admin/BankConfigPage';
 import { UsersPage } from './pages/admin/UsersPage';
 import { ShieldAlert, Loader2 } from 'lucide-react';
 import { CompanyDocumentsPage } from './pages/admin/CompanyDocumentsPage';
-import { PublicCatalogPage } from './pages/PublicCatalogPage';
+import { PublicCatalogSaasPage } from './pages/PublicCatalogSaasPage';
 import { TenantSettingsPage } from './pages/admin/TenantSettingsPage';
 import { SubscriptionPage } from './pages/admin/SubscriptionPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
@@ -49,7 +49,7 @@ function AppContent() {
   const publicPath = window.location.pathname;
   if (publicPath === '/entrar') return <LoginPage />;
   if (publicPath === '/precos') return <PricingPage />;
-  if (publicPath.startsWith('/loja/')) return <PublicCatalogPage />;
+  if (publicPath.startsWith('/loja/')) return <PublicCatalogSaasPage />;
   if (publicPath === '/cadastro') return <SignupPage />;
   if (publicPath === '/esqueci-senha') return <ForgotPasswordPage />;
   if (publicPath === '/redefinir-senha') return <ResetPasswordPage />;
@@ -58,7 +58,7 @@ function AppContent() {
   if (publicPath === '/cookies') return <LegalPage slug="cookies" />;
 
   if (isPublicCatalogRoute) {
-    return <PublicCatalogPage currentView="catalog" onNavigate={(view) => {
+    return <PublicCatalogSaasPage currentView="catalog" onNavigate={(view) => {
       if (view !== 'catalog') {
         window.history.pushState({}, '', '/');
         setIsPublicCatalogRoute(false);
@@ -97,7 +97,7 @@ function AppContent() {
       case 'bank-configs': return <BankConfigPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'users': return <UsersPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'company-documents': return <CompanyDocumentsPage currentView={currentView} onNavigate={handleNavigate} />;
-      case 'catalog': return <PublicCatalogPage currentView={currentView} onNavigate={handleNavigate} />;
+      case 'catalog': return <PublicCatalogSaasPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'tenant-settings': return <TenantSettingsPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'subscription': return <SubscriptionPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'superadmin': return <SuperAdminPage currentView={currentView} onNavigate={handleNavigate} />;
