@@ -25,9 +25,6 @@ public class TenantSettingService : ITenantSettingService
     {
         var settings = await _settingRepository.GetCurrentAsync(cancellationToken);
 
-        // Empresa sem configurações ainda (não deveria acontecer para
-        // tenants criados pelo fluxo normal do SuperAdmin, que já cria isso
-        // junto — mas cobrimos o caso mesmo assim, em vez de quebrar a tela).
         if (settings == null)
         {
             if (!_tenantContext.HasTenant)
@@ -51,12 +48,12 @@ public class TenantSettingService : ITenantSettingService
                 throw new InvalidOperationException("Nenhum tenant identificado na requisição atual.");
 
             settings = new TenantSetting(dto.CompanyName);
-            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.TimeZone, dto.Currency);
+            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency);
             await _settingRepository.AddForTenantAsync(settings, _tenantContext.TenantId, cancellationToken);
         }
         else
         {
-            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.TimeZone, dto.Currency);
+            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency);
             _settingRepository.Update(settings);
         }
 
@@ -68,6 +65,7 @@ public class TenantSettingService : ITenantSettingService
         settings.CompanyName,
         settings.LogoUrl,
         settings.PrimaryColor,
+        settings.WhatsAppNumber,
         settings.TimeZone,
         settings.Currency
     );
