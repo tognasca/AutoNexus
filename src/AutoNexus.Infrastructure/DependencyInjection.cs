@@ -1,4 +1,5 @@
 ﻿using AutoNexus.Application.Interfaces;
+using AutoNexus.Application.Services;
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Infrastructure.Data;
 using AutoNexus.Infrastructure.Integrations.Adapters;
@@ -18,12 +19,9 @@ public static class DependencyInjection
         var connectionString = configuration.GetConnectionString("DefaultConnection")
             ?? throw new InvalidOperationException("Connection string 'DefaultConnection' não encontrada.");
 
-        services.AddDbContext<AutoNexusDbContext>(options =>
-            options.UseNpgsql(connectionString));
-
+        services.AddDbContext<AutoNexusDbContext>(options => options.UseNpgsql(connectionString));
         services.AddHttpContextAccessor();
         services.AddScoped<ITenantContext, TenantContext>();
-
         services.AddScoped<IUnitOfWork, UnitOfWork>();
         services.AddScoped<IVehicleRepository, VehicleRepository>();
         services.AddScoped<ILookupRepository, LookupRepository>();
@@ -48,14 +46,12 @@ public static class DependencyInjection
         services.AddScoped<IStorageService, LocalStorageService>();
         services.AddHttpClient<IFipeExternalService, BrasilApiFipeService>();
         services.AddScoped<ICompanyDocumentRepository, CompanyDocumentRepository>();
-
         services.AddScoped<IPaymentRepository, PaymentRepository>();
         services.AddScoped<IWebhookEventRepository, WebhookEventRepository>();
         services.AddScoped<ILegalDocumentRepository, LegalDocumentRepository>();
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddHttpClient<IPaymentProvider, MercadoPagoPaymentProvider>();
         services.AddHttpClient<IEmailService, ResendEmailService>();
-
         return services;
     }
 }
