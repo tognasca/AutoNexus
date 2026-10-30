@@ -12,7 +12,6 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/public")]
-[AllowAnonymous]
 public class PublicCatalogController : ControllerBase
 {
     private readonly AutoNexusDbContext _context;
@@ -23,7 +22,7 @@ public class PublicCatalogController : ControllerBase
 
     public PublicCatalogController(
         AutoNexusDbContext context,
-        IVehicleService vehicleService, 
+        IVehicleService vehicleService,
         IFeedExportService feedExportService,
         IAiDescriptionService aiDescriptionService,
         ITenantContext tenantContext)
@@ -35,8 +34,8 @@ public class PublicCatalogController : ControllerBase
         _tenantContext = tenantContext;
     }
 
-    // A tela de catálogo aberta dentro do painel usa o tenant do JWT validado.
-    // Assim, a loja não cai silenciosamente no tenant "default".
+    // O catálogo aberto dentro do painel usa o tenant do JWT validado.
+    // Assim, a empresa atual nunca cai silenciosamente no tenant "default".
     [HttpGet("catalog/current")]
     [Authorize]
     public async Task<IActionResult> GetCurrentTenantCatalog(CancellationToken cancellationToken)
@@ -53,22 +52,19 @@ public class PublicCatalogController : ControllerBase
     }
 
     [HttpGet("catalog")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetPublicCatalog(
         [FromQuery] string? store,
         CancellationToken cancellationToken)
     {
-        // O catálogo público é sempre vinculado a uma empresa explícita.
-        // "default" mantém compatibilidade com a rota antiga /catalogo.
         var slug = string.IsNullOrWhiteSpace(store) ? "default" : store.Trim().ToLowerInvariant();
         var tenant = await _context.Tenants.AsNoTracking()
             .SingleOrDefaultAsync(t => t.Slug == slug && t.IsActive, cancellationToken);
         if (tenant == null) return NotFound(new { message = "Loja não encontrada ou inativa." });
 
-        // IgnoreQueryFilters é usado apenas nesta rota pública e a consulta
-        // aplica obrigatoriamente o TenantId resolvido pelo slug ativo.
         var settings = await _context.TenantSettings.IgnoreQueryFilters().AsNoTracking()
             .Where(s => s.TenantId == tenant.Id)
-            .Select(s => new { s.CompanyName, s.LogoUrl, s.PrimaryColor })
+            .Select(s => new { s.CompanyName, s.LogoUrl, s.PrimaryColor, s.WhatsAppNumber })
             .FirstOrDefaultAsync(cancellationToken);
 
         var vehicles = await _context.Vehicles.IgnoreQueryFilters()
@@ -104,13 +100,15 @@ public class PublicCatalogController : ControllerBase
                 name = settings?.CompanyName ?? tenant.Name,
                 slug = tenant.Slug,
                 logoUrl = settings?.LogoUrl,
-                primaryColor = settings?.PrimaryColor ?? "#2563eb"
+                primaryColor = settings?.PrimaryColor ?? "#2563eb",
+                whatsappNumber = settings?.WhatsAppNumber
             },
             items = vehicles
         });
     }
 
     [HttpGet("catalog/{id:guid}")]
+    [AllowAnonymous]
     public async Task<IActionResult> GetPublicVehicleDetails(
         Guid id,
         [FromQuery] string? store,
@@ -132,8 +130,6 @@ public class PublicCatalogController : ControllerBase
         if (vehicle == null)
             return NotFound(new { message = "Veículo não encontrado no catálogo desta loja." });
 
-        // Nunca enviar placa, chassi, Renavam, valor de compra, custos ou
-        // documentos que não foram explicitamente marcados para exibição.
         return Ok(new
         {
             id = vehicle.Id,
@@ -165,6 +161,7 @@ public class PublicCatalogController : ControllerBase
     }
 
     [HttpGet("feed/xml")]
+    [AllowAnonymous]
     [Produces("application/xml")]
     public async Task<IActionResult> GetXmlFeed()
     {
@@ -173,18 +170,19 @@ public class PublicCatalogController : ControllerBase
     }
 
     [HttpPost("generate-ai-description")]
+    [AllowAnonymous]
     public IActionResult GenerateAiDescription([FromBody] GenerateAiDescriptionDto dto)
     {
         var copy = _aiDescriptionService.GenerateVehicleAdDescription(
-            dto.Brand, 
-            dto.Model, 
-            dto.Year, 
-            dto.Price, 
-            dto.FipePrice, 
-            dto.Mileage, 
-            dto.Color, 
-            dto.FuelType, 
-            dto.Transmission, 
+            dto.Brand,
+            dto.Model,
+            dto.Year,
+            dto.Price,
+            dto.FipePrice,
+            dto.Mileage,
+            dto.Color,
+            dto.FuelType,
+            dto.Transmission,
             dto.Optionals);
 
         return Ok(new { description = copy });

@@ -18,7 +18,13 @@ export interface PublicVehiclePhoto {
   order?: number;
 }
 
-export interface PublicStoreInfo { name: string; slug: string; logoUrl?: string; primaryColor?: string; }
+export interface PublicStoreInfo {
+  name: string;
+  slug: string;
+  logoUrl?: string;
+  primaryColor?: string;
+  whatsappNumber?: string;
+}
 
 export interface PublicVehicleDetail {
   id: string;
@@ -42,10 +48,9 @@ export interface PublicVehicleDetail {
 
 export function getPhotoUrl(input?: string | null): string {
   if (!input) return '';
-  
+
   let url = input.trim().replace(/\\/g, '/');
 
-  // Se vier URL absoluta (http://...:5000/uploads/...), extrai só o /uploads/...
   if (/^https?:\/\//i.test(url)) {
     try {
       const parsed = new URL(url);
@@ -58,7 +63,6 @@ export function getPhotoUrl(input?: string | null): string {
     }
   }
 
-  // Garante barra inicial
   if (!url.startsWith('/')) url = '/' + url;
   return url;
 }

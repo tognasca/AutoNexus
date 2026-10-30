@@ -4,6 +4,7 @@ export interface TenantSettings {
   companyName: string;
   logoUrl: string | null;
   primaryColor: string;
+  whatsappNumber: string | null;
   timeZone: string;
   currency: string;
 }
