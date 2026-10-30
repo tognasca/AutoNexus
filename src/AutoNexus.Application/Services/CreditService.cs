@@ -47,15 +47,15 @@ public class CreditService : IBankCreditService
         // and must never call a bank just because credentials/configuration happen to exist.
         if (!IsExternalSubmissionEnabled())
         {
-            var draft = new CreditProposalResponse(
-                "Draft",
+            var registrationOnly = new CreditProposalResponse(
+                "Unavailable",
                 $"AUTO-{record.Id:N}",
                 "Cadastro de financiamento salvo. Esta é apenas uma simulação; não representa pré-aprovação, aprovação, reserva de limite ou envio à instituição financeira.",
                 null, null, null);
-            record.SetResult(draft);
+            record.SetResult(registrationOnly);
             if (_proposalRepository != null)
                 await _proposalRepository.UpdateAsync(record);
-            return draft;
+            return registrationOnly;
         }
 
         if (_bankConfigRepository != null)
