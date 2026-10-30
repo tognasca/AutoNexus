@@ -14,14 +14,12 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
         builder.Property(x => x.CompanyName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.LogoUrl).HasMaxLength(500);
         builder.Property(x => x.PrimaryColor).HasMaxLength(20).IsRequired();
+        builder.Property(x => x.WhatsAppNumber).HasMaxLength(15);
         builder.Property(x => x.TimeZone).HasMaxLength(100).IsRequired();
         builder.Property(x => x.Currency).HasMaxLength(10).IsRequired();
         builder.Property(x => x.CreatedAt).IsRequired();
         builder.Property(x => x.UpdatedAt);
 
-        // Uma linha de configuração por empresa, nunca duas — além do filtro
-        // global (que impede ver a de outro tenant), este índice único
-        // impede criar uma segunda linha para o mesmo tenant por engano.
         builder.HasIndex(x => x.TenantId).IsUnique();
 
         builder.HasData(new
@@ -31,6 +29,7 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
             CompanyName = "Empresa Padrão",
             LogoUrl = (string?)null,
             PrimaryColor = "#15171B",
+            WhatsAppNumber = (string?)null,
             TimeZone = "America/Sao_Paulo",
             Currency = "BRL",
             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, DateTimeKind.Utc),
