@@ -1,4 +1,4 @@
-import { request } from './api';
+import { request, downloadFile } from './api';
 
 export interface FinancingProposal {
   id: string;
@@ -55,17 +55,6 @@ export const financingProposalService = {
     method: 'POST',
     body: JSON.stringify(data),
   }),
-  export: async (id: string, format: 'xml' | 'txt' | 'csv' | 'json') => {
-    const response = await fetch(`/api/financing/proposals/${id}/export/${format}`, {
-      credentials: 'include',
-    });
-    if (!response.ok) throw new Error('Não foi possível exportar a proposta.');
-    const blob = await response.blob();
-    const url = URL.createObjectURL(blob);
-    const anchor = document.createElement('a');
-    anchor.href = url;
-    anchor.download = `autonexus-financiamento-${id}.${format}`;
-    anchor.click();
-    URL.revokeObjectURL(url);
-  },
+  export: (id: string, format: 'xml' | 'txt' | 'csv' | 'json') =>
+    downloadFile(`/financing/proposals/${id}/export/${format}`, `autonexus-financiamento-${id}.${format}`),
 };
