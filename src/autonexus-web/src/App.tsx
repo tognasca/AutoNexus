@@ -6,6 +6,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { VehiclesPage } from './pages/VehiclesPage';
 import { TradesPage } from './pages/TradesPage';
 import { SimulatorPage } from './pages/SimulatorPage';
+import { FinancingProposalsPage } from './pages/FinancingProposalsPage';
 import { DrePage } from './pages/reports/DrePage';
 import { CommissionPage } from './pages/reports/CommissionPage';
 import { BankConfigPage } from './pages/admin/BankConfigPage';
@@ -34,24 +35,17 @@ function AppContent() {
     return () => window.removeEventListener('popstate', handlePopState);
   }, []);
 
-  // SuperAdmin não pertence a nenhuma empresa, então não tem "dashboard"
-  // (nem nenhum outro módulo operacional) — manda ele direto pro próprio
-  // painel assim que a sessão carrega.
   useEffect(() => {
-    if (publicPath === '/app' && user?.profile === UserProfileEnum.SuperAdmin && currentView === 'dashboard') {
-      setCurrentView('superadmin');
-    }
+    if (publicPath === '/app' && user?.profile === UserProfileEnum.SuperAdmin && currentView === 'dashboard') setCurrentView('superadmin');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
-  // Quando o backend responde 402 (assinatura necessária), leva o cliente direto para a tela de assinatura.
   useEffect(() => {
     const goToSubscription = () => setCurrentView('subscription');
     window.addEventListener('autonexus:subscription-required', goToSubscription);
     return () => window.removeEventListener('autonexus:subscription-required', goToSubscription);
   }, []);
 
-  // Páginas públicas (sem login): landing/planos, cadastro, login e documentos legais
   const publicPath = window.location.pathname;
   if (publicPath === '/entrar') return <LoginPage />;
   if (publicPath === '/precos') return <PricingPage />;
@@ -63,39 +57,19 @@ function AppContent() {
   if (publicPath === '/privacidade') return <LegalPage slug="privacidade" />;
   if (publicPath === '/cookies') return <LegalPage slug="cookies" />;
 
-  // 1. Se a URL do navegador for /catalogo, renderiza a vitrine pública direto (sem exigir login)
   if (isPublicCatalogRoute) {
-    return (
-      <PublicCatalogPage
-        currentView="catalog"
-        onNavigate={(view) => {
-          if (view !== 'catalog') {
-            window.history.pushState({}, '', '/');
-            setIsPublicCatalogRoute(false);
-            setCurrentView(view);
-          }
-        }}
-      />
-    );
+    return <PublicCatalogPage currentView="catalog" onNavigate={(view) => {
+      if (view !== 'catalog') {
+        window.history.pushState({}, '', '/');
+        setIsPublicCatalogRoute(false);
+        setCurrentView(view);
+      }
+    }} />;
   }
 
-  // 2. Estado de Carregamento
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 gap-2">
-        <Loader2 className="w-6 h-6 animate-spin text-blue-500" />
-        <span>Carregando AutoNexus...</span>
-      </div>
-    );
-  }
+  if (loading) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 gap-2"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /><span>Carregando AutoNexus...</span></div>;
+  if (!isAuthenticated || !user) return <PricingPage />;
 
-  // 3. A raiz é a landing comercial para visitantes; o login fica em /entrar.
-  // Usuários autenticados continuam entrando normalmente no sistema.
-  if (!isAuthenticated || !user) {
-    return <PricingPage />;
-  }
-
-  // 4. Manipulador de navegação interna
   const handleNavigate = (view: string) => {
     if (view === 'catalog') {
       window.history.pushState({}, '', '/catalogo');
@@ -107,24 +81,9 @@ function AppContent() {
   };
 
   const renderContent = () => {
-    // Garante que a visão atual seja permitida para o perfil do usuário
     if (!canAccessView(user?.profile, currentView)) {
       const homeView = user?.profile === UserProfileEnum.SuperAdmin ? 'superadmin' : 'dashboard';
-      return (
-        <div className="p-12 text-center text-slate-300 space-y-4">
-          <ShieldAlert className="w-12 h-12 text-rose-500 mx-auto" />
-          <h2 className="text-xl font-bold text-white">Acesso Não Autorizado</h2>
-          <p className="text-xs text-slate-400 max-w-md mx-auto">
-            Seu perfil de acesso ({user?.profileName || 'Usuário'}) não possui permissão para visualizar esta página.
-          </p>
-          <button
-            onClick={() => setCurrentView(homeView)}
-            className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer"
-          >
-            {homeView === 'superadmin' ? 'Voltar ao Painel SuperAdmin' : 'Voltar ao Dashboard'}
-          </button>
-        </div>
-      );
+      return <div className="p-12 text-center text-slate-300 space-y-4"><ShieldAlert className="w-12 h-12 text-rose-500 mx-auto" /><h2 className="text-xl font-bold text-white">Acesso Não Autorizado</h2><p className="text-xs text-slate-400 max-w-md mx-auto">Seu perfil de acesso ({user?.profileName || 'Usuário'}) não possui permissão para visualizar esta página.</p><button onClick={() => setCurrentView(homeView)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-semibold cursor-pointer">{homeView === 'superadmin' ? 'Voltar ao Painel SuperAdmin' : 'Voltar ao Dashboard'}</button></div>;
     }
 
     switch (currentView) {
@@ -132,6 +91,7 @@ function AppContent() {
       case 'vehicles': return <VehiclesPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'trades': return <TradesPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'simulator': return <SimulatorPage currentView={currentView} onNavigate={handleNavigate} />;
+      case 'financing': return <FinancingProposalsPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'reports': return <DrePage currentView={currentView} onNavigate={handleNavigate} />;
       case 'commissions': return <CommissionPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'bank-configs': return <BankConfigPage currentView={currentView} onNavigate={handleNavigate} />;
