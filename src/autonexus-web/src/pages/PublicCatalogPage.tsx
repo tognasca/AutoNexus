@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type CSSProperties } from 'react';
 import {
     Search, Calendar, Gauge, Fuel, Cog, MessageCircle,
     X, ChevronLeft, ChevronRight, ShieldCheck,
@@ -19,7 +19,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     const [selectedVehicle, setSelectedVehicle] = useState<PublicVehicleDetail | null>(null);
     const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
-    const storeSlug = window.location.pathname.match(/^\/loja\/([^/]+)/)?.[1] || new URLSearchParams(window.location.search).get('store') || 'default';
+    const storeSlug = window.location.pathname.match(/^\/loja\/([^/]+)/)?.[1] || new URLSearchParams(window.location.search).get('store') || (onNavigate ? 'current' : 'default');
     const WHATSAPP_NUMBER = (import.meta.env.VITE_PUBLIC_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 
     useEffect(() => {
@@ -62,7 +62,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     const handleOpenDetails = async (vehicleId: string) => {
         try {
             setActivePhotoIndex(0);
-            const detail = await catalogService.getPublicVehicle(vehicleId, storeSlug);
+            const detail = await catalogService.getPublicVehicle(vehicleId, storeInfo?.slug || storeSlug);
             setSelectedVehicle(detail);
         } catch (err) {
             console.error('Erro ao buscar detalhes do veículo:', err);
@@ -108,7 +108,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
         : [getPhotoUrl(selectedVehicle?.mainPhotoUrl)];
 
     return (
-        <div className="min-h-screen bg-[#0B0F19] text-white">
+        <div className="min-h-screen bg-[#080f1a] text-white" style={{ "--store-accent": storeInfo?.primaryColor || "#0b84f3" } as CSSProperties}>
 
             {/* Header Superior */}
             <header className="bg-nexus-card border-b border-nexus-border sticky top-0 z-40 shadow-xl">
@@ -120,11 +120,11 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                         >
                             {storeInfo?.logoUrl ? (
                                 <img src={storeInfo.logoUrl} alt={storeInfo.name} className="w-full h-full object-contain bg-white" />
-                            ) : 'AN'}
+                            ) : (storeInfo?.name?.slice(0, 2).toUpperCase() || 'LOJA')}
                         </div>
                         <div>
                             <h1 className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-200 to-slate-400">
-                                {storeInfo?.name || 'AutoNexus'}
+                                {storeInfo?.name || 'Sua loja'}
                             </h1>
                             <p className="text-xs text-slate-400">Catálogo Oficial de Veículos</p>
                         </div>
@@ -156,13 +156,29 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
             <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
                 {/* Filtros e Busca */}
-                <div className="bg-gradient-to-r from-slate-900 via-nexus-card to-slate-900 border border-nexus-border rounded-2xl p-6 sm:p-8 shadow-2xl relative overflow-hidden">
-                    <div className="relative z-10 max-w-3xl space-y-4">
-                        <h2 className="text-2xl sm:text-4xl font-extrabold text-white leading-tight">
-                            Encontre o veículo ideal para a sua garagem
+                <section
+                    className="relative isolate overflow-hidden rounded-[28px] border border-white/10 shadow-2xl min-h-[330px] sm:min-h-[390px] flex items-center"
+                    style={{
+                        backgroundImage: vehicles[0]?.mainPhotoUrl
+                            ? `linear-gradient(90deg, rgba(3,10,20,.96) 0%, rgba(3,10,20,.78) 48%, rgba(3,10,20,.18) 100%), url("${getPhotoUrl(vehicles[0].mainPhotoUrl)}")`
+                            : 'radial-gradient(circle at 78% 30%, color-mix(in srgb, var(--store-accent) 38%, transparent), transparent 35%), linear-gradient(120deg, #071426, #10263c)',
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center'
+                    }}
+                >
+                    <div className="relative z-10 w-full p-6 sm:p-10 lg:p-14 space-y-5">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1.5 text-[10px] sm:text-xs font-bold uppercase tracking-[.2em] text-white/85">
+                            <span className="h-2 w-2 rounded-full" style={{ backgroundColor: 'var(--store-accent)' }} />
+                            Estoque atualizado • {vehicles.length} veículos disponíveis
+                        </span>
+                        <h2 className="max-w-2xl text-3xl sm:text-5xl lg:text-6xl font-black leading-[1.05] tracking-tight text-white">
+                            Seu próximo carro está <span style={{ color: 'var(--store-accent)' }}>aqui.</span>
                         </h2>
+                        <p className="max-w-xl text-sm sm:text-base text-slate-200 leading-relaxed">
+                            Encontre o veículo ideal com transparência, qualidade e atendimento especializado. Confira as oportunidades disponíveis na {storeInfo?.name || 'nossa loja'}.
+                        </p>
 
-                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 pt-2 max-w-3xl">
                             <div className="sm:col-span-8 relative">
                                 <Search className="absolute left-3.5 top-3.5 h-4 w-4 text-slate-400" />
                                 <input
@@ -170,7 +186,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                     placeholder="Busque por marca, modelo ou versão..."
                                     value={searchTerm}
                                     onChange={(e) => setSearchTerm(e.target.value)}
-                                    className="w-full bg-slate-950 border border-nexus-border rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-nexus-accent"
+                                    className="w-full bg-slate-950 border border-nexus-border rounded-xl pl-10 pr-4 py-3 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-[var(--store-accent)]"
                                 />
                             </div>
 
@@ -178,7 +194,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                 <select
                                     value={selectedBrand}
                                     onChange={(e) => setSelectedBrand(e.target.value)}
-                                    className="w-full bg-slate-950 border border-nexus-border rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-nexus-accent cursor-pointer"
+                                    className="w-full bg-slate-950 border border-nexus-border rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-[var(--store-accent)] cursor-pointer"
                                 >
                                     <option value="ALL">Todas as Marcas ({vehicles.length})</option>
                                     {uniqueBrands.map(b => (
@@ -188,21 +204,21 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 {/* Listagem de Veículos */}
                 {loading ? (
                     <div className="p-20 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
-                        <div className="w-8 h-8 border-4 border-nexus-accent border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--store-accent)", borderTopColor: "transparent" }}></div>
                         <p className="text-sm font-medium">Carregando estoque atualizado...</p>
                     </div>
                 ) : filteredVehicles.length === 0 ? (
-                    <div className="bg-nexus-card border border-nexus-border rounded-2xl p-12 text-center text-slate-400">
-                        <Car size={48} className="mx-auto mb-3 opacity-30 text-nexus-accent" />
-                        <h3 className="text-lg font-bold text-white">Nenhum veículo encontrado</h3>
+                    <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-12 text-center text-slate-400">
+                        <Car size={48} className="mx-auto mb-3 opacity-70" style={{ color: "var(--store-accent)" }} />
+                        <h3 className="text-lg font-bold text-white">Nenhum veículo disponível neste momento</h3><p className="mt-2 text-sm text-slate-400">Assim que a loja publicar novos veículos no estoque, eles aparecerão automaticamente aqui.</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                         {filteredVehicles.map((vehicle) => {
                             const photoPath = vehicle.mainPhotoUrl || vehicle.MainPhotoUrl;
                             const photoFullUrl = getPhotoUrl(photoPath);
@@ -211,10 +227,10 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                             return (
                                 <div
                                     key={vehicle.id}
-                                    className="bg-nexus-card border border-nexus-border rounded-2xl overflow-hidden hover:border-nexus-accent/50 transition-all duration-300 flex flex-col group shadow-lg"
+                                    className="bg-slate-900 border border-white/10 rounded-2xl overflow-hidden hover:-translate-y-1 transition-all duration-300 flex flex-col group shadow-xl hover:shadow-2xl"
                                 >
                                     {/* Foto da Vitrine */}
-                                    <div className="relative h-48 bg-slate-950 overflow-hidden cursor-pointer" onClick={() => handleOpenDetails(vehicle.id)}>
+                                    <div className="relative h-52 bg-slate-950 overflow-hidden cursor-pointer" onClick={() => handleOpenDetails(vehicle.id)}>
                                         {photoPath ? (
                                             <img
                                                 src={photoFullUrl}
@@ -232,7 +248,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                             </div>
                                         )}
 
-                                        <div className="absolute top-3 left-3 bg-nexus-accent text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md">
+                                        <div className="absolute top-3 left-3 text-white text-[11px] font-bold px-2.5 py-0.5 rounded-full shadow-md" style={{ backgroundColor: "var(--store-accent)" }}>
                                             {vehicle.modelYear}
                                         </div>
                                     </div>
@@ -240,7 +256,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                     {/* Informações do Veículo */}
                                     <div className="p-4 flex-1 flex flex-col justify-between space-y-4">
                                         <div>
-                                            <span className="text-[10px] font-bold tracking-wider uppercase text-nexus-accent block mb-0.5">
+                                            <span className="text-[10px] font-bold tracking-wider uppercase block mb-0.5" style={{ color: "var(--store-accent)" }}>
                                                 {vehicle.brand}
                                             </span>
                                             <h3 className="text-base font-bold text-white leading-tight line-clamp-1">
@@ -270,7 +286,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                         <div className="pt-3 border-t border-nexus-border space-y-3">
                                             <div className="flex items-baseline justify-between">
                                                 <span className="text-[10px] text-slate-500 uppercase font-medium">Preço</span>
-                                                <span className="text-lg font-extrabold text-emerald-400">
+                                                <span className="text-lg font-extrabold" style={{ color: "var(--store-accent)" }}>
                                                     {price > 0 ? formatCurrency(price) : 'Consulte'}
                                                 </span>
                                             </div>
@@ -278,7 +294,8 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                             <div className="grid grid-cols-2 gap-2">
                                                 <button
                                                     onClick={() => handleOpenDetails(vehicle.id)}
-                                                    className="py-2.5 px-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
+                                                    style={{ backgroundColor: "var(--store-accent)" }}
+                                                    className="py-2.5 px-3 text-white rounded-xl text-xs font-semibold transition-colors flex items-center justify-center gap-1 cursor-pointer"
                                                 >
                                                     <FileText size={14} />
                                                     Detalhes
@@ -308,7 +325,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
 
                         <div className="flex items-center justify-between px-6 py-4 border-b border-nexus-border">
                             <div>
-                                <span className="text-xs font-bold text-nexus-accent uppercase tracking-wider">{selectedVehicle.brand}</span>
+                                <span className="text-xs font-bold text-[var(--store-accent)] uppercase tracking-wider">{selectedVehicle.brand}</span>
                                 <h2 className="text-xl font-bold text-white">{selectedVehicle.model} {selectedVehicle.version}</h2>
                             </div>
                             <button
@@ -364,7 +381,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                             <button
                                                 key={idx}
                                                 onClick={() => setActivePhotoIndex(idx)}
-                                                className={`w-20 h-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activePhotoIndex === idx ? 'border-nexus-accent scale-105 shadow-md' : 'border-slate-800 opacity-60 hover:opacity-100'
+                                                className={`w-20 h-14 rounded-lg overflow-hidden border-2 transition-all shrink-0 cursor-pointer ${activePhotoIndex === idx ? 'border-[var(--store-accent)] scale-105 shadow-md' : 'border-slate-800 opacity-60 hover:opacity-100'
                                                     }`}
                                             >
                                                 <img src={photoUrl} alt="Thumbnail" className="w-full h-full object-cover" />

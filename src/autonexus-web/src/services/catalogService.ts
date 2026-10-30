@@ -65,7 +65,10 @@ export function getPhotoUrl(input?: string | null): string {
 
 export const catalogService = {
   getPublicCatalog: async (storeSlug = 'default'): Promise<{ items: any[]; store?: PublicStoreInfo }> => {
-    const data = await request<any>(`/public/catalog?store=${encodeURIComponent(storeSlug)}`);
+    const endpoint = storeSlug === 'current'
+      ? '/public/catalog/current'
+      : `/public/catalog?store=${encodeURIComponent(storeSlug)}`;
+    const data = await request<any>(endpoint);
     return Array.isArray(data) ? { items: data } : { items: data.items || [], store: data.store };
   },
 
