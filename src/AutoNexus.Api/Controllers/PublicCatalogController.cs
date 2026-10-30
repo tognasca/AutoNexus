@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AutoNexus.Infrastructure.Data;
+using AutoNexus.Domain.Interfaces;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -18,17 +19,37 @@ public class PublicCatalogController : ControllerBase
     private readonly IVehicleService _vehicleService;
     private readonly IFeedExportService _feedExportService;
     private readonly IAiDescriptionService _aiDescriptionService;
+    private readonly ITenantContext _tenantContext;
 
     public PublicCatalogController(
         AutoNexusDbContext context,
         IVehicleService vehicleService, 
         IFeedExportService feedExportService,
-        IAiDescriptionService aiDescriptionService)
+        IAiDescriptionService aiDescriptionService,
+        ITenantContext tenantContext)
     {
         _context = context;
         _vehicleService = vehicleService;
         _feedExportService = feedExportService;
         _aiDescriptionService = aiDescriptionService;
+        _tenantContext = tenantContext;
+    }
+
+    // A tela de catálogo aberta dentro do painel usa o tenant do JWT validado.
+    // Assim, a loja não cai silenciosamente no tenant "default".
+    [HttpGet("catalog/current")]
+    [Authorize]
+    public async Task<IActionResult> GetCurrentTenantCatalog(CancellationToken cancellationToken)
+    {
+        if (!_tenantContext.HasTenant)
+            return Unauthorized(new { message = "Não foi possível identificar a empresa da sessão." });
+
+        var tenant = await _context.Tenants.AsNoTracking()
+            .SingleOrDefaultAsync(t => t.Id == _tenantContext.TenantId && t.IsActive, cancellationToken);
+        if (tenant == null)
+            return NotFound(new { message = "Empresa não encontrada ou inativa." });
+
+        return await GetPublicCatalog(tenant.Slug, cancellationToken);
     }
 
     [HttpGet("catalog")]
