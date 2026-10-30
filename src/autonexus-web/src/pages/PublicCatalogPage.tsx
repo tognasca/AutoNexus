@@ -19,7 +19,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
     const [selectedVehicle, setSelectedVehicle] = useState<PublicVehicleDetail | null>(null);
     const [activePhotoIndex, setActivePhotoIndex] = useState(0);
 
-    const storeSlug = window.location.pathname.match(/^\/loja\/([^/]+)/)?.[1] || new URLSearchParams(window.location.search).get('store') || 'default';
+    const storeSlug = window.location.pathname.match(/^\/loja\/([^/]+)/)?.[1] || new URLSearchParams(window.location.search).get('store') || (onNavigate ? 'current' : 'default');
     const WHATSAPP_NUMBER = (import.meta.env.VITE_PUBLIC_WHATSAPP_NUMBER || '').replace(/\D/g, '');
 
     useEffect(() => {
@@ -194,7 +194,7 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                                 <select
                                     value={selectedBrand}
                                     onChange={(e) => setSelectedBrand(e.target.value)}
-                                    className="w-full bg-slate-950 border border-nexus-border rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-nexus-accent cursor-pointer"
+                                    className="w-full bg-slate-950 border border-nexus-border rounded-xl px-3 py-3 text-sm text-white focus:outline-none focus:border-[var(--store-accent)] cursor-pointer"
                                 >
                                     <option value="ALL">Todas as Marcas ({vehicles.length})</option>
                                     {uniqueBrands.map(b => (
@@ -204,17 +204,17 @@ export function PublicCatalogPage({ onNavigate }: { currentView?: string; onNavi
                             </div>
                         </div>
                     </div>
-                </div>
+                </section>
 
                 {/* Listagem de Veículos */}
                 {loading ? (
                     <div className="p-20 text-center text-slate-400 flex flex-col items-center justify-center gap-3">
-                        <div className="w-8 h-8 border-4 border-nexus-accent border-t-transparent rounded-full animate-spin"></div>
+                        <div className="w-8 h-8 border-4 border-t-transparent rounded-full animate-spin" style={{ borderColor: "var(--store-accent)", borderTopColor: "transparent" }}></div>
                         <p className="text-sm font-medium">Carregando estoque atualizado...</p>
                     </div>
                 ) : filteredVehicles.length === 0 ? (
                     <div className="bg-slate-900/80 border border-white/10 rounded-2xl p-12 text-center text-slate-400">
-                        <Car size={48} className="mx-auto mb-3 opacity-30 text-nexus-accent" />
+                        <Car size={48} className="mx-auto mb-3 opacity-70" style={{ color: "var(--store-accent)" }} />
                         <h3 className="text-lg font-bold text-white">Nenhum veículo disponível neste momento</h3><p className="mt-2 text-sm text-slate-400">Assim que a loja publicar novos veículos no estoque, eles aparecerão automaticamente aqui.</p>
                     </div>
                 ) : (
