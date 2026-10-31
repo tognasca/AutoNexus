@@ -17,6 +17,7 @@ import { PublicCatalogSaasPage } from './pages/PublicCatalogSaasPage';
 import { TenantSettingsPage } from './pages/admin/TenantSettingsPage';
 import { SubscriptionPage } from './pages/admin/SubscriptionPage';
 import { SuperAdminPage } from './pages/admin/SuperAdminPage';
+import { ProductionReadinessPage } from './pages/admin/ProductionReadinessPage';
 import { PricingPage } from './pages/public/PricingPage';
 import { SignupPage } from './pages/public/SignupPage';
 import { LegalPage } from './pages/public/LegalPage';
@@ -24,9 +25,10 @@ import { ForgotPasswordPage, ResetPasswordPage } from './pages/public/PasswordPa
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
-  const [currentView, setCurrentView] = useState(() =>
-    new URLSearchParams(window.location.search).get('view') === 'subscription' ? 'subscription' : 'dashboard'
-  );
+  const [currentView, setCurrentView] = useState(() => {
+    const requested = new URLSearchParams(window.location.search).get('view');
+    return requested === 'subscription' || requested === 'production-readiness' ? requested : 'dashboard';
+  });
   const [isPublicCatalogRoute, setIsPublicCatalogRoute] = useState(window.location.pathname === '/catalogo');
 
   useEffect(() => {
@@ -101,6 +103,7 @@ function AppContent() {
       case 'tenant-settings': return <TenantSettingsPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'subscription': return <SubscriptionPage currentView={currentView} onNavigate={handleNavigate} />;
       case 'superadmin': return <SuperAdminPage currentView={currentView} onNavigate={handleNavigate} />;
+      case 'production-readiness': return <ProductionReadinessPage currentView={currentView} onNavigate={handleNavigate} />;
       default: return <DashboardPage currentView={currentView} onNavigate={handleNavigate} />;
     }
   };
@@ -108,6 +111,4 @@ function AppContent() {
   return <>{renderContent()}</>;
 }
 
-export default function App() {
-  return <AuthProvider><AppContent /></AuthProvider>;
-}
+export default function App() { return <AuthProvider><AppContent /></AuthProvider>; }
