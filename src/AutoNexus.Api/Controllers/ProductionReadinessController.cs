@@ -57,13 +57,17 @@ public sealed class ProductionReadinessController : ControllerBase
             !string.IsNullOrWhiteSpace(_configuration["Resend:FromEmail"]), true,
             "Configure RESEND_API_KEY e RESEND_FROM_EMAIL."));
 
-        var legalDocuments = await _db.Set<AutoNexus.Domain.Entities.LegalDocument>()
-            .AsNoTracking().Where(x => x.IsActive).ToListAsync(cancellationToken);
-        var legalTypes = new[] { LegalDocumentType.TermsOfUse, LegalDocumentType.PrivacyPolicy, LegalDocumentType.CookiePolicy };
-        var legalReady = legalTypes.All(type => legalDocuments.Any(x => x.Type == type &&
-            !x.Content.Contains("[RASCUNHO ESTRUTURAL", StringComparison.OrdinalIgnoreCase) &&
-            !x.Content.Contains("[CNPJ]", StringComparison.OrdinalIgnoreCase) &&
-            !x.Content.Contains("[Razão social]", StringComparison.OrdinalIgnoreCase)));
+        var legalReady = false;
+        if (databaseOk)
+        {
+            var legalDocuments = await _db.Set<AutoNexus.Domain.Entities.LegalDocument>()
+                .AsNoTracking().Where(x => x.IsActive).ToListAsync(cancellationToken);
+            var legalTypes = new[] { LegalDocumentType.TermsOfUse, LegalDocumentType.PrivacyPolicy, LegalDocumentType.CookiePolicy };
+            legalReady = legalTypes.All(type => legalDocuments.Any(x => x.Type == type &&
+                !x.Content.Contains("[RASCUNHO ESTRUTURAL", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[CNPJ]", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[Razão social]", StringComparison.OrdinalIgnoreCase)));
+        }
         checks.Add(Check("Documentos legais finais publicados", legalReady, true,
             "Termos, Privacidade e Cookies ainda contêm placeholders ou precisam de revisão jurídica."));
 
