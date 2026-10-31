@@ -39,17 +39,27 @@ export interface AuditLogEntry {
   executedAt: string;
 }
 
-export const superAdminService = {
-  getTenants: async (): Promise<Tenant[]> => {
-    return await request<Tenant[]>('/superadmin/tenants');
-  },
+export interface ProductionReadinessCheck {
+  name: string;
+  ok: boolean;
+  blocking: boolean;
+  guidance: string;
+}
 
-  createTenant: async (data: CreateTenantInput): Promise<Tenant> => {
-    return await request<Tenant>('/superadmin/tenants', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+export interface ProductionReadiness {
+  ready: boolean;
+  environment: string;
+  checkedAtUtc: string;
+  checks: ProductionReadinessCheck[];
+}
+
+export const superAdminService = {
+  getTenants: async (): Promise<Tenant[]> => await request<Tenant[]>('/superadmin/tenants'),
+
+  createTenant: async (data: CreateTenantInput): Promise<Tenant> => await request<Tenant>('/superadmin/tenants', {
+    method: 'POST',
+    body: JSON.stringify(data),
+  }),
 
   activateTenant: async (tenantId: string): Promise<void> => {
     await request<void>(`/superadmin/tenants/${tenantId}/activate`, { method: 'POST' });
@@ -64,38 +74,16 @@ export const superAdminService = {
     return await request<SuperAdminUser[]>(`/superadmin/users${query}`);
   },
 
-  getPlans: async (): Promise<Plan[]> => {
-    return await request<Plan[]>('/superadmin/plans');
-  },
+  getPlans: async (): Promise<Plan[]> => await request<Plan[]>('/superadmin/plans'),
 
-  updatePlan: async (id: string, data: { name: string; price: number; annualPrice: number | null; trialDays: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => {
-    return await request<Plan>(`/superadmin/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) });
-  },
+  updatePlan: async (id: string, data: { name: string; price: number; annualPrice: number | null; trialDays: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> =>
+    await request<Plan>(`/superadmin/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
-  createPlan: async (data: { name: string; price: number; annualPrice?: number | null; trialDays?: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => {
-    return await request<Plan>('/superadmin/plans', {
-      method: 'POST',
-      body: JSON.stringify(data),
-    });
-  },
+  createPlan: async (data: { name: string; price: number; annualPrice?: number | null; trialDays?: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> =>
+    await request<Plan>('/superadmin/plans', { method: 'POST', body: JSON.stringify(data) }),
 
-  getSubscription: async (tenantId: string): Promise<TenantSubscription | null> => {
-    try {
-      return await request<TenantSubscription>(`/superadmin/tenants/${tenantId}/subscription`);
-    } catch {
-      return null;
-    }
-  },
+  getAuditLogs: async (): Promise<AuditLogEntry[]> => await request<AuditLogEntry[]>('/superadmin/audit-logs'),
 
-  getAuditLogs: async (tenantId?: string): Promise<AuditLogEntry[]> => {
-    const query = tenantId ? `?tenantId=${tenantId}` : '';
-    return await request<AuditLogEntry[]>(`/superadmin/audit-logs${query}`);
-  },
-
-  assignPlan: async (tenantId: string, planId: string): Promise<TenantSubscription> => {
-    return await request<TenantSubscription>(`/superadmin/tenants/${tenantId}/subscription`, {
-      method: 'POST',
-      body: JSON.stringify({ planId }),
-    });
-  },
+  getProductionReadiness: async (): Promise<ProductionReadiness> =>
+    await request<ProductionReadiness>('/superadmin/production-readiness'),
 };
