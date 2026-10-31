@@ -28,14 +28,16 @@ public class TenantSubscriptionConfiguration : IEntityTypeConfiguration<TenantSu
 
         builder.HasIndex(x => x.PlanId);
         builder.HasIndex(x => x.Status);
-        builder.HasIndex(x => x.ExternalSubscriptionId);
+        builder.HasIndex(x => x.ExternalSubscriptionId)
+            .IsUnique()
+            .HasFilter("\"ExternalSubscriptionId\" IS NOT NULL");
         builder.Property(x => x.UpdatedAt);
 
         // Assinatura inicial do tenant padrão (o mesmo que já existia antes
         // do multi-tenancy) — sem isso, ele ficaria sem plano nenhum depois
         // desta etapa, o que quebraria qualquer tela que dependa de haver
         // uma assinatura. Plano Free, sempre ativo (nunca vai vencer sozinho
-        // já que ainda não há cobrança de verdade).
+        // já que não há cobrança para o tenant padrão).
         builder.HasData(new
         {
             Id = Guid.Parse("00000000-0000-0000-0000-0000000000a1"),
