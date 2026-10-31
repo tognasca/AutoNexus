@@ -15,11 +15,17 @@ public class TenantSubscriptionRepository : ITenantSubscriptionRepository
     }
 
     public Task<TenantSubscription?> GetCurrentAsync(CancellationToken cancellationToken = default)
-        => _context.TenantSubscriptions.FirstOrDefaultAsync(cancellationToken);
+        => _context.TenantSubscriptions
+            .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
+            .ThenByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
     public Task<TenantSubscription?> GetByTenantIdAsync(Guid tenantId, CancellationToken cancellationToken = default)
         => _context.TenantSubscriptions.IgnoreQueryFilters()
-            .FirstOrDefaultAsync(s => s.TenantId == tenantId, cancellationToken);
+            .Where(s => s.TenantId == tenantId)
+            .OrderByDescending(s => s.UpdatedAt ?? s.CreatedAt)
+            .ThenByDescending(s => s.CreatedAt)
+            .FirstOrDefaultAsync(cancellationToken);
 
     public Task<TenantSubscription?> GetByIdAsync(Guid id, CancellationToken cancellationToken = default)
         => _context.TenantSubscriptions.IgnoreQueryFilters()
