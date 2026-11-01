@@ -1,0 +1,1 @@
+Premium catalog publication page: UI is intended to be reachable only from the authenticated Premium tenant area; backend remains the authoritative plan gate.
