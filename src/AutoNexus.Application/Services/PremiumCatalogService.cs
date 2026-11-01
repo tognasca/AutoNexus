@@ -59,8 +59,10 @@ public sealed class PremiumCatalogService : IPremiumCatalogService
 
     private async Task EnsurePremiumAsync(CancellationToken cancellationToken)
     {
-        var subscription = await _context.TenantSubscriptions.AsNoTracking().Include(x => x.Plan).Where(x => x.TenantId == _tenantContext.TenantId).OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
-        if (subscription?.Plan == null || !subscription.Plan.IsActive || !string.Equals(subscription.Plan.Name.Trim(), PremiumName, StringComparison.OrdinalIgnoreCase)) throw new UnauthorizedAccessException("A publicação em hospedagem própria está disponível exclusivamente no plano Premium.");
+        var subscription = await _context.TenantSubscriptions.AsNoTracking().Where(x => x.TenantId == _tenantContext.TenantId).OrderByDescending(x => x.UpdatedAt).ThenByDescending(x => x.CreatedAt).FirstOrDefaultAsync(cancellationToken);
+        if (subscription == null) throw new UnauthorizedAccessException("A publicação em hospedagem própria está disponível exclusivamente no plano Premium.");
+        var plan = await _context.Plans.AsNoTracking().SingleOrDefaultAsync(x => x.Id == subscription.PlanId && x.IsActive, cancellationToken);
+        if (plan == null || !string.Equals(plan.Name.Trim(), PremiumName, StringComparison.OrdinalIgnoreCase)) throw new UnauthorizedAccessException("A publicação em hospedagem própria está disponível exclusivamente no plano Premium.");
     }
 
     private void EnsureTenant() { if (!_tenantContext.HasTenant) throw new UnauthorizedAccessException("Empresa não identificada."); }
