@@ -1,0 +1,1 @@
+This placeholder is replaced by the Premium catalog package generator at runtime.
