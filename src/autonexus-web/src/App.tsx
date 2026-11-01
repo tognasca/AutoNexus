@@ -11,7 +11,7 @@ import { DrePage } from './pages/reports/DrePage';
 import { CommissionPage } from './pages/reports/CommissionPage';
 import { BankConfigPage } from './pages/admin/BankConfigPage';
 import { UsersPage } from './pages/admin/UsersPage';
-import { ShieldAlert, Loader2 } from 'lucide-react';
+import { CarFront, ShieldAlert, Loader2, ShieldCheck, Sparkles } from 'lucide-react';
 import { CompanyDocumentsPage } from './pages/admin/CompanyDocumentsPage';
 import { PublicCatalogSaasPage } from './pages/PublicCatalogSaasPage';
 import { TenantSettingsPage } from './pages/admin/TenantSettingsPage';
@@ -22,6 +22,52 @@ import { PricingPage } from './pages/public/PricingPage';
 import { SignupPage } from './pages/public/SignupPage';
 import { LegalPage } from './pages/public/LegalPage';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/public/PasswordPages';
+
+function AutoNexusLoadingScreen() {
+  return (
+    <main
+      className="min-h-screen bg-[#06111f] text-slate-100 flex items-center justify-center px-6 relative overflow-hidden"
+      aria-busy="true"
+      aria-label="Carregando AutoNexus"
+    >
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,rgba(37,99,235,0.18),transparent_45%)]" />
+      <div className="absolute -top-32 -left-24 h-72 w-72 rounded-full bg-blue-600/10 blur-3xl" />
+      <div className="absolute -bottom-32 -right-24 h-72 w-72 rounded-full bg-cyan-400/10 blur-3xl" />
+
+      <section className="relative w-full max-w-md text-center">
+        <div className="mx-auto flex h-24 w-24 items-center justify-center rounded-[2rem] border border-blue-400/30 bg-slate-900/80 shadow-[0_0_60px_rgba(37,99,235,0.25)]">
+          <div className="relative flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-lg shadow-blue-600/30">
+            <CarFront className="h-7 w-7" />
+            <span className="absolute inset-0 rounded-2xl border border-white/20 animate-ping" />
+          </div>
+        </div>
+
+        <div className="mt-7">
+          <div className="text-3xl font-black tracking-tight text-white">
+            Auto<span className="text-blue-400">Nexus</span>
+          </div>
+          <p className="mt-2 text-sm font-medium text-slate-400">Gestão inteligente para sua loja de veículos</p>
+        </div>
+
+        <div className="mt-9 rounded-2xl border border-slate-800/80 bg-slate-900/70 p-5 shadow-2xl backdrop-blur">
+          <div className="flex items-center justify-center gap-2 text-sm font-semibold text-slate-200">
+            <Loader2 className="h-4 w-4 animate-spin text-blue-400" />
+            Preparando seu ambiente...
+          </div>
+          <div className="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-800">
+            <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 animate-pulse" />
+          </div>
+          <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] text-slate-500">
+            <span className="flex items-center justify-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-emerald-400" />Sessão segura</span>
+            <span className="flex items-center justify-center gap-1.5"><Sparkles className="h-3.5 w-3.5 text-blue-400" />Carregando módulos</span>
+          </div>
+        </div>
+
+        <p className="mt-6 text-xs text-slate-600">Um momento. Estamos preparando tudo para você.</p>
+      </section>
+    </main>
+  );
+}
 
 function AppContent() {
   const { user, isAuthenticated, loading } = useAuth();
@@ -69,7 +115,7 @@ function AppContent() {
     }} />;
   }
 
-  if (loading) return <div className="min-h-screen bg-slate-900 flex items-center justify-center text-slate-400 gap-2"><Loader2 className="w-6 h-6 animate-spin text-blue-500" /><span>Carregando AutoNexus...</span></div>;
+  if (loading) return <AutoNexusLoadingScreen />;
   if (!isAuthenticated || !user) return <PricingPage />;
 
   const handleNavigate = (view: string) => {
