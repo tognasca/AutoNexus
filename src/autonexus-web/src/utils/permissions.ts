@@ -11,7 +11,7 @@ export const canAccessView = (profile?: number, view?: string): boolean => {
   if (profile === UserProfileEnum.SuperAdmin) return view === 'superadmin' || view === 'production-readiness';
   if (profile === UserProfileEnum.Admin) return view !== 'superadmin' && view !== 'production-readiness';
   if (profile === UserProfileEnum.Seller) {
-    const sellerAllowedViews = ['dashboard', 'vehicles', 'trades', 'simulator', 'financing', 'reports', 'commissions', 'catalog', 'subscription'];
+    const sellerAllowedViews = ['dashboard', 'vehicles', 'trades', 'simulator', 'financing', 'reports', 'commissions', 'catalog', 'subscription', 'onboarding', 'commercial'];
     return sellerAllowedViews.includes(view);
   }
   if (profile === UserProfileEnum.Customer) return ['portal', 'buyer-link'].includes(view);
