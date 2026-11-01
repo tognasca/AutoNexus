@@ -1,0 +1,1 @@
+Temporary implementation note: Premium static catalog is server-generated and dynamically backed by the AutoNexus public catalog API.
