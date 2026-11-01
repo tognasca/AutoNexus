@@ -52,6 +52,7 @@ public static class DependencyInjection
         services.AddScoped<IUserConsentRepository, UserConsentRepository>();
         services.AddHttpClient<IPaymentProvider, MercadoPagoPaymentProvider>();
         services.AddHttpClient<IEmailService, ResendEmailService>();
+        services.AddScoped<IPremiumCatalogPublicationRepository, PremiumCatalogPublicationRepository>();
         return services;
     }
 }

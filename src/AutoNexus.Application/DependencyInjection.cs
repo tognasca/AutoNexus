@@ -38,6 +38,7 @@ public static class DependencyInjection
         services.AddScoped<IPasswordService, PasswordService>();
         services.AddScoped<ITenantSettingService, TenantSettingService>();
         services.AddScoped<ISubscriptionService, SubscriptionService>();
+        services.AddScoped<IPremiumCatalogService, PremiumCatalogService>();
         return services;
     }
 }
