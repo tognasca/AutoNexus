@@ -33,7 +33,6 @@ public partial class TenantLeadsCrm : Migration
             constraints: table =>
             {
                 table.PrimaryKey("pk_leads", x => x.id);
-                table.ForeignKey("fk_leads_tenants_tenantId", x => x.tenantId, "tenants", "id", onDelete: ReferentialAction.Cascade);
                 table.ForeignKey("fk_leads_vehicles_vehicleId", x => x.vehicleId, "vehicles", "id", onDelete: ReferentialAction.SetNull);
                 table.ForeignKey("fk_leads_users_assignedToUserId", x => x.assignedToUserId, "users", "id", onDelete: ReferentialAction.SetNull);
             });
