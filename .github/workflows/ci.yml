@@ -22,7 +22,7 @@ jobs:
         image: postgres:16
         env:
           POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
           POSTGRES_DB: autonexus_ci
         ports:
           - 5432:5432
@@ -52,10 +52,10 @@ jobs:
         env:
           ASPNETCORE_ENVIRONMENT: Testing
           ASPNETCORE_URLS: http://127.0.0.1:5080
-          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=autonexus_ci;Username=postgres;Password=postgres
-          Jwt__SecretKey: AutoNexus-CI-Only-Secret-Key-For-Migration-Check-2026!
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=autonexus_ci;Username=postgres
+          Jwt__SecretKey: ${{ github.repository }}-${{ github.run_id }}-${{ github.sha }}-ci-only
         run: |
-          dotnet run --project src/AutoNexus.Api --configuration Release --no-build --urls "$ASPNETCORE_URLS" > /tmp/autonexus-api.log 2>&1 &
+          dotnet run --project src/AutoNexus.Api --configuration Release --no-build > /tmp/autonexus-api.log 2>&1 &
           api_pid=$!
           trap 'kill "$api_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 60); do
