@@ -811,6 +811,21 @@ namespace AutoNexus.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.PremiumCatalogPublication", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
+                    b.Property<string>("Domain").IsRequired().HasMaxLength(253).HasColumnType("character varying(253)").HasColumnName("domain");
+                    b.Property<bool>("IsActive").HasColumnType("boolean").HasColumnName("isActive");
+                    b.Property<DateTime?>("LastGeneratedAt").HasColumnType("timestamp with time zone").HasColumnName("lastGeneratedAt");
+                    b.Property<Guid>("TenantId").ValueGeneratedOnAdd().HasColumnType("uuid").HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001")).HasColumnName("tenantId");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
+                    b.HasKey("Id");
+                    b.HasIndex("Domain").IsUnique();
+                    b.HasIndex("TenantId").IsUnique();
+                    b.ToTable("premium_catalog_publications", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.Tenant", b =>
                 {
                     b.Property<Guid>("Id")
@@ -894,6 +909,11 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(20)")
                         .HasColumnName("primaryColor");
 
+                    b.Property<string>("WhatsAppNumber")
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("whatsAppNumber");
+
                     b.Property<Guid>("TenantId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
@@ -926,6 +946,7 @@ namespace AutoNexus.Infrastructure.Migrations
                             Currency = "BRL",
                             PrimaryColor = "#15171B",
                             TenantId = new Guid("00000000-0000-0000-0000-000000000001"),
+                            WhatsAppNumber = null,
                             TimeZone = "America/Sao_Paulo"
                         });
                 });
@@ -1779,6 +1800,15 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasOne("AutoNexus.Domain.Entities.Vehicle", "Vehicle").WithMany().HasForeignKey("VehicleId").OnDelete(DeleteBehavior.SetNull);
                     b.Navigation("AssignedToUser");
                     b.Navigation("Vehicle");
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.PremiumCatalogPublication", b =>
+                {
+                    b.HasOne("AutoNexus.Domain.Entities.Tenant", null)
+                        .WithMany()
+                        .HasForeignKey("TenantId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>
