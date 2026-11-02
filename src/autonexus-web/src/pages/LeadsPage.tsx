@@ -3,8 +3,11 @@ import { MainLayout } from '../components/layout/MainLayout';
 import { leadService, LeadStatus, type LeadItem, type LeadInput } from '../services/leadService';
 import { vehicleService } from '../services/vehicleService';
 import { userService, type UserItem } from '../services/userService';
+import type { VehicleSummary } from '../types/vehicle';
 import { useAuth } from '../contexts/AuthContext';
 import { Users, Plus, Search, Loader2, MessageCircle, Trash2, X, Pencil } from 'lucide-react';
+
+const errorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 
 const stages = [
   { id: LeadStatus.Novo, name: 'Novo', color: 'border-slate-500' },
@@ -18,7 +21,7 @@ const stages = [
 export function LeadsPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const { user } = useAuth();
   const [items, setItems] = useState<LeadItem[]>([]);
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -30,10 +33,17 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
   const load = async () => {
     setLoading(true);
     try { setItems(await leadService.getAll(search)); }
-    catch (e: any) { alert(e?.message || 'Erro ao carregar leads.'); }
+    catch (e: unknown) { alert(errorMessage(e, 'Erro ao carregar leads.')); }
     finally { setLoading(false); }
   };
-  useEffect(() => { load(); }, [search]);
+  useEffect(() => {
+    let active = true;
+    leadService.getAll(search)
+      .then(data => { if (active) setItems(data); })
+      .catch(error => { if (active) alert(errorMessage(error, 'Erro ao carregar leads.')); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [search]);
   useEffect(() => {
     vehicleService.getAll({ page: 1, pageSize: 100 }).then(x => setVehicles(x.items)).catch(() => {});
     if (user?.profile === 1) userService.getAll().then(setUsers).catch(() => {});
@@ -45,21 +55,21 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
       const payload = { ...form, vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null };
       if (editingId) await leadService.update(editingId, payload); else await leadService.create(payload);
       setModal(false); setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); await load();
-    } catch (err: any) { alert(err?.message || 'Erro ao salvar lead.'); }
+    } catch (err: unknown) { alert(errorMessage(err, 'Erro ao salvar lead.')); }
     finally { setSaving(false); }
   };
   const move = async (lead: LeadItem, status: LeadStatus) => {
     try { await leadService.changeStatus(lead.id, status); await load(); }
-    catch (e: any) { alert(e?.message || 'Erro ao mudar etapa.'); }
+    catch (e: unknown) { alert(errorMessage(e, 'Erro ao mudar etapa.')); }
   };
   const remove = async (lead: LeadItem) => {
     if (!confirm('Excluir este lead?')) return;
     try { await leadService.delete(lead.id); await load(); }
-    catch (e: any) { alert(e?.message || 'Erro ao excluir lead.'); }
+    catch (e: unknown) { alert(errorMessage(e, 'Erro ao excluir lead.')); }
   };
   const contact = async (lead: LeadItem) => {
     try { await leadService.registerContact(lead.id); await load(); }
-    catch (e: any) { alert(e?.message || 'Erro ao registrar contato.'); }
+    catch (e: unknown) { alert(errorMessage(e, 'Erro ao registrar contato.')); }
   };
 
   return <MainLayout currentView={currentView} onNavigate={onNavigate}>
@@ -68,7 +78,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
         <div><h1 className="flex items-center gap-2 text-xl font-bold text-white"><Users className="text-blue-400"/> CRM de Leads</h1><p className="mt-1 text-sm text-slate-400">Acompanhe oportunidades em cada etapa do funil comercial.</p></div>
         <button onClick={() => { setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); setModal(true); }} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Novo lead</button>
       </div>
-      <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar nome, telefone ou e-mail..." className="w-full rounded-lg border border-nexus-border bg-nexus-card py-2.5 pl-10 pr-3 text-sm text-white"/></div>
+      <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17}/><input value={search} onChange={e => { setLoading(true); setSearch(e.target.value); }} placeholder="Buscar nome, telefone ou e-mail..." className="w-full rounded-lg border border-nexus-border bg-nexus-card py-2.5 pl-10 pr-3 text-sm text-white"/></div>
       {loading ? <div className="flex h-48 items-center justify-center gap-2 text-slate-400"><Loader2 className="animate-spin"/>Carregando...</div> :
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {stages.map(stage => {
