@@ -18,6 +18,7 @@ export function BottomNav({ currentView, onNavigate }: BottomNavProps) {
     {button('onboarding', 'Primeiros', Rocket)}
     {button('commercial', 'Comercial', MessageCircle)}
     {button('vehicles', 'Estoque', Car)}
+    {button('leads', 'Leads', Users)}
     {button('trades', 'Trocas', ArrowLeftRight)}
     {button('simulator', 'Simulador', Calculator)}
     {button('financing', 'Financ.', FileDown)}
