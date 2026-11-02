@@ -11,7 +11,7 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/leads")]
-[Authorize]
+[Authorize(Roles = "Admin,Vendedor")]
 public sealed class LeadsController : ControllerBase
 {
     private readonly AutoNexusDbContext _db;
