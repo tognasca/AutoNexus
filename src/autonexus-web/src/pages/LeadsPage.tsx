@@ -4,7 +4,7 @@ import { leadService, LeadStatus, type LeadItem, type LeadInput } from '../servi
 import { vehicleService } from '../services/vehicleService';
 import { userService, type UserItem } from '../services/userService';
 import { useAuth } from '../contexts/AuthContext';
-import { Users, Plus, Search, Loader2, MessageCircle, Trash2, X } from 'lucide-react';
+import { Users, Plus, Search, Loader2, MessageCircle, Trash2, X, Pencil } from 'lucide-react';
 
 const stages = [
   { id: LeadStatus.Novo, name: 'Novo', color: 'border-slate-500' },
@@ -24,6 +24,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [modal, setModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<LeadInput>({ name: '', phone: '', email: '', source: 'Manual', notes: '' });
 
   const load = async () => {
@@ -41,8 +42,9 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
   const save = async (e: FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
-      await leadService.create({ ...form, vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null });
-      setModal(false); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); await load();
+      const payload = { ...form, vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null };
+      if (editingId) await leadService.update(editingId, payload); else await leadService.create(payload);
+      setModal(false); setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); await load();
     } catch (err: any) { alert(err?.message || 'Erro ao salvar lead.'); }
     finally { setSaving(false); }
   };
@@ -64,7 +66,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div><h1 className="flex items-center gap-2 text-xl font-bold text-white"><Users className="text-blue-400"/> CRM de Leads</h1><p className="mt-1 text-sm text-slate-400">Acompanhe oportunidades em cada etapa do funil comercial.</p></div>
-        <button onClick={() => setModal(true)} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Novo lead</button>
+        <button onClick={() => { setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); setModal(true); }} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Novo lead</button>
       </div>
       <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder="Buscar nome, telefone ou e-mail..." className="w-full rounded-lg border border-nexus-border bg-nexus-card py-2.5 pl-10 pr-3 text-sm text-white"/></div>
       {loading ? <div className="flex h-48 items-center justify-center gap-2 text-slate-400"><Loader2 className="animate-spin"/>Carregando...</div> :
@@ -75,7 +77,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
               <header className="flex justify-between border-b border-nexus-border px-3 py-3"><b className="text-sm text-white">{stage.name}</b><span className="rounded-full bg-slate-800 px-2 text-xs text-slate-300">{leads.length}</span></header>
               <div className="min-h-24 space-y-2 p-2">
                 {leads.map(lead => <article key={lead.id} className="space-y-2 rounded-lg border border-nexus-border bg-nexus-card p-3">
-                  <div className="flex justify-between gap-2"><b className="break-words text-sm text-white">{lead.name}</b><button onClick={() => remove(lead)} title="Excluir"><Trash2 size={14} className="text-slate-500 hover:text-rose-400"/></button></div>
+                  <div className="flex justify-between gap-2"><b className="break-words text-sm text-white">{lead.name}</b><button onClick={() => { setEditingId(lead.id); setForm({ name: lead.name, phone: lead.phone, email: lead.email || '', source: lead.source, notes: lead.notes || '', vehicleId: lead.vehicleId || '', assignedToUserId: lead.assignedToUserId || '' }); setModal(true); }} title="Editar lead"><Pencil size={14} className="text-slate-500 hover:text-blue-400"/></button><button onClick={() => remove(lead)} title="Excluir"><Trash2 size={14} className="text-slate-500 hover:text-rose-400"/></button></div>
                   <a href={`tel:${lead.phone}`} className="block text-xs text-slate-400">{lead.phone}</a>
                   {lead.email && <p className="break-all text-xs text-slate-500">{lead.email}</p>}
                   {lead.vehicleName && <p className="text-xs text-blue-300">{lead.vehicleName}</p>}
@@ -96,7 +98,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
     </div>
     {modal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
       <form onSubmit={save} className="w-full max-w-lg space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white">
-        <div className="flex justify-between border-b border-slate-800 pb-3"><h2 className="font-bold">Novo lead</h2><button type="button" onClick={() => setModal(false)}><X size={19}/></button></div>
+        <div className="flex justify-between border-b border-slate-800 pb-3"><h2 className="font-bold">{editingId ? 'Editar lead' : 'Novo lead'}</h2><button type="button" onClick={() => setModal(false)}><X size={19}/></button></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
           <label className="sm:col-span-2 text-slate-400">Nome *<input required maxLength={160} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
           <label className="text-slate-400">Telefone *<input required maxLength={30} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
@@ -106,7 +108,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
           {user?.profile === 1 && <label className="text-slate-400">Responsável<select value={form.assignedToUserId || ''} onChange={e => setForm({ ...form, assignedToUserId: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option value="">Eu mesmo</option>{users.filter(x => x.isActive && x.profile !== 3).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
           <label className="sm:col-span-2 text-slate-400">Observações<textarea rows={3} maxLength={2000} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
         </div>
-        <div className="flex justify-end gap-2 border-t border-slate-800 pt-3"><button type="button" onClick={() => setModal(false)} className="rounded-lg bg-slate-800 px-4 py-2 text-sm">Cancelar</button><button disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-50">{saving ? 'Salvando...' : 'Salvar lead'}</button></div>
+        <div className="flex justify-end gap-2 border-t border-slate-800 pt-3"><button type="button" onClick={() => setModal(false)} className="rounded-lg bg-slate-800 px-4 py-2 text-sm">Cancelar</button><button disabled={saving} className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold disabled:opacity-50">{saving ? 'Salvando...' : editingId ? 'Salvar alterações' : 'Salvar lead'}</button></div>
       </form>
     </div>}
   </MainLayout>;
