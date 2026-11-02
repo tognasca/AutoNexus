@@ -1121,6 +1121,31 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("trades", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.Lead", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
+                    b.Property<Guid?>("AssignedToUserId").HasColumnType("uuid").HasColumnName("assignedToUserId");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
+                    b.Property<string>("Email").HasMaxLength(254).HasColumnType("character varying(254)").HasColumnName("email");
+                    b.Property<DateTime?>("LastContactAt").HasColumnType("timestamp with time zone").HasColumnName("lastContactAt");
+                    b.Property<string>("Name").IsRequired().HasMaxLength(160).HasColumnType("character varying(160)").HasColumnName("name");
+                    b.Property<string>("Notes").HasMaxLength(2000).HasColumnType("character varying(2000)").HasColumnName("notes");
+                    b.Property<string>("Phone").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)").HasColumnName("phone");
+                    b.Property<string>("Source").IsRequired().HasMaxLength(80).HasColumnType("character varying(80)").HasColumnName("source");
+                    b.Property<int>("Status").HasColumnType("integer").HasColumnName("status");
+                    b.Property<Guid>("TenantId").ValueGeneratedOnAdd().HasColumnType("uuid").HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001")).HasColumnName("tenantId");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
+                    b.Property<Guid?>("VehicleId").HasColumnType("uuid").HasColumnName("vehicleId");
+                    b.HasKey("Id");
+                    b.HasIndex("AssignedToUserId");
+                    b.HasIndex("Phone");
+                    b.HasIndex("TenantId");
+                    b.HasIndex("TenantId", "CreatedAt");
+                    b.HasIndex("TenantId", "Status");
+                    b.HasIndex("VehicleId");
+                    b.ToTable("leads", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1746,6 +1771,14 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Navigation("DeliveredVehicle");
 
                     b.Navigation("ReceivedVehicle");
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.Lead", b =>
+                {
+                    b.HasOne("AutoNexus.Domain.Entities.User", "AssignedToUser").WithMany().HasForeignKey("AssignedToUserId").OnDelete(DeleteBehavior.SetNull);
+                    b.HasOne("AutoNexus.Domain.Entities.Vehicle", "Vehicle").WithMany().HasForeignKey("VehicleId").OnDelete(DeleteBehavior.SetNull);
+                    b.Navigation("AssignedToUser");
+                    b.Navigation("Vehicle");
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>
