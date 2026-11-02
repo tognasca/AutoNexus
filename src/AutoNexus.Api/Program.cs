@@ -175,6 +175,46 @@ if (!Directory.Exists(uploadsDirectory))
     Directory.CreateDirectory(uploadsDirectory);
 }
 
+// A pasta /uploads contém fotos públicas e documentos privados. Antes de
+// servir qualquer arquivo, permita somente imagens de veículos em caminhos
+// conhecidos. Documentos, contratos e arquivos de outras áreas devem passar
+// pelas rotas autenticadas que validam o tenant proprietário.
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/uploads", out var relativePath))
+    {
+        var segments = relativePath.Value?
+            .Split('/', StringSplitOptions.RemoveEmptyEntries) ?? [];
+
+        var isImage = segments.Length > 0 &&
+            new[] { ".jpg", ".jpeg", ".png", ".webp" }
+                .Contains(Path.GetExtension(segments[^1]), StringComparer.OrdinalIgnoreCase);
+
+        var isTenantVehiclePhoto =
+            segments.Length == 5 &&
+            segments[0].Equals("tenants", StringComparison.OrdinalIgnoreCase) &&
+            Guid.TryParse(segments[1], out _) &&
+            segments[2].Equals("vehicles", StringComparison.OrdinalIgnoreCase) &&
+            Guid.TryParse(segments[3], out _) &&
+            Path.GetFileName(segments[4]) == segments[4];
+
+        // Compatibilidade com fotos antigas salvas em /uploads/vehicles/{id}/{arquivo}.
+        var isLegacyVehiclePhoto =
+            segments.Length == 3 &&
+            segments[0].Equals("vehicles", StringComparison.OrdinalIgnoreCase) &&
+            Guid.TryParse(segments[1], out _) &&
+            Path.GetFileName(segments[2]) == segments[2];
+
+        if (!isImage || (!isTenantVehiclePhoto && !isLegacyVehiclePhoto))
+        {
+            context.Response.StatusCode = StatusCodes.Status404NotFound;
+            return;
+        }
+    }
+
+    await next();
+});
+
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsDirectory),
