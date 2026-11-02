@@ -51,6 +51,8 @@ public sealed class LeadsController : ControllerBase
     {
         if (!_tenant.HasTenant) return Forbid();
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
+        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone)) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
+        if (request.Name.Length > 160 || request.Phone.Length > 30 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
         var userId = _tenant.UserId;
         var assignedTo = request.AssignedToUserId ?? userId;
         if (!await ReferencesAreValid(request.VehicleId, assignedTo, ct))
@@ -70,6 +72,8 @@ public sealed class LeadsController : ControllerBase
         if (!_tenant.HasTenant) return Forbid();
         var lead = await _db.Leads.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (lead is null) return NotFound();
+        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone)) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
+        if (request.Name.Length > 160 || request.Phone.Length > 30 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
         var assignedTo = request.AssignedToUserId ?? lead.AssignedToUserId ?? _tenant.UserId;
         if (!await ReferencesAreValid(request.VehicleId, assignedTo, ct))
             return BadRequest(new { message = "O veículo ou o responsável informado não pertence à empresa ou não existe." });
@@ -117,7 +121,7 @@ public sealed class LeadsController : ControllerBase
     private async Task<bool> ReferencesAreValid(Guid? vehicleId, Guid? assignedToUserId, CancellationToken ct)
     {
         if (vehicleId.HasValue && !await _db.Vehicles.AnyAsync(x => x.Id == vehicleId.Value, ct)) return false;
-        if (assignedToUserId.HasValue && !await _db.Users.AnyAsync(x => x.Id == assignedToUserId.Value && x.IsActive, ct)) return false;
+        if (assignedToUserId.HasValue && !await _db.Users.AnyAsync(x => x.Id == assignedToUserId.Value && x.IsActive && (x.Profile == UserProfile.Admin || x.Profile == UserProfile.Vendedor), ct)) return false;
         return true;
     }
 
