@@ -117,6 +117,16 @@ public class VehiclesController : ControllerBase
     [AllowAnonymous]
     public IActionResult GetPhotoFile(string fileName)
     {
+        // Compatibilidade com imagens antigas: aceita somente um nome simples
+        // e extensões de imagem. Nunca permite segmentos de diretório.
+        if (string.IsNullOrWhiteSpace(fileName) ||
+            !string.Equals(Path.GetFileName(fileName), fileName, StringComparison.Ordinal) ||
+            !new[] { ".jpg", ".jpeg", ".png", ".webp" }
+                .Contains(Path.GetExtension(fileName), StringComparer.OrdinalIgnoreCase))
+        {
+            return NotFound(new { message = "Arquivo de imagem não encontrado." });
+        }
+
         var uploadsPath = Path.Combine(_environment.ContentRootPath, "uploads", "vehicles", fileName);
         if (!System.IO.File.Exists(uploadsPath))
         {
@@ -124,18 +134,13 @@ public class VehiclesController : ControllerBase
         }
 
         if (!System.IO.File.Exists(uploadsPath))
-        {
             return NotFound(new { message = "Arquivo de imagem não encontrado." });
-        }
 
         var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
         if (!provider.TryGetContentType(fileName, out var contentType))
-        {
-            contentType = "image/jpeg";
-        }
+            return NotFound(new { message = "Formato de imagem não suportado." });
 
-        var bytes = System.IO.File.ReadAllBytes(uploadsPath);
-        return File(bytes, contentType);
+        return PhysicalFile(uploadsPath, contentType);
     }
 
     [HttpGet("{id:guid}/photos")]
@@ -146,30 +151,9 @@ public class VehiclesController : ControllerBase
         return Ok(vehicle.Photos);
     }
 
-    [HttpGet("documents/{fileName}")]
-    [AllowAnonymous]
-    public IActionResult GetDocumentFile(string fileName)
-    {
-        var uploadsPath = Path.Combine(_environment.ContentRootPath, "uploads", "documents", fileName);
-        if (!System.IO.File.Exists(uploadsPath))
-        {
-            uploadsPath = Path.Combine(_environment.ContentRootPath, "uploads", fileName);
-        }
-
-        if (!System.IO.File.Exists(uploadsPath))
-        {
-            return NotFound(new { message = "Arquivo de documento não encontrado." });
-        }
-
-        var provider = new Microsoft.AspNetCore.StaticFiles.FileExtensionContentTypeProvider();
-        if (!provider.TryGetContentType(fileName, out var contentType))
-        {
-            contentType = "application/octet-stream";
-        }
-
-        var bytes = System.IO.File.ReadAllBytes(uploadsPath);
-        return File(bytes, contentType);
-    }
+    // A rota pública legada de documentos foi removida. Downloads agora
+    // devem usar VehicleDocumentsController.DownloadDocument, que valida
+    // veículo, documento e tenant antes de ler o arquivo.
 
     [HttpPost("{id:guid}/costs")]
     public async Task<IActionResult> AddCost(Guid id, [FromBody] AddCostRequest request, CancellationToken cancellationToken)
