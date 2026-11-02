@@ -1,4 +1,3 @@
-using System.Security.Claims;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
@@ -34,7 +33,7 @@ public sealed class LeadsController : ControllerBase
             var term = search.Trim();
             query = query.Where(x => x.Name.Contains(term) || x.Phone.Contains(term) || (x.Email != null && x.Email.Contains(term)));
         }
-        var leads = await query.OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt).Take(500).ToListAsync(ct);
+        var leads = await query.OrderByDescending(x => x.UpdatedAt ?? x.CreatedAt).ToListAsync(ct);
         return Ok(leads.Select(ToResponse));
     }
 
@@ -54,7 +53,10 @@ public sealed class LeadsController : ControllerBase
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone)) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
         if (request.Name.Length > 160 || request.Phone.Length > 30 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
         var userId = _tenant.UserId;
-        var assignedTo = request.AssignedToUserId ?? userId;
+        if (!userId.HasValue) return Unauthorized();
+        var currentUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId.Value, ct);
+        if (currentUser is null) return Unauthorized();
+        var assignedTo = currentUser.Profile == UserProfile.Admin ? request.AssignedToUserId ?? userId : userId;
         if (!await ReferencesAreValid(request.VehicleId, assignedTo, ct))
             return BadRequest(new { message = "O veículo ou o responsável informado não pertence à empresa ou não existe." });
 
@@ -74,7 +76,11 @@ public sealed class LeadsController : ControllerBase
         if (lead is null) return NotFound();
         if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone)) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
         if (request.Name.Length > 160 || request.Phone.Length > 30 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
-        var assignedTo = request.AssignedToUserId ?? lead.AssignedToUserId ?? _tenant.UserId;
+        var currentUserId = _tenant.UserId;
+        if (!currentUserId.HasValue) return Unauthorized();
+        var currentUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == currentUserId.Value, ct);
+        if (currentUser is null) return Unauthorized();
+        var assignedTo = currentUser.Profile == UserProfile.Admin ? request.AssignedToUserId ?? currentUserId : currentUserId;
         if (!await ReferencesAreValid(request.VehicleId, assignedTo, ct))
             return BadRequest(new { message = "O veículo ou o responsável informado não pertence à empresa ou não existe." });
         lead.UpdateDetails(request.Name, request.Phone, request.Email, request.Source, request.Notes, request.VehicleId, assignedTo);
