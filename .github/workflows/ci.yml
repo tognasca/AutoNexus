@@ -55,7 +55,7 @@ jobs:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=autonexus_ci;Username=postgres
           Jwt__SecretKey: ${{ github.repository }}-${{ github.run_id }}-${{ github.sha }}-ci-only
         run: |
-          dotnet run --project src/AutoNexus.Api --configuration Release --no-build > /tmp/autonexus-api.log 2>&1 &
+          dotnet run --project src/AutoNexus.Api --configuration Release --no-build --no-launch-profile > /tmp/autonexus-api.log 2>&1 &
           api_pid=$!
           trap 'kill "$api_pid" 2>/dev/null || true' EXIT
           for attempt in $(seq 1 60); do
