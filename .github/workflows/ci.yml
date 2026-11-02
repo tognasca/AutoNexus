@@ -17,6 +17,20 @@ jobs:
   dotnet:
     name: .NET build and tests
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_HOST_AUTH_METHOD: trust
+          POSTGRES_DB: autonexus_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d autonexus_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -34,6 +48,30 @@ jobs:
 
       - name: Test
         run: dotnet test AutoNexus.slnx --configuration Release --no-build --logger "trx;LogFileName=tests.trx"
+      - name: Apply migrations and start API against PostgreSQL
+        env:
+          ASPNETCORE_ENVIRONMENT: Testing
+          ASPNETCORE_URLS: http://127.0.0.1:5080
+          ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=autonexus_ci;Username=postgres
+          Jwt__SecretKey: ${{ github.repository }}-${{ github.run_id }}-${{ github.sha }}-ci-only
+        run: |
+          dotnet run --project src/AutoNexus.Api --configuration Release --no-build --no-launch-profile > /tmp/autonexus-api.log 2>&1 &
+          api_pid=$!
+          trap 'kill "$api_pid" 2>/dev/null || true' EXIT
+          for attempt in $(seq 1 60); do
+            if curl --fail --silent http://127.0.0.1:5080/health > /dev/null; then
+              echo "API started successfully; PostgreSQL migrations and initialization completed."
+              exit 0
+            fi
+            if ! kill -0 "$api_pid" 2>/dev/null; then
+              cat /tmp/autonexus-api.log
+              exit 1
+            fi
+            sleep 2
+          done
+          cat /tmp/autonexus-api.log
+          echo "API did not become healthy after PostgreSQL initialization."
+          exit 1
 
   frontend:
     name: Frontend build and lint

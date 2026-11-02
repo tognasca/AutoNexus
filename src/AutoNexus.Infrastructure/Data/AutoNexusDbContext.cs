@@ -19,6 +19,7 @@ public class AutoNexusDbContext : DbContext
     public DbSet<CostCategory> CostCategories => Set<CostCategory>();
     public DbSet<FipeHistory> FipeHistories => Set<FipeHistory>();
     public DbSet<Trade> Trades => Set<Trade>();
+    public DbSet<Lead> Leads => Set<Lead>();
     public DbSet<User> Users => Set<User>();
     public DbSet<AuditLog> AuditLogs => Set<AuditLog>();
     public DbSet<BuyerAccessLink> BuyerAccessLinks => Set<BuyerAccessLink>();
