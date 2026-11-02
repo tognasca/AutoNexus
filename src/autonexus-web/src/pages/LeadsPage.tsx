@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { leadService, LeadStatus, type LeadItem, type LeadInput } from '../services/leadService';
 import { vehicleService } from '../services/vehicleService';
@@ -38,7 +38,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
     if (user?.profile === 1) userService.getAll().then(setUsers).catch(() => {});
   }, [user?.profile]);
 
-  const save = async (e: React.FormEvent) => {
+  const save = async (e: FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
       await leadService.create({ ...form, vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null });
