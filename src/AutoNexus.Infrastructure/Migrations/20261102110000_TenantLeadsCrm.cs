@@ -35,7 +35,7 @@ public partial class TenantLeadsCrm : Migration
                 table.PrimaryKey("pk_leads", x => x.id);
                 table.ForeignKey("fk_leads_tenants_tenantId", x => x.tenantId, "tenants", "id", onDelete: ReferentialAction.Cascade);
                 table.ForeignKey("fk_leads_vehicles_vehicleId", x => x.vehicleId, "vehicles", "id", onDelete: ReferentialAction.SetNull);
-                table.ForeignKey("fk_leads_users_assignedToUserId", x => x.assignedToUserId, "Users", "Id", onDelete: ReferentialAction.SetNull);
+                table.ForeignKey("fk_leads_users_assignedToUserId", x => x.assignedToUserId, "Users", "id", onDelete: ReferentialAction.SetNull);
             });
 
         migrationBuilder.CreateIndex(name: "ix_leads_tenantId", table: "leads", column: "tenantId");
