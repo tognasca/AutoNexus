@@ -946,7 +946,7 @@ namespace AutoNexus.Infrastructure.Migrations
                             Currency = "BRL",
                             PrimaryColor = "#15171B",
                             TenantId = new Guid("00000000-0000-0000-0000-000000000001"),
-                            WhatsAppNumber = null,
+                            WhatsAppNumber = (string?)null,
                             TimeZone = "America/Sao_Paulo"
                         });
                 });
