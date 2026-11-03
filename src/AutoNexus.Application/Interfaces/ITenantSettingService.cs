@@ -12,4 +12,6 @@ public interface ITenantSettingService
 {
     Task<TenantSettingDto> GetCurrentAsync(CancellationToken cancellationToken = default);
     Task<TenantSettingDto> UpdateAsync(TenantSettingDto dto, CancellationToken cancellationToken = default);
+    Task<string> UploadHeroImageAsync(Microsoft.AspNetCore.Http.IFormFile file, CancellationToken cancellationToken = default);
+    Task RemoveHeroImageAsync(CancellationToken cancellationToken = default);
 }
