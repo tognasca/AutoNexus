@@ -37,10 +37,13 @@ public class AutoNexusDbContext : DbContext
     public DbSet<TenantSubscription> TenantSubscriptions => Set<TenantSubscription>();
     public DbSet<TenantSetting> TenantSettings => Set<TenantSetting>();
     public DbSet<PremiumCatalogPublication> PremiumCatalogPublications => Set<PremiumCatalogPublication>();
+    public DbSet<MercadoPagoConfiguration> MercadoPagoConfigurations => Set<MercadoPagoConfiguration>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder); modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
+        modelBuilder.Entity<MercadoPagoConfiguration>().ToTable("mercado_pago_configuration");
+        modelBuilder.Entity<MercadoPagoConfiguration>().HasIndex(x => x.ConfiguredAtUtc);
         modelBuilder.Entity<CreditProposalRecord>().ToTable("credit_proposals").HasIndex(x => x.ProposalNumber);
         modelBuilder.Entity<CreditProposalRecord>().HasIndex(x => x.Status);
         foreach (var entityType in modelBuilder.Model.GetEntityTypes())
