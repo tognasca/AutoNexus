@@ -7,8 +7,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace AutoNexus.Api.Controllers;
 
-public record AddCostRequest(Guid CostCategoryId, string Description, decimal Value, DateTime CostDate);
-
 [ApiController]
 [Route("api/[controller]")]
 [Authorize]
@@ -155,24 +153,6 @@ public class VehiclesController : ControllerBase
     // devem usar VehicleDocumentsController.DownloadDocument, que valida
     // veículo, documento e tenant antes de ler o arquivo.
 
-    [HttpPost("{id:guid}/costs")]
-    public async Task<IActionResult> AddCost(Guid id, [FromBody] AddCostRequest request, CancellationToken cancellationToken)
-    {
-        if (request == null || request.Value <= 0 || string.IsNullOrWhiteSpace(request.Description))
-        {
-            return BadRequest(new { message = "Descrição e valor válido são obrigatórios." });
-        }
-
-        await _vehicleService.AddCostAsync(id, request.CostCategoryId, request.Description, request.Value, request.CostDate, cancellationToken);
-        return Ok(new { message = "Custo adicionado com sucesso." });
-    }
-
-    [HttpDelete("{id:guid}/costs/{costId:guid}")]
-    public async Task<IActionResult> DeleteCost(Guid id, Guid costId, CancellationToken cancellationToken)
-    {
-        await _vehicleService.DeleteCostAsync(id, costId, cancellationToken);
-        return NoContent();
-    }
     private static string? ValidateVehicleInput(
         Guid vehicleTypeId,
         string brand,
