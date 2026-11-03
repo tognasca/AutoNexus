@@ -15,6 +15,8 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
         builder.Property(x => x.LogoUrl).HasMaxLength(500);
         builder.Property(x => x.HeroImageUrl).HasMaxLength(500);
         builder.Property(x => x.HeroTemplateKey).HasMaxLength(40);
+        builder.Property(x => x.WelcomeText).HasMaxLength(120);
+        builder.Property(x => x.HeroTitle).HasMaxLength(180);
         builder.Property(x => x.PrimaryColor).HasMaxLength(20).IsRequired();
         builder.Property(x => x.WhatsAppNumber).HasMaxLength(15);
         builder.Property(x => x.TimeZone).HasMaxLength(100).IsRequired();
