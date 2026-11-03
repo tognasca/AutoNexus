@@ -130,8 +130,8 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
                 {vehicles.length} {vehicles.length === 1 ? 'veículo disponível' : 'veículos disponíveis'}
               </div>
               <div>
-                <p className="mb-2 text-sm font-semibold" style={{ color: accent }}>Bem-vindo à {store?.name || 'nossa loja'}</p>
-                <h1 className="text-4xl font-black leading-[1.02] tracking-tight sm:text-6xl">Seu próximo carro pode estar <span style={{ color: accent }}>aqui.</span></h1>
+                <p className="mb-2 text-sm font-semibold" style={{ color: accent }}>{store?.welcomeText?.trim() || `Bem-vindo à ${store?.name || 'nossa loja'}`}</p>
+                <h1 className="text-4xl font-black leading-[1.02] tracking-tight sm:text-6xl">{store?.heroTitle?.trim() || 'Seu próximo carro pode estar aqui.'}</h1>
               </div>
               <p className="max-w-2xl text-sm leading-6 text-slate-200 sm:text-base">Confira o estoque atualizado, compare os veículos e fale diretamente com a equipe da loja pelo WhatsApp.</p>
               <div className="grid max-w-3xl grid-cols-1 gap-2 sm:grid-cols-12">
