@@ -223,11 +223,10 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
                   <label className="text-xs text-slate-400 block mb-1">Taxa de Juros (% ao mês)</label>
                   <div className="relative">
                     <input
-                      type="number"
-                      step="0.01"
-                      min="0"
+                      type="text"
+                      inputMode="decimal"
                       value={interestRate}
-                      onChange={e => setInterestRate(Number(e.target.value))}
+                      onChange={e => setInterestRate(e.target.value.replace(',', '.').replace(/[^0-9.]/g, '').replace(/(\\..*)\\./g, '$1'))}
                       className="w-full bg-slate-900 border border-slate-700 rounded-lg pl-3 pr-8 py-2 text-sm text-white outline-none focus:border-amber-500"
                     />
                     <span className="absolute right-3 top-2.5 text-slate-400 text-sm">%</span>
