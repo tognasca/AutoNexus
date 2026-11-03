@@ -13,6 +13,8 @@ public class TenantSetting : TenantOwnedEntityBase
     public string? LogoUrl { get; private set; }
     public string? HeroImageUrl { get; private set; }
     public string? HeroTemplateKey { get; private set; }
+    public string? WelcomeText { get; private set; }
+    public string? HeroTitle { get; private set; }
     public string PrimaryColor { get; private set; } = "#15171B";
     public string? WhatsAppNumber { get; private set; }
     public string TimeZone { get; private set; } = "America/Sao_Paulo";
@@ -28,7 +30,7 @@ public class TenantSetting : TenantOwnedEntityBase
         CompanyName = companyName.Trim();
     }
 
-    public void Update(string companyName, string? logoUrl, string primaryColor, string? whatsAppNumber, string timeZone, string currency, string? heroImageUrl = null, string? heroTemplateKey = null)
+    public void Update(string companyName, string? logoUrl, string primaryColor, string? whatsAppNumber, string timeZone, string currency, string? heroImageUrl = null, string? heroTemplateKey = null, string? welcomeText = null, string? heroTitle = null)
     {
         if (string.IsNullOrWhiteSpace(companyName))
             throw new ArgumentException("Nome da empresa é obrigatório.", nameof(companyName));
@@ -43,11 +45,21 @@ public class TenantSetting : TenantOwnedEntityBase
         LogoUrl = logoUrl;
         HeroImageUrl = string.IsNullOrWhiteSpace(heroImageUrl) ? null : heroImageUrl.Trim();
         HeroTemplateKey = string.IsNullOrWhiteSpace(heroTemplateKey) ? null : heroTemplateKey.Trim();
+        WelcomeText = NormalizeOptionalText(welcomeText, 120, nameof(welcomeText));
+        HeroTitle = NormalizeOptionalText(heroTitle, 180, nameof(heroTitle));
         PrimaryColor = primaryColor.Trim();
         WhatsAppNumber = NormalizeWhatsAppNumber(whatsAppNumber);
         TimeZone = timeZone.Trim();
         Currency = currency.Trim().ToUpperInvariant();
         UpdatedAt = DateTime.UtcNow;
+    }
+
+    private static string? NormalizeOptionalText(string? value, int maxLength, string parameterName)
+    {
+        if (string.IsNullOrWhiteSpace(value)) return null;
+        var normalized = value.Trim();
+        if (normalized.Length > maxLength) throw new ArgumentException($"O texto deve ter no máximo {maxLength} caracteres.", parameterName);
+        return normalized;
     }
 
     private static string? NormalizeWhatsAppNumber(string? value)
