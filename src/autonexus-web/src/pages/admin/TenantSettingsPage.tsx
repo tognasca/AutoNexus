@@ -15,6 +15,8 @@ const emptySettings: TenantSettings = {
   whatsappNumber: '',
   timeZone: 'America/Sao_Paulo',
   currency: 'BRL',
+  welcomeText: '',
+  heroTitle: '',
 };
 
 export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPageProps) {
@@ -96,6 +98,12 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                   required
                 />
               </div>
+
+              <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <div><h3 className="text-sm font-bold text-white">Textos da página inicial</h3><p className="mt-1 text-[11px] text-slate-400">Personalize a saudação e o título principal do catálogo. Deixe vazio para usar o padrão.</p></div>
+                <div><label className="mb-1 block text-slate-400">Saudação</label><input type="text" maxLength={120} value={form.welcomeText ?? ""} onChange={e => setForm(v => ({ ...v, welcomeText: e.target.value }))} placeholder={"Bem-vindo à " + (form.companyName || "sua empresa")} className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500" /></div>
+                <div><label className="mb-1 block text-slate-400">Título principal</label><input type="text" maxLength={180} value={form.heroTitle ?? ""} onChange={e => setForm(v => ({ ...v, heroTitle: e.target.value }))} placeholder="Seu próximo carro pode estar aqui." className="w-full rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white outline-none focus:border-blue-500" /><p className="mt-1 text-[11px] text-slate-500">Máximo de 180 caracteres.</p></div>
+              </section>
 
               <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                 <div>
