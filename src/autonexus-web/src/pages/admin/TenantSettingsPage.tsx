@@ -120,7 +120,7 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">Enviar minha imagem
-                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; try { const result = await tenantSettingsService.uploadHero(file); setForm(v => ({ ...v, heroImageUrl: result.heroImageUrl, heroTemplateKey: 'upload' })); } catch (err: any) { alert(err.message || 'Falha ao enviar imagem.'); } finally { e.currentTarget.value = ''; } }} />
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={async e => { const input = e.currentTarget; const file = input.files?.[0]; if (!file) return; try { const result = await tenantSettingsService.uploadHero(file); setForm(v => ({ ...v, heroImageUrl: result.heroImageUrl, heroTemplateKey: 'upload' })); } catch (err: any) { alert(err.message || 'Falha ao enviar imagem.'); } finally { input.value = ''; } }} />
                   </label>
                   <button type="button" onClick={async () => { try { await tenantSettingsService.removeHero(); setForm(v => ({ ...v, heroImageUrl: null, heroTemplateKey: null })); } catch (err: any) { alert(err.message || 'Não foi possível remover a imagem.'); } }} className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">Usar padrão</button>
                 </div>
