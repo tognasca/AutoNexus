@@ -24,6 +24,8 @@ export interface PublicStoreInfo {
   logoUrl?: string;
   heroImageUrl?: string | null;
   heroTemplateKey?: string | null;
+  welcomeText?: string | null;
+  heroTitle?: string | null;
   primaryColor?: string;
   whatsappNumber?: string;
 }
