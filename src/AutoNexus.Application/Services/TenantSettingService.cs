@@ -56,7 +56,7 @@ public class TenantSettingService : ITenantSettingService
         }
         else
         {
-            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey);
+            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey, dto.WelcomeText, dto.HeroTitle);
             _settingRepository.Update(settings);
         }
 
@@ -91,7 +91,7 @@ public class TenantSettingService : ITenantSettingService
         if (settings == null) return;
 
         var old = settings.LogoUrl;
-        settings.Update(settings.CompanyName, null, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, settings.HeroImageUrl, settings.HeroTemplateKey);
+        settings.Update(settings.CompanyName, null, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, settings.HeroImageUrl, settings.HeroTemplateKey, settings.WelcomeText, settings.HeroTitle);
         _settingRepository.Update(settings);
         await _unitOfWork.CommitAsync(cancellationToken);
 
