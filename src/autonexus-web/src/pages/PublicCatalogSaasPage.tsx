@@ -120,7 +120,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
 
       <main className="mx-auto max-w-7xl space-y-7 px-4 py-5 sm:px-6 sm:py-8">
         <section className="relative isolate min-h-[390px] overflow-hidden rounded-3xl border border-white/10 shadow-2xl sm:min-h-[440px]">
-          {vehicles[0]?.mainPhotoUrl && <img src={getPhotoUrl(vehicles[0].mainPhotoUrl)} alt="Veículos em estoque" className="absolute inset-0 h-full w-full object-cover" />}
+          {(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl) && <img src={getPhotoUrl(store?.heroImageUrl || vehicles[0].mainPhotoUrl)} alt="Imagem principal da loja" className="absolute inset-0 h-full w-full object-cover" />}
           <div className="absolute inset-0 bg-gradient-to-r from-slate-950 via-slate-950/85 to-slate-950/20" />
           <div className="absolute inset-0 opacity-60" style={{ background: `radial-gradient(circle at 85% 20%, ${accent}66, transparent 35%)` }} />
           <div className="relative flex min-h-[390px] items-center p-6 sm:min-h-[440px] sm:p-10 lg:p-14">
