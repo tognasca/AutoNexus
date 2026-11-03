@@ -40,6 +40,24 @@ public class TenantSettingsController : ControllerBase
         }
     }
 
+    [HttpPost("logo")]
+    [Authorize(Roles = "Admin")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> UploadLogo([FromForm] IFormFile file, CancellationToken ct)
+    {
+        try { return Ok(new { logoUrl = await _tenantSettingService.UploadLogoAsync(file, ct) }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [HttpDelete("logo")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RemoveLogo(CancellationToken ct)
+    {
+        await _tenantSettingService.RemoveLogoAsync(ct);
+        return NoContent();
+    }
+
     [HttpPost("hero-image")]
     [Authorize(Roles = "Admin")]
     [Consumes("multipart/form-data")]
@@ -52,7 +70,11 @@ public class TenantSettingsController : ControllerBase
 
     [HttpDelete("hero-image")]
     [Authorize(Roles = "Admin")]
-    public async Task<IActionResult> RemoveHeroImage(CancellationToken ct) { await _tenantSettingService.RemoveHeroImageAsync(ct); return NoContent(); }
+    public async Task<IActionResult> RemoveHeroImage(CancellationToken ct)
+    {
+        await _tenantSettingService.RemoveHeroImageAsync(ct);
+        return NoContent();
+    }
 
     [HttpPut]
     [Authorize(Roles = "Admin")]
