@@ -109,7 +109,7 @@ public class VehiclesController : ControllerBase
             return Unauthorized(new { message = "Não foi possível identificar o usuário da sessão. Entre novamente." });
 
         var currentUser = await _authService.GetCurrentUserAsync(sellerId, cancellationToken);
-        if (currentUser is null)
+        if (currentUser is null || !currentUser.IsActive)
             return Unauthorized(new { message = "O usuário da sessão não está mais ativo neste cadastro. Entre novamente." });
 
         var updatedDto = new SellVehicleDto(dto.SaleValue, sellerId, dto.SoldAt);
