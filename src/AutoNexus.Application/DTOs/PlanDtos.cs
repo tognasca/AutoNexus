@@ -58,5 +58,7 @@ public record TenantSettingDto(
     string PrimaryColor,
     string? WhatsAppNumber,
     string TimeZone,
-    string Currency
+    string Currency,
+    string? HeroImageUrl = null,
+    string? HeroTemplateKey = null
 );
