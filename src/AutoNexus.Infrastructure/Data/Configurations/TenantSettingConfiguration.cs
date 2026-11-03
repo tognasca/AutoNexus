@@ -32,6 +32,8 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
             TenantId = Tenant.DefaultTenantId,
             CompanyName = "Empresa Padrão",
             LogoUrl = (string?)null,
+            WelcomeText = (string?)null,
+            HeroTitle = (string?)null,
             PrimaryColor = "#15171B",
             WhatsAppNumber = (string?)null,
             TimeZone = "America/Sao_Paulo",
