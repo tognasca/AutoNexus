@@ -11,6 +11,8 @@ public class TenantSetting : TenantOwnedEntityBase
 {
     public string CompanyName { get; private set; } = string.Empty;
     public string? LogoUrl { get; private set; }
+    public string? HeroImageUrl { get; private set; }
+    public string? HeroTemplateKey { get; private set; }
     public string PrimaryColor { get; private set; } = "#15171B";
     public string? WhatsAppNumber { get; private set; }
     public string TimeZone { get; private set; } = "America/Sao_Paulo";
@@ -26,7 +28,7 @@ public class TenantSetting : TenantOwnedEntityBase
         CompanyName = companyName.Trim();
     }
 
-    public void Update(string companyName, string? logoUrl, string primaryColor, string? whatsAppNumber, string timeZone, string currency)
+    public void Update(string companyName, string? logoUrl, string primaryColor, string? whatsAppNumber, string timeZone, string currency, string? heroImageUrl = null, string? heroTemplateKey = null)
     {
         if (string.IsNullOrWhiteSpace(companyName))
             throw new ArgumentException("Nome da empresa é obrigatório.", nameof(companyName));
@@ -39,6 +41,8 @@ public class TenantSetting : TenantOwnedEntityBase
 
         CompanyName = companyName.Trim();
         LogoUrl = logoUrl;
+        HeroImageUrl = string.IsNullOrWhiteSpace(heroImageUrl) ? null : heroImageUrl.Trim();
+        HeroTemplateKey = string.IsNullOrWhiteSpace(heroTemplateKey) ? null : heroTemplateKey.Trim();
         PrimaryColor = primaryColor.Trim();
         WhatsAppNumber = NormalizeWhatsAppNumber(whatsAppNumber);
         TimeZone = timeZone.Trim();
