@@ -25,8 +25,19 @@ public class TenantSettingsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
-        var settings = await _tenantSettingService.GetCurrentAsync(cancellationToken);
-        return Ok(settings);
+        try
+        {
+            var settings = await _tenantSettingService.GetCurrentAsync(cancellationToken);
+            return Ok(settings);
+        }
+        catch (InvalidOperationException ex) when (
+            ex.Message.Contains("Nenhum tenant identificado", StringComparison.OrdinalIgnoreCase))
+        {
+            return Unauthorized(new
+            {
+                message = "Sua sessão não está vinculada a uma empresa. Entre novamente no AutoNexus para renovar a sessão."
+            });
+        }
     }
 
     [HttpPost("hero-image")]
