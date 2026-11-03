@@ -111,7 +111,6 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
             <a href="#inicio" className="flex items-center gap-2 border-b-2 border-transparent py-5 text-slate-200 hover:text-white"><Car size={17}/> Início</a>
             <a href="#veiculos" className="flex items-center gap-2 border-b-2 py-5" style={{ color: '#ffc64a', borderColor: '#ffc64a' }}><Car size={17}/> Veículos</a>
             <a href="#veiculos" className="flex items-center gap-2 py-5 text-slate-200 hover:text-white"><FileText size={17}/> Financiamento</a>
-            {onNavigate && <button onClick={() => onNavigate('tenant-settings')} className="flex items-center gap-2 py-5 text-slate-200 hover:text-white"><ShieldCheck size={17}/> Minha Loja</button>}
             <a href="#rodape" className="flex items-center gap-2 py-5 text-slate-200 hover:text-white"><SlidersHorizontal size={17}/> Atendimento</a>
           </nav>
           <div className="flex items-center gap-3">
