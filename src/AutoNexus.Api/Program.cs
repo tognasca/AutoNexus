@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Cryptography;
 using System.Threading.RateLimiting;
 using AutoNexus.Application;
 using AutoNexus.Infrastructure;
@@ -172,9 +173,22 @@ using (var scope = app.Services.CreateScope())
     if (savedMercadoPago != null)
     {
         var protector = scope.ServiceProvider.GetRequiredService<MercadoPagoCredentialProtector>();
-        builder.Configuration["MercadoPago:AccessToken"] = protector.Unprotect(savedMercadoPago.EncryptedAccessToken);
-        builder.Configuration["MercadoPago:WebhookSecret"] = protector.Unprotect(savedMercadoPago.EncryptedWebhookSecret);
-        builder.Configuration["MercadoPago:Environment"] = savedMercadoPago.Environment;
+        try
+        {
+            builder.Configuration["MercadoPago:AccessToken"] = protector.Unprotect(savedMercadoPago.EncryptedAccessToken);
+            builder.Configuration["MercadoPago:WebhookSecret"] = protector.Unprotect(savedMercadoPago.EncryptedWebhookSecret);
+            builder.Configuration["MercadoPago:Environment"] = savedMercadoPago.Environment;
+        }
+        catch (CryptographicException)
+        {
+            // Uma rotação da chave JWT invalida a chave derivada de criptografia.
+            // A API continua inicializando para que o SuperAdmin possa cadastrar novamente as credenciais.
+            Console.Error.WriteLine("As credenciais salvas do Mercado Pago não puderam ser descriptografadas. Cadastre-as novamente no painel SuperAdmin.");
+        }
+        catch (FormatException)
+        {
+            Console.Error.WriteLine("O registro criptografado do Mercado Pago está inválido. Cadastre novamente as credenciais no painel SuperAdmin.");
+        }
     }
 }
 
