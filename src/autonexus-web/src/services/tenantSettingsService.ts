@@ -4,6 +4,7 @@ export interface TenantSettings {
   companyName: string; logoUrl: string | null; primaryColor: string;
   whatsappNumber: string | null; timeZone: string; currency: string;
   heroImageUrl?: string | null; heroTemplateKey?: string | null;
+  welcomeText?: string | null; heroTitle?: string | null;
 }
 export const tenantSettingsService = {
   get: async (): Promise<TenantSettings> => request<TenantSettings>('/tenant-settings'),
