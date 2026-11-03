@@ -4,7 +4,8 @@ import { FuelType, TransmissionType, type CreateVehicleInput } from '../../types
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { X, Sparkles, Loader2 } from 'lucide-react';
 import { catalogService } from '../../services/catalogService';
-import { fipeService, type FipeLookupItem } from '../../services/fipeService';
+import { fipeService, type FipeLookupItem, type FipeCatalogQuote } from '../../services/fipeService';
+import { FipeValueCard } from './FipeValueCard';
 
 const VEHICLE_COLORS = ["Preto", "Branco", "Prata", "Cinza", "Vermelho", "Azul", "Verde", "Amarelo", "Marrom", "Bege", "Dourado", "Outra"];
 const FALLBACK_YEARS = Array.from({ length: new Date().getFullYear() + 2 - 1970 }, (_, i) => (new Date().getFullYear() + 1) - i);
@@ -32,6 +33,9 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
   const [loadingBrands, setLoadingBrands] = useState(false);
   const [loadingModels, setLoadingModels] = useState(false);
   const [loadingYears, setLoadingYears] = useState(false);
+  const [fipeQuote, setFipeQuote] = useState<FipeCatalogQuote | null>(null);
+  const [loadingFipeQuote, setLoadingFipeQuote] = useState(false);
+  const [fipeQuoteError, setFipeQuoteError] = useState<string | null>(null);
 
   const defaultTypeName = vehicleTypes[0]?.name || 'Carro';
 
@@ -62,6 +66,8 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
     setSelectedBrandCode('');
     setSelectedModelCode('');
     setSelectedYearCode('');
+    setFipeQuote(null);
+    setFipeQuoteError(null);
     setModels([]);
     setYears([]);
     loadFipeBrands(selectedTypeName);
@@ -150,6 +156,31 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
       manufacturingYear: prev.manufacturingYear > modelYear ? modelYear : prev.manufacturingYear,
     }));
   };
+
+  useEffect(() => {
+    if (!isOpen || !selectedBrandCode || !selectedModelCode || !selectedYearCode) {
+      setFipeQuote(null);
+      setFipeQuoteError(null);
+      return;
+    }
+
+    let cancelled = false;
+    setLoadingFipeQuote(true);
+    setFipeQuoteError(null);
+
+    fipeService.getCatalogQuote(selectedTypeName, selectedBrandCode, selectedModelCode, selectedYearCode)
+      .then(result => { if (!cancelled) setFipeQuote(result); })
+      .catch(err => {
+        console.error('Erro ao consultar valor FIPE:', err);
+        if (!cancelled) {
+          setFipeQuote(null);
+          setFipeQuoteError('Não foi possível consultar o valor FIPE desta versão. Você pode continuar o cadastro normalmente.');
+        }
+      })
+      .finally(() => { if (!cancelled) setLoadingFipeQuote(false); });
+
+    return () => { cancelled = true; };
+  }, [isOpen, selectedTypeName, selectedBrandCode, selectedModelCode, selectedYearCode]);
 
   if (!isOpen) return null;
 
@@ -261,6 +292,8 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
               </select>
             </div>
           </div>
+
+          <FipeValueCard quote={fipeQuote} loading={loadingFipeQuote} error={fipeQuoteError} />
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div className="md:col-span-2">
