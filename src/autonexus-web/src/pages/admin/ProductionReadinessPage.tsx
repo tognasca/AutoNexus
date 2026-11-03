@@ -32,7 +32,14 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
   const [data, setData] = useState<ProductionReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showConfiguration, setShowConfiguration] = useState(true);\n  const [mpStatus, setMpStatus] = useState<MercadoPagoConfigurationStatus | null>(null);\n  const [mpEnvironment, setMpEnvironment] = useState<'test' | 'production'>('production');\n  const [mpAccessToken, setMpAccessToken] = useState('');\n  const [mpWebhookSecret, setMpWebhookSecret] = useState('');\n  const [mpBusy, setMpBusy] = useState(false);\n  const [mpMessage, setMpMessage] = useState<string | null>(null);\n  const [mpMessageError, setMpMessageError] = useState(false);
+  const [showConfiguration, setShowConfiguration] = useState(true);
+  const [mpStatus, setMpStatus] = useState<MercadoPagoConfigurationStatus | null>(null);
+  const [mpEnvironment, setMpEnvironment] = useState<'test' | 'production'>('production');
+  const [mpAccessToken, setMpAccessToken] = useState('');
+  const [mpWebhookSecret, setMpWebhookSecret] = useState('');
+  const [mpBusy, setMpBusy] = useState(false);
+  const [mpMessage, setMpMessage] = useState<string | null>(null);
+  const [mpMessageError, setMpMessageError] = useState(false);
 
   const load = async () => {
     setLoading(true); setError(null);
