@@ -36,7 +36,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
   const [tradeValue, setTradeValue] = useState<number>(0);
 
   const [selectedBank, setSelectedBank] = useState(DEFAULT_BANKS[0].id);
-  const [interestRate, setInterestRate] = useState<number>(DEFAULT_BANKS[0].defaultRate);
+  const [interestRate, setInterestRate] = useState<string>(String(DEFAULT_BANKS[0].defaultRate));
 
   const [showCreditModal, setShowCreditModal] = useState(false);
   const [selectedPlanForCredit, setSelectedPlanForCredit] = useState<{ months: number; value: number } | null>(null);
@@ -103,7 +103,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
   // Atualiza a taxa automaticamente ao trocar de banco
   useEffect(() => {
     const bank = DEFAULT_BANKS.find(b => b.id === selectedBank);
-    if (bank) setInterestRate(bank.defaultRate);
+    if (bank) setInterestRate(String(bank.defaultRate));
   }, [selectedBank]);
 
   // Cálculo Tabela Price (PMT)
@@ -119,7 +119,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
 
   const plans = [12, 24, 36, 48, 60].map(months => ({
     months,
-    value: calculateInstallments(financedAmount, months, interestRate)
+    value: calculateInstallments(financedAmount, months, Number(interestRate.replace(',', '.')) || 0)
   }));
 
   if (loading) {
