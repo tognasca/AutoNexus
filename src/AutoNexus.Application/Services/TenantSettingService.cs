@@ -56,7 +56,7 @@ public class TenantSettingService : ITenantSettingService
         }
         else
         {
-            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency);
+            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey);
             _settingRepository.Update(settings);
         }
 
