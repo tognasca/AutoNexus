@@ -51,7 +51,7 @@ public class TenantSettingService : ITenantSettingService
                 throw new InvalidOperationException("Nenhum tenant identificado na requisição atual.");
 
             settings = new TenantSetting(dto.CompanyName);
-            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey);
+            settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey, dto.WelcomeText, dto.HeroTitle);
             await _settingRepository.AddForTenantAsync(settings, _tenantContext.TenantId, cancellationToken);
         }
         else
@@ -76,7 +76,7 @@ public class TenantSettingService : ITenantSettingService
         await using var stream = file.OpenReadStream();
         var path = await _storageService.SaveFileAsync(stream, $"logo{ext}", "branding", cancellationToken);
 
-        settings.Update(settings.CompanyName, path, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, settings.HeroImageUrl, settings.HeroTemplateKey);
+        settings.Update(settings.CompanyName, path, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, settings.HeroImageUrl, settings.HeroTemplateKey, settings.WelcomeText, settings.HeroTitle);
         _settingRepository.Update(settings);
         await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -110,7 +110,7 @@ public class TenantSettingService : ITenantSettingService
         await using var stream = file.OpenReadStream();
         var path = await _storageService.SaveFileAsync(stream, $"hero{ext}", "branding", cancellationToken);
 
-        settings.Update(settings.CompanyName, settings.LogoUrl, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, path, "upload");
+        settings.Update(settings.CompanyName, settings.LogoUrl, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, path, "upload", settings.WelcomeText, settings.HeroTitle);
         _settingRepository.Update(settings);
         await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -125,7 +125,7 @@ public class TenantSettingService : ITenantSettingService
         if (settings == null) return;
 
         var old = settings.HeroImageUrl;
-        settings.Update(settings.CompanyName, settings.LogoUrl, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, null, null);
+        settings.Update(settings.CompanyName, settings.LogoUrl, settings.PrimaryColor, settings.WhatsAppNumber, settings.TimeZone, settings.Currency, null, null, settings.WelcomeText, settings.HeroTitle);
         _settingRepository.Update(settings);
         await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -157,6 +157,8 @@ public class TenantSettingService : ITenantSettingService
         settings.TimeZone,
         settings.Currency,
         settings.HeroImageUrl,
-        settings.HeroTemplateKey
+        settings.HeroTemplateKey,
+        settings.WelcomeText,
+        settings.HeroTitle
     );
 }
