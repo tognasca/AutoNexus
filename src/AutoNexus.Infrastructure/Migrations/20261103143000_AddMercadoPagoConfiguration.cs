@@ -16,7 +16,7 @@ public partial class AddMercadoPagoConfiguration : Migration
             name: "mercado_pago_configuration",
             columns: table => new
             {
-                Id = table.Column<Guid>(type: "uuid", nullable: false),
+                id = table.Column<Guid>(type: "uuid", nullable: false),
                 encryptedAccessToken = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
                 encryptedWebhookSecret = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: false),
                 environment = table.Column<string>(type: "character varying(20)", maxLength: 20, nullable: false),
@@ -24,7 +24,7 @@ public partial class AddMercadoPagoConfiguration : Migration
                 createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                 updatedAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: true)
             },
-            constraints: table => table.PrimaryKey("PK_mercado_pago_configuration", x => x.Id));
+            constraints: table => table.PrimaryKey("PK_mercado_pago_configuration", x => x.id));
         migrationBuilder.CreateIndex(name: "IX_mercado_pago_configuration_configuredAtUtc", table: "mercado_pago_configuration", column: "configuredAtUtc");
     }
 
