@@ -2,6 +2,7 @@
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,11 +14,16 @@ namespace AutoNexus.Api.Controllers;
 public class VehiclesController : ControllerBase
 {
     private readonly IVehicleService _vehicleService;
+    private readonly IAuthService _authService;
     private readonly IWebHostEnvironment _environment;
 
-    public VehiclesController(IVehicleService vehicleService, IWebHostEnvironment environment)
+    public VehiclesController(
+        IVehicleService vehicleService,
+        IAuthService authService,
+        IWebHostEnvironment environment)
     {
         _vehicleService = vehicleService;
+        _authService = authService;
         _environment = environment;
     }
 
@@ -94,18 +100,19 @@ public class VehiclesController : ControllerBase
             return BadRequest(new { message = "O valor final de venda deve ser maior que R$ 0,00." });
         }
 
-        Guid? soldByUserId = dto.SoldByUserId;
+        // O vendedor nunca deve ser informado pelo frontend: usa exclusivamente
+        // a identidade autenticada e confirma que o usuário ainda existe neste tenant.
+        var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? User.FindFirst("sub")?.Value;
 
-        if (!soldByUserId.HasValue || soldByUserId.Value == Guid.Empty)
-        {
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (Guid.TryParse(userIdClaim, out var uid))
-            {
-                soldByUserId = uid;
-            }
-        }
+        if (!Guid.TryParse(userIdClaim, out var sellerId))
+            return Unauthorized(new { message = "Não foi possível identificar o usuário da sessão. Entre novamente." });
 
-        var updatedDto = new SellVehicleDto(dto.SaleValue, soldByUserId, dto.SoldAt);
+        var currentUser = await _authService.GetCurrentUserAsync(sellerId, cancellationToken);
+        if (currentUser is null)
+            return Unauthorized(new { message = "O usuário da sessão não está mais ativo neste cadastro. Entre novamente." });
+
+        var updatedDto = new SellVehicleDto(dto.SaleValue, sellerId, dto.SoldAt);
 
         await _vehicleService.SellVehicleAsync(id, updatedDto, cancellationToken);
         return Ok(new { message = "Venda registrada com sucesso." });
