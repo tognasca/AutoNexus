@@ -60,5 +60,7 @@ public record TenantSettingDto(
     string TimeZone,
     string Currency,
     string? HeroImageUrl = null,
-    string? HeroTemplateKey = null
+    string? HeroTemplateKey = null,
+    string? WelcomeText = null,
+    string? HeroTitle = null
 );
