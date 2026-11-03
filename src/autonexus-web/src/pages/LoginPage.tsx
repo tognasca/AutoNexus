@@ -4,8 +4,8 @@ import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
 export function LoginPage() {
   const { login } = useAuth();
-  const [email, setEmail] = useState('admin@autonexus.com');
-  const [password, setPassword] = useState('Admin@123456');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -55,6 +55,7 @@ export function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                autoComplete="username"
                 className="w-full pl-10 pr-4 py-2.5 bg-nexus-dark border border-nexus-border rounded-lg text-sm text-white focus:outline-none focus:border-nexus-accent transition-colors"
                 placeholder="seu.email@dominio.com"
               />
@@ -70,6 +71,7 @@ export function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
                 className="w-full pl-10 pr-4 py-2.5 bg-nexus-dark border border-nexus-border rounded-lg text-sm text-white focus:outline-none focus:border-nexus-accent transition-colors"
                 placeholder="••••••••"
               />
