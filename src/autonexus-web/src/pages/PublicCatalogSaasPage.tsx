@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   Search, Gauge, Fuel, Cog, Calendar, MessageCircle, X,
   ChevronLeft, ChevronRight, Car, FileText, ShieldCheck, Sparkles,
-  ExternalLink, MapPin, SlidersHorizontal, Heart, Menu, ArrowRight, Phone,
+  ExternalLink, SlidersHorizontal, Heart, Menu, ArrowRight, Phone,
   CheckCircle2
 } from 'lucide-react';
 import { catalogService, getPhotoUrl, type PublicStoreInfo, type PublicVehicleDetail } from '../services/catalogService';
