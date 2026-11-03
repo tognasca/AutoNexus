@@ -4,6 +4,8 @@ using AutoNexus.Application;
 using AutoNexus.Infrastructure;
 using AutoNexus.Infrastructure.Data;
 using AutoNexus.Infrastructure.Data.Seeds;
+using AutoNexus.Api.Security;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
@@ -138,6 +140,8 @@ builder.Services.AddRateLimiter(options =>
 
 builder.Services.AddHostedService<AutoNexus.Api.Workers.BillingMaintenanceWorker>();
 
+builder.Services.AddSingleton<MercadoPagoCredentialProtector>();
+builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks(); // Diagnóstico de Saúde da Aplicação
@@ -162,6 +166,16 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoNexusDbContext>();
     await DbInitializer.SeedAsync(context, builder.Configuration, builder.Environment.IsDevelopment());
+    // Credenciais configuradas pelo SuperAdmin no banco prevalecem sobre variáveis legadas.
+    var savedMercadoPago = await context.MercadoPagoConfigurations
+        .OrderByDescending(x => x.ConfiguredAtUtc).FirstOrDefaultAsync();
+    if (savedMercadoPago != null)
+    {
+        var protector = scope.ServiceProvider.GetRequiredService<MercadoPagoCredentialProtector>();
+        builder.Configuration["MercadoPago:AccessToken"] = protector.Unprotect(savedMercadoPago.EncryptedAccessToken);
+        builder.Configuration["MercadoPago:WebhookSecret"] = protector.Unprotect(savedMercadoPago.EncryptedWebhookSecret);
+        builder.Configuration["MercadoPago:Environment"] = savedMercadoPago.Environment;
+    }
 }
 
 if (app.Environment.IsDevelopment())
