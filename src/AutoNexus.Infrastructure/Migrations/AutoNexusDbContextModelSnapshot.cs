@@ -964,6 +964,8 @@ namespace AutoNexus.Infrastructure.Migrations
                             CompanyName = "Empresa Padrão",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Currency = "BRL",
+                            HeroTitle = (string?)null,
+                            WelcomeText = (string?)null,
                             PrimaryColor = "#15171B",
                             TenantId = new Guid("00000000-0000-0000-0000-000000000001"),
                             WhatsAppNumber = (string?)null,
