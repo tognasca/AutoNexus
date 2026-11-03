@@ -11,10 +11,6 @@ const configurationGroups = [
     { label: 'Chave JWT', key: 'Jwt__SecretKey', description: 'Segredo aleatório forte com pelo menos 32 caracteres. Não reutilize a chave de desenvolvimento.' },
     { label: 'URL pública HTTPS', key: 'APPLICATION_URL', description: 'Endereço público HTTPS da aplicação, sem apontar para localhost.' },
   ]},
-  { title: 'Pagamentos — Mercado Pago', icon: CreditCard, items: [
-    { label: 'Access Token de produção', key: 'MERCADOPAGO_ACCESS_TOKEN', description: 'Credencial de produção da conta Mercado Pago.' },
-    { label: 'Segredo do Webhook', key: 'MERCADOPAGO_WEBHOOK_SECRET', description: 'Segredo HMAC configurado no painel do Mercado Pago.' },
-  ]},
   { title: 'E-mail transacional — Resend', icon: Mail, items: [
     { label: 'API Key', key: 'RESEND_API_KEY', description: 'Chave da API Resend.' },
     { label: 'E-mail remetente', key: 'RESEND_FROM_EMAIL', description: 'Endereço de domínio verificado no Resend.' },
