@@ -60,6 +60,11 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
 
   const selectedTypeName = vehicleTypes.find(t => t.id === form.vehicleTypeId)?.name || defaultTypeName;
 
+  const normalizedPlate = (form.plate || '').trim().toUpperCase();
+  const plateValidationError = normalizedPlate && !/^(?:[A-Z]{3}[0-9]{4}|[A-Z]{3}[0-9][A-Z][0-9]{2})$/.test(normalizedPlate)
+    ? 'A placa deve seguir o padrão antigo (ABC1234) ou Mercosul (ABC1D23).'
+    : null;
+
   useEffect(() => {
     if (!isOpen) return;
     setError(null);
@@ -214,6 +219,10 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (plateValidationError) {
+      setError(plateValidationError);
+      return;
+    }
     setLoading(true);
 
     try {
@@ -342,8 +351,17 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
                 onChange={(e) => setForm(prev => ({ ...prev, plate: e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 7) }))}
                 placeholder="ABC1D23"
                 maxLength={7}
-                className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent font-mono uppercase"
+                aria-invalid={Boolean(plateValidationError)}
+                aria-describedby={plateValidationError ? "vehicle-plate-error" : "vehicle-plate-hint"}
+                className={`w-full bg-nexus-dark border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent font-mono uppercase ${plateValidationError ? 'border-red-500' : 'border-nexus-border'}`}
               />
+              <p
+                id={plateValidationError ? "vehicle-plate-error" : "vehicle-plate-hint"}
+                className={`mt-1 text-[11px] ${plateValidationError ? 'text-red-400' : 'text-slate-500'}`}
+                role={plateValidationError ? "alert" : undefined}
+              >
+                {plateValidationError || 'Padrão: ABC1234 (antigo) ou ABC1D23 (Mercosul).'}
+              </p>
             </div>
 
             <div>
@@ -463,8 +481,8 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
             </button>
             <button
               type="submit"
-              disabled={loading}
-              className="px-6 py-2.5 bg-nexus-accent hover:bg-nexus-accent-hover text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 cursor-pointer flex items-center gap-2"
+              disabled={loading || Boolean(plateValidationError)}
+              className="px-6 py-2.5 bg-nexus-accent hover:bg-nexus-accent-hover text-white rounded-lg text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-2"
             >
               {loading && <Loader2 size={16} className="animate-spin" />}
               {loading ? 'Salvando...' : 'Salvar Veículo'}
