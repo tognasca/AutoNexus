@@ -43,6 +43,9 @@ public class AutoNexusDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder); modelBuilder.ApplyConfigurationsFromAssembly(typeof(AutoNexusDbContext).Assembly);
         modelBuilder.Entity<MercadoPagoConfiguration>().ToTable("mercado_pago_configuration");
+        modelBuilder.Entity<MercadoPagoConfiguration>().Property(x => x.EncryptedAccessToken).HasMaxLength(4000).IsRequired();
+        modelBuilder.Entity<MercadoPagoConfiguration>().Property(x => x.EncryptedWebhookSecret).HasMaxLength(4000).IsRequired();
+        modelBuilder.Entity<MercadoPagoConfiguration>().Property(x => x.Environment).HasMaxLength(20).IsRequired();
         modelBuilder.Entity<MercadoPagoConfiguration>().HasIndex(x => x.ConfiguredAtUtc);
         modelBuilder.Entity<CreditProposalRecord>().ToTable("credit_proposals").HasIndex(x => x.ProposalNumber);
         modelBuilder.Entity<CreditProposalRecord>().HasIndex(x => x.Status);
