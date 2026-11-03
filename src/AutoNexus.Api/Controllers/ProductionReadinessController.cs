@@ -71,6 +71,12 @@ public sealed class ProductionReadinessController : ControllerBase
         checks.Add(Check("Documentos legais finais publicados", legalReady, true,
             "Termos, Privacidade e Cookies ainda contêm placeholders ou precisam de revisão jurídica."));
 
+        var bvConfigured = !string.IsNullOrWhiteSpace(_configuration["BvOpen:AccessToken"]) &&
+            !string.IsNullOrWhiteSpace(_configuration["BvOpen:CommercialPartnerCode"]) &&
+            !string.IsNullOrWhiteSpace(_configuration["BvOpen:FinancingConditionsEndpoint"]);
+        checks.Add(Check("Integração BV configurada", bvConfigured, false,
+            "Cadastre as credenciais e o endpoint fornecidos pela instituição após a homologação. Mantenha o envio externo desligado até concluir os testes."));
+
         var externalCredit = string.Equals(_configuration["AUTONEXUS_ENABLE_EXTERNAL_CREDIT_SUBMISSION"], "true", StringComparison.OrdinalIgnoreCase);
         checks.Add(Check("Crédito externo desligado até homologação", !externalCredit, false,
             "Mantenha desligado até uma instituição financeira estar homologada."));
