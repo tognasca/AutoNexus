@@ -6,7 +6,7 @@ export interface CreateTenantInput { tenantName: string; tenantSlug: string; adm
 export interface SuperAdminUser { id: string; name: string; email: string; profile: number; profileName: string; isActive: boolean; createdAt: string; tenantId: string; }
 export interface AuditLogEntry { id: string; tenantId: string; userId: string | null; operation: string; resource: string; resourceId: string | null; details: string | null; executedAt: string; }
 export interface ProductionReadinessCheck { name: string; ok: boolean; blocking: boolean; guidance: string; }
-export interface ProductionReadiness { ready: boolean; environment: string; checkedAtUtc: string; checks: ProductionReadinessCheck[]; }
+export interface ProductionReadiness { ready: boolean; environment: string; checkedAtUtc: string; checks: ProductionReadinessCheck[]; }\nexport interface MercadoPagoConfigurationStatus { configured: boolean; environment: 'test' | 'production'; accessTokenHint: string | null; webhookSecretConfigured: boolean; configuredAtUtc: string | null; }
 
 export const superAdminService = {
   getTenants: async (): Promise<Tenant[]> => await request<Tenant[]>('/superadmin/tenants'),
@@ -18,5 +18,5 @@ export const superAdminService = {
   updatePlan: async (id: string, data: { name: string; price: number; annualPrice: number | null; trialDays: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => await request<Plan>(`/superadmin/plans/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
   createPlan: async (data: { name: string; price: number; annualPrice?: number | null; trialDays?: number; maxUsers: number | null; maxVehicles: number | null; maxStorageMb: number | null }): Promise<Plan> => await request<Plan>('/superadmin/plans', { method: 'POST', body: JSON.stringify(data) }),
   getAuditLogs: async (tenantId?: string): Promise<AuditLogEntry[]> => await request<AuditLogEntry[]>(`/superadmin/audit-logs${tenantId ? `?tenantId=${tenantId}` : ''}`),
-  getProductionReadiness: async (): Promise<ProductionReadiness> => await request<ProductionReadiness>('/superadmin/production-readiness'),
+  getProductionReadiness: async (): Promise<ProductionReadiness> => await request<ProductionReadiness>('/superadmin/production-readiness'),\n  getMercadoPagoConfiguration: async (): Promise<MercadoPagoConfigurationStatus> => await request<MercadoPagoConfigurationStatus>('/superadmin/mercadopago'),\n  saveMercadoPagoConfiguration: async (data: { accessToken: string; webhookSecret: string; environment: 'test' | 'production' }): Promise<{ message: string }> => await request<{ message: string }>('/superadmin/mercadopago', { method: 'PUT', body: JSON.stringify(data) }),\n  validateMercadoPagoConfiguration: async (): Promise<{ valid: boolean; message: string; account?: string }> => await request<{ valid: boolean; message: string; account?: string }>('/superadmin/mercadopago/validate', { method: 'POST' }),
 };
