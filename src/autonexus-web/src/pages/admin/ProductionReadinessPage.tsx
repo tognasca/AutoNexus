@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, CircleX, RefreshCw, ShieldCheck, Rocket, CreditCard, Mail, Handshake, Server, Info, SlidersHorizontal } from 'lucide-react';
 import { MainLayout } from '../../components/layout/MainLayout';
-import { superAdminService, ProductionReadiness } from '../../services/superAdminService';
+import { superAdminService, ProductionReadiness, MercadoPagoConfigurationStatus } from '../../services/superAdminService';
 
 interface Props { currentView?: string; onNavigate?: (view: string) => void; }
 
@@ -32,11 +32,11 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
   const [data, setData] = useState<ProductionReadiness | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [showConfiguration, setShowConfiguration] = useState(true);
+  const [showConfiguration, setShowConfiguration] = useState(true);\n  const [mpStatus, setMpStatus] = useState<MercadoPagoConfigurationStatus | null>(null);\n  const [mpEnvironment, setMpEnvironment] = useState<'test' | 'production'>('production');\n  const [mpAccessToken, setMpAccessToken] = useState('');\n  const [mpWebhookSecret, setMpWebhookSecret] = useState('');\n  const [mpBusy, setMpBusy] = useState(false);\n  const [mpMessage, setMpMessage] = useState<string | null>(null);\n  const [mpMessageError, setMpMessageError] = useState(false);
 
   const load = async () => {
     setLoading(true); setError(null);
-    try { setData(await superAdminService.getProductionReadiness()); }
+    try { const result = await superAdminService.getProductionReadiness(); setData(result); const mp = await superAdminService.getMercadoPagoConfiguration(); setMpStatus(mp); setMpEnvironment(mp.environment); }
     catch (err) { setError(err instanceof Error ? err.message : 'Não foi possível consultar a preparação para produção.'); }
     finally { setLoading(false); }
   };
@@ -92,6 +92,21 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
             </section>
           </div>
         </div>
+
+        <section className="overflow-hidden rounded-xl border border-blue-800 bg-[#061a32]">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-blue-900 px-5 py-4">
+            <div className="flex items-center gap-3"><CreditCard className="text-blue-400" size={24}/><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-blue-400">Gateway de pagamentos</p><h2 className="text-lg font-black text-white">Mercado Pago</h2><p className="text-xs text-slate-400">Configuração global exclusiva do SuperAdmin</p></div></div>
+            <span className={`rounded-full px-3 py-1 text-[10px] font-bold ${mpStatus?.configured?'bg-emerald-500/15 text-emerald-300':'bg-amber-500/15 text-amber-300'}`}>{mpStatus?.configured?'Configurado':'Não configurado'}</span>
+          </div>
+          <form className="grid gap-4 p-5 lg:grid-cols-2" onSubmit={async e=>{e.preventDefault();setMpBusy(true);setMpMessage(null);setMpMessageError(false);try{const result=await superAdminService.saveMercadoPagoConfiguration({accessToken:mpAccessToken,webhookSecret:mpWebhookSecret,environment:mpEnvironment});setMpMessage(result.message);setMpMessageError(false);setMpAccessToken('');setMpWebhookSecret('');const status=await superAdminService.getMercadoPagoConfiguration();setMpStatus(status);await load();}catch(err){setMpMessage(err instanceof Error?err.message:'Falha ao salvar as credenciais.');setMpMessageError(true);}finally{setMpBusy(false);}}}>
+            <div className="space-y-2"><label className="text-xs font-bold text-slate-200">Ambiente</label><select value={mpEnvironment} onChange={e=>setMpEnvironment(e.target.value as 'test'|'production')} className="w-full rounded-lg border border-blue-800 bg-slate-950 px-3 py-3 text-sm text-white"><option value="test">Teste / Sandbox</option><option value="production">Produção</option></select><p className="text-[10px] text-slate-500">Produção exige token APP_USR-. Teste exige token TEST-.</p></div>
+            <div className="space-y-2"><label className="text-xs font-bold text-slate-200">Access Token {mpStatus?.configured&&<span className="font-normal text-slate-500">({mpStatus.accessTokenHint})</span>}</label><input type="password" autoComplete="new-password" required value={mpAccessToken} onChange={e=>setMpAccessToken(e.target.value)} placeholder="Cole o Access Token da conta" className="w-full rounded-lg border border-blue-800 bg-slate-950 px-3 py-3 text-sm text-white placeholder:text-slate-600"/></div>
+            <div className="space-y-2 lg:col-span-2"><label className="text-xs font-bold text-slate-200">Segredo de assinatura do Webhook</label><input type="password" autoComplete="new-password" required value={mpWebhookSecret} onChange={e=>setMpWebhookSecret(e.target.value)} placeholder="Cole a chave secreta cadastrada no painel Mercado Pago" className="w-full rounded-lg border border-blue-800 bg-slate-950 px-3 py-3 text-sm text-white placeholder:text-slate-600"/></div>
+            {mpMessage&&<div role="status" className={`lg:col-span-2 rounded-lg border p-3 text-xs ${mpMessageError?'border-red-500/30 bg-red-500/10 text-red-200':'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'}`}>{mpMessage}</div>}
+            <div className="flex flex-wrap gap-3 lg:col-span-2"><button type="submit" disabled={mpBusy||!mpAccessToken.trim()||!mpWebhookSecret.trim()} className="rounded-lg bg-blue-600 px-5 py-3 text-xs font-bold text-white hover:bg-blue-500 disabled:opacity-50">{mpBusy?'Salvando...':'Salvar configuração'}</button><button type="button" disabled={mpBusy||!mpStatus?.configured} onClick={async()=>{setMpBusy(true);setMpMessage(null);try{const result=await superAdminService.validateMercadoPagoConfiguration();setMpMessage(result.account?result.message+' Conta: '+result.account:result.message);setMpMessageError(!result.valid);}catch(err){setMpMessage(err instanceof Error?err.message:'Falha na validação.');setMpMessageError(true);}finally{setMpBusy(false);}}} className="rounded-lg border border-blue-700 px-5 py-3 text-xs font-bold text-blue-100 hover:bg-blue-900/40 disabled:opacity-50">Validar credencial</button></div>
+            <p className="text-[10px] leading-5 text-slate-500 lg:col-span-2">As credenciais são criptografadas antes de serem gravadas. O sistema mostra apenas os últimos caracteres do token; nunca exibe o segredo completo. Ao trocar de ambiente, informe as duas credenciais correspondentes ao novo ambiente.</p>
+          </form>
+        </section>
 
         <section id="configuracao-producao" className="scroll-mt-24 rounded-xl border border-blue-900 bg-[#06172c]">
           <button onClick={()=>setShowConfiguration(v=>!v)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-blue-400">Configuração global</p><h2 className="mt-1 text-lg font-black text-white">Configurações de produção</h2><p className="mt-1 text-xs text-slate-400">Variáveis que devem ser cadastradas no ambiente da API / gerenciador de secrets.</p></div><span className="rounded-lg border border-blue-800 px-3 py-2 text-xs font-bold text-blue-200">{showConfiguration?'Recolher':'Expandir'}</span></button>
