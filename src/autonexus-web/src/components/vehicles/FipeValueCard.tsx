@@ -29,11 +29,14 @@ export function FipeValueCard({ quote, loading = false, error = null }: FipeValu
 
   if (!quote) return null;
 
-  const value = quote.fipeValue.toLocaleString('pt-BR', {
+  const formatCurrency = (amount: number) => amount.toLocaleString('pt-BR', {
     style: 'currency',
     currency: 'BRL',
     minimumFractionDigits: 2,
   });
+  const value = formatCurrency(quote.fipeValue);
+  const lowerEstimate = formatCurrency(quote.fipeValue * 0.95);
+  const upperEstimate = formatCurrency(quote.fipeValue * 1.05);
 
   return (
     <div className="rounded-xl border border-blue-500/20 bg-blue-500/5 p-4">
@@ -52,6 +55,19 @@ export function FipeValueCard({ quote, loading = false, error = null }: FipeValu
           Apenas interno
         </span>
       </div>
+      <div className="mt-4 grid grid-cols-2 gap-3 border-t border-blue-400/10 pt-3">
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">5% abaixo da FIPE</div>
+          <div className="mt-1 text-sm font-semibold text-emerald-300">{lowerEstimate}</div>
+        </div>
+        <div>
+          <div className="text-[10px] font-semibold uppercase tracking-wide text-slate-400">5% acima da FIPE</div>
+          <div className="mt-1 text-sm font-semibold text-amber-300">{upperEstimate}</div>
+        </div>
+      </div>
+      <p className="mt-2 text-[10px] leading-relaxed text-slate-500">
+        Faixa estimada para negociação (±5%), não representa uma cotação oficial adicional da FIPE.
+      </p>
     </div>
   );
 }
