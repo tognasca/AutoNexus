@@ -898,6 +898,16 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(10)")
                         .HasColumnName("currency");
 
+                    b.Property<string>("HeroImageUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("heroImageUrl");
+
+                    b.Property<string>("HeroTemplateKey")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("heroTemplateKey");
+
                     b.Property<string>("LogoUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
