@@ -10,7 +10,7 @@ public sealed class MercadoPagoConfiguration : EntityBase
     public string Environment { get; private set; } = "production";
     public DateTime ConfiguredAtUtc { get; private set; }
 
-    private MercadoPagoConfiguration() { }
+    public MercadoPagoConfiguration() { }
 
     public void SetCredentials(string encryptedAccessToken, string encryptedWebhookSecret, string environment)
     {
