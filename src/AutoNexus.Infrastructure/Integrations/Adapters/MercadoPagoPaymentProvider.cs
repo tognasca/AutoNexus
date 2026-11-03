@@ -37,24 +37,16 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
         _configuration = configuration;
         _logger = logger;
 
-        var accessToken = _configuration["MercadoPago:AccessToken"];
-        if (!string.IsNullOrWhiteSpace(accessToken))
-        {
-            _httpClient.BaseAddress = new Uri(BaseUrl);
-            _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-        }
-        // Se não houver AccessToken configurado, as chamadas vão falhar com
-        // mensagem clara (ver EnsureConfigured) em vez de um erro genérico
-        // de autenticação do Mercado Pago.
+        _httpClient.BaseAddress = new Uri(BaseUrl);
+        // O token pode ser atualizado pelo SuperAdmin sem reiniciar a API.
     }
 
     private void EnsureConfigured()
     {
-        if (string.IsNullOrWhiteSpace(_configuration["MercadoPago:AccessToken"]))
-        {
-            throw new InvalidOperationException(
-                "MERCADOPAGO_ACCESS_TOKEN não configurado. Defina a variável de ambiente antes de processar pagamentos.");
-        }
+        var accessToken = _configuration["MercadoPago:AccessToken"];
+        if (string.IsNullOrWhiteSpace(accessToken))
+            throw new InvalidOperationException("Mercado Pago não configurado. Acesse Configurações > Mercado Pago no painel SuperAdmin.");
+        _httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
     }
 
     public async Task<CreateCardSubscriptionResult> CreateCardSubscriptionAsync(CreateCardSubscriptionRequest request, CancellationToken cancellationToken = default)
