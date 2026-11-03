@@ -875,6 +875,20 @@ namespace AutoNexus.Infrastructure.Migrations
                         });
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.MercadoPagoConfiguration", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
+                    b.Property<DateTime>("ConfiguredAtUtc").HasColumnType("timestamp with time zone").HasColumnName("configuredAtUtc");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
+                    b.Property<string>("EncryptedAccessToken").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedAccessToken");
+                    b.Property<string>("EncryptedWebhookSecret").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedWebhookSecret");
+                    b.Property<string>("Environment").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasColumnName("environment");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
+                    b.HasKey("Id");
+                    b.HasIndex("ConfiguredAtUtc");
+                    b.ToTable("mercado_pago_configuration", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
                 {
                     b.Property<Guid>("Id")
