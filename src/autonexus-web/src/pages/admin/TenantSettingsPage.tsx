@@ -108,7 +108,25 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+
+              <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <div><h3 className="text-sm font-bold text-white">Imagem principal do catálogo (Hero)</h3><p className="mt-1 text-[11px] text-slate-400">Escolha um modelo ou envie uma imagem própria. Sem personalização, o catálogo mantém o visual padrão.</p></div>
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                  {[
+                    { key: 'showroom', label: 'Showroom', url: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'premium', label: 'Premium', url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'road', label: 'Estrada', url: 'https://images.unsplash.com/photo-1504215680853-026ed2a45def?auto=format&fit=crop&w=1800&q=85' },
+                  ].map(item => <button key={item.key} type="button" onClick={() => setForm(v => ({ ...v, heroImageUrl: item.url, heroTemplateKey: item.key }))} className={`overflow-hidden rounded-lg border text-left ${form.heroTemplateKey === item.key ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-slate-700'}`}><img src={item.url} alt={item.label} className="h-24 w-full object-cover" /><span className="block px-2 py-2 text-xs font-semibold text-white">{item.label}{form.heroTemplateKey === item.key ? ' • Selecionado' : ''}</span></button>)}
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">Enviar minha imagem
+                    <input type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={async e => { const file = e.target.files?.[0]; if (!file) return; try { const result = await tenantSettingsService.uploadHero(file); setForm(v => ({ ...v, heroImageUrl: result.heroImageUrl, heroTemplateKey: 'upload' })); } catch (err: any) { alert(err.message || 'Falha ao enviar imagem.'); } finally { e.currentTarget.value = ''; } }} />
+                  </label>
+                  <button type="button" onClick={() => setForm(v => ({ ...v, heroImageUrl: null, heroTemplateKey: null }))} className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800">Usar padrão</button>
+                </div>
+                {form.heroImageUrl && <div className="overflow-hidden rounded-lg border border-slate-700"><img src={form.heroImageUrl} alt="Prévia do hero selecionado" className="h-36 w-full object-cover" /></div>}
+              </section>
+\n              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="text-slate-400 block mb-1">Cor Primária</label>
                   <div className="flex items-center gap-2">
