@@ -97,16 +97,57 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                 />
               </div>
 
-              <div>
-                <label className="text-slate-400 block mb-1">URL do Logo (opcional)</label>
-                <input
-                  type="text"
-                  placeholder="https://..."
-                  value={form.logoUrl ?? ''}
-                  onChange={e => setForm({ ...form, logoUrl: e.target.value || null })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
-                />
-              </div>
+              <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <div>
+                  <h3 className="text-sm font-bold text-white">Logo da empresa</h3>
+                  <p className="mt-1 text-[11px] text-slate-400">Envie o arquivo do logo. A imagem será armazenada no servidor, sem precisar informar URL ou caminho.</p>
+                </div>
+                <div className="flex flex-wrap items-center gap-3">
+                  <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">
+                    Enviar logo
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      className="hidden"
+                      onChange={async e => {
+                        const input = e.currentTarget;
+                        const file = input.files?.[0];
+                        if (!file) return;
+                        try {
+                          const result = await tenantSettingsService.uploadLogo(file);
+                          setForm(v => ({ ...v, logoUrl: result.logoUrl }));
+                        } catch (err: any) {
+                          alert(err.message || 'Falha ao enviar logo.');
+                        } finally {
+                          input.value = '';
+                        }
+                      }}
+                    />
+                  </label>
+                  {form.logoUrl && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await tenantSettingsService.removeLogo();
+                          setForm(v => ({ ...v, logoUrl: null }));
+                        } catch (err: any) {
+                          alert(err.message || 'Não foi possível remover o logo.');
+                        }
+                      }}
+                      className="rounded-lg border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:bg-slate-800"
+                    >
+                      Remover logo
+                    </button>
+                  )}
+                </div>
+                {form.logoUrl && (
+                  <div className="flex h-24 items-center justify-center rounded-lg border border-slate-700 bg-slate-900 p-3">
+                    <img src={form.logoUrl} alt="Prévia do logo da empresa" className="max-h-full max-w-full object-contain" />
+                  </div>
+                )}
+                <p className="text-[11px] text-slate-500">Formatos: JPG, PNG ou WEBP. Tamanho máximo: 5 MB.</p>
+              </section>
 
 
               <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
