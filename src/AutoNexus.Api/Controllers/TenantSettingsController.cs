@@ -29,6 +29,20 @@ public class TenantSettingsController : ControllerBase
         return Ok(settings);
     }
 
+    [HttpPost("hero-image")]
+    [Authorize(Roles = "Admin")]
+    [Consumes("multipart/form-data")]
+    [RequestSizeLimit(8 * 1024 * 1024)]
+    public async Task<IActionResult> UploadHeroImage([FromForm] IFormFile file, CancellationToken ct)
+    {
+        try { return Ok(new { heroImageUrl = await _tenantSettingService.UploadHeroImageAsync(file, ct) }); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+    }
+
+    [HttpDelete("hero-image")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> RemoveHeroImage(CancellationToken ct) { await _tenantSettingService.RemoveHeroImageAsync(ct); return NoContent(); }
+
     [HttpPut]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Update([FromBody] TenantSettingDto dto, CancellationToken cancellationToken)

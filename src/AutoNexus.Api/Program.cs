@@ -190,6 +190,13 @@ app.Use(async (context, next) =>
             new[] { ".jpg", ".jpeg", ".png", ".webp" }
                 .Contains(Path.GetExtension(segments[^1]), StringComparer.OrdinalIgnoreCase);
 
+        var isTenantBrandingImage =
+            segments.Length == 4 &&
+            segments[0].Equals("tenants", StringComparison.OrdinalIgnoreCase) &&
+            Guid.TryParse(segments[1], out _) &&
+            segments[2].Equals("branding", StringComparison.OrdinalIgnoreCase) &&
+            Path.GetFileName(segments[3]) == segments[3];
+
         var isTenantVehiclePhoto =
             segments.Length == 5 &&
             segments[0].Equals("tenants", StringComparison.OrdinalIgnoreCase) &&
@@ -205,7 +212,7 @@ app.Use(async (context, next) =>
             Guid.TryParse(segments[1], out _) &&
             Path.GetFileName(segments[2]) == segments[2];
 
-        if (!isImage || (!isTenantVehiclePhoto && !isLegacyVehiclePhoto))
+        if (!isImage || (!isTenantVehiclePhoto && !isTenantBrandingImage && !isLegacyVehiclePhoto))
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
