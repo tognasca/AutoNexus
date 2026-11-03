@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
-  Search, Gauge, Fuel, Cog, Calendar, MessageCircle, X, ChevronDown,
+  Search, Gauge, Fuel, Cog, Calendar, MessageCircle, X,
   ChevronLeft, ChevronRight, Car, FileText, ShieldCheck, Sparkles,
   ExternalLink, MapPin, SlidersHorizontal, Heart, Menu, ArrowRight, Phone,
   CheckCircle2
@@ -29,7 +29,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
   const [photoIndex, setPhotoIndex] = useState(0);
 
   const storeSlug = useMemo(() => {
-    const match = window.location.pathname.match(/^\\/loja\\/([^/]+)/);
+    const match = window.location.pathname.match(/^\/loja\/([^/]+)/);
     return match?.[1] || new URLSearchParams(window.location.search).get('store') || (onNavigate ? 'current' : 'default');
   }, [onNavigate]);
 
@@ -72,8 +72,8 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
   }, [vehicles, search, brand, model, year, price, sort]);
 
   const accent = store?.primaryColor || '#0878ed';
-  const whatsapp = (store?.whatsappNumber || '').replace(/\\D/g, '');
-  const initials = (store?.name || 'LO').trim().split(/\\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
+  const whatsapp = (store?.whatsappNumber || '').replace(/\D/g, '');
+  const initials = (store?.name || 'LO').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
 
   const getFuelName = (fuel?: number | string) => {
     if (typeof fuel === 'string') return ({ Gasolina: 'Gasolina', Etanol: 'Etanol', Flex: 'Flex', Diesel: 'Diesel', Hibrido: 'Híbrido', Híbrido: 'Híbrido', Eletrico: 'Elétrico', Elétrico: 'Elétrico' } as Record<string, string>)[fuel] || fuel;
