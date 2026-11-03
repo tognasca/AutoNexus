@@ -908,6 +908,11 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("character varying(40)")
                         .HasColumnName("heroTemplateKey");
 
+                    b.Property<string>("HeroTitle")
+                        .HasMaxLength(180)
+                        .HasColumnType("character varying(180)")
+                        .HasColumnName("heroTitle");
+
                     b.Property<string>("LogoUrl")
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)")
@@ -918,6 +923,11 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("character varying(20)")
                         .HasColumnName("primaryColor");
+
+                    b.Property<string>("WelcomeText")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("welcomeText");
 
                     b.Property<string>("WhatsAppNumber")
                         .HasMaxLength(15)
