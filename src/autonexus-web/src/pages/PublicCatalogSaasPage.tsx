@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
-  Search, Gauge, Fuel, Cog, Calendar, MessageCircle, X,
+  Search, Gauge, Fuel, Cog, MessageCircle, X,
   ChevronLeft, ChevronRight, Car, FileText, ShieldCheck, Sparkles,
   ExternalLink, SlidersHorizontal, Heart, Menu, ArrowRight, Phone,
   CheckCircle2
