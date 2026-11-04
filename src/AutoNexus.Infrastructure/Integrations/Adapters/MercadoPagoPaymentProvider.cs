@@ -90,7 +90,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Mercado Pago: falha ao criar preapproval. Status {Status}.", response.StatusCode);
+            LogGatewayFailure("POST /preapproval", response, body);
             throw new InvalidOperationException($"Não foi possível criar a assinatura no Mercado Pago (status {(int)response.StatusCode}).");
         }
 
@@ -139,7 +139,7 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
 
         if (!response.IsSuccessStatusCode)
         {
-            _logger.LogError("Mercado Pago: falha ao criar pagamento. Status {Status}.", response.StatusCode);
+            LogGatewayFailure($"POST /v1/payments ({paymentMethodId})", response, body);
             throw new InvalidOperationException($"Não foi possível criar o pagamento no Mercado Pago (status {(int)response.StatusCode}).");
         }
 
@@ -343,6 +343,57 @@ public class MercadoPagoPaymentProvider : IPaymentProvider
             ExternalPaymentId: isSubscriptionEvent ? null : dataId,
             ExternalSubscriptionId: isSubscriptionEvent ? dataId : null
         );
+    }
+
+    /// <summary>
+    /// Registra diagnóstico seguro da resposta do gateway. Nunca registra token,
+    /// payload do comprador, CPF, e-mail, valores ou corpo bruto da resposta.
+    /// </summary>
+    private void LogGatewayFailure(string operation, HttpResponseMessage response, string responseBody)
+    {
+        var requestId = response.Headers.TryGetValues("x-request-id", out var requestIds)
+            ? requestIds.FirstOrDefault()
+            : null;
+        var correlationId = response.Headers.TryGetValues("x-correlation-id", out var correlationIds)
+            ? correlationIds.FirstOrDefault()
+            : null;
+
+        string? error = null;
+        string? message = null;
+        string? cause = null;
+        try
+        {
+            using var document = JsonDocument.Parse(responseBody);
+            var root = document.RootElement;
+            if (root.TryGetProperty("error", out var errorElement))
+                error = errorElement.ValueKind == JsonValueKind.String ? errorElement.GetString() : errorElement.ToString();
+            if (root.TryGetProperty("message", out var messageElement))
+                message = messageElement.GetString();
+            if (root.TryGetProperty("cause", out var causeElement))
+            {
+                cause = causeElement.ValueKind == JsonValueKind.Array
+                    ? string.Join("; ", causeElement.EnumerateArray().Select(item =>
+                        $"{(item.TryGetProperty("code", out var code) ? code.ToString() : "sem código")}: {(item.TryGetProperty("description", out var description) ? description.ToString() : "sem descrição")}"))
+                    : causeElement.ToString();
+            }
+        }
+        catch (JsonException)
+        {
+            error = "Resposta não JSON";
+        }
+
+        var token = _configuration["MercadoPago:AccessToken"];
+        var tokenPrefix = token?.StartsWith("APP_USR-", StringComparison.Ordinal) == true
+            ? "APP_USR"
+            : token?.StartsWith("TEST-", StringComparison.Ordinal) == true ? "TEST" : "outro/ausente";
+
+        _logger.LogError(
+            "MERCADOPAGO_DIAGNOSTICO | Operação={Operation} | HTTP={StatusCode} | AmbienteConfigurado={Environment} | PrefixoToken={TokenPrefix} | RequestId={RequestId} | CorrelationId={CorrelationId} | Error={Error} | Message={Message} | Cause={Cause}",
+            operation, (int)response.StatusCode, _configuration["MercadoPago:Environment"] ?? "não informado",
+            tokenPrefix, requestId, correlationId, error, message, cause);
+
+        Console.Error.WriteLine(
+            $"MERCADOPAGO_DIAGNOSTICO | Operação={operation} | HTTP={(int)response.StatusCode} | Ambiente={_configuration["MercadoPago:Environment"] ?? "não informado"} | PrefixoToken={tokenPrefix} | RequestId={requestId ?? "não informado"} | Error={error ?? "não informado"} | Message={message ?? "não informado"} | Cause={cause ?? "não informado"}");
     }
 
     private static PaymentStatus MapStatus(string? mpStatus) => mpStatus switch
