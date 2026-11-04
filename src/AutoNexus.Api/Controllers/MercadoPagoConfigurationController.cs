@@ -55,10 +55,14 @@ public sealed class MercadoPagoConfigurationController : ControllerBase
             return BadRequest(new { message = "Informe um Access Token válido (máximo 500 caracteres)." });
         if (string.IsNullOrWhiteSpace(webhookSecret) || webhookSecret.Length > 500)
             return BadRequest(new { message = "Informe o segredo do Webhook (máximo 500 caracteres)." });
-        if (environment == "production" && !accessToken.StartsWith("APP_USR-", StringComparison.Ordinal))
-            return BadRequest(new { message = "O ambiente de produção exige um Access Token APP_USR-." });
-        if (environment == "test" && !accessToken.StartsWith("TEST-", StringComparison.Ordinal))
-            return BadRequest(new { message = "O ambiente de teste exige um Access Token TEST-." });
+        // No Brasil, o Mercado Pago também utiliza o prefixo APP_USR- para Access Tokens
+        // de teste. O prefixo não diferencia teste de produção; o ambiente é definido
+        // pela credencial copiada no painel e pela seleção explícita nesta tela.
+        if (!accessToken.StartsWith("APP_USR-", StringComparison.Ordinal) &&
+            !(environment == "test" && accessToken.StartsWith("TEST-", StringComparison.Ordinal)))
+            return BadRequest(new { message = environment == "test"
+                ? "Informe o Access Token copiado na seção Credenciais de teste do Mercado Pago."
+                : "O ambiente de produção exige um Access Token APP_USR-." });
 
         var entity = await _db.MercadoPagoConfigurations.OrderByDescending(x => x.ConfiguredAtUtc).FirstOrDefaultAsync(ct);
         if (entity == null)
