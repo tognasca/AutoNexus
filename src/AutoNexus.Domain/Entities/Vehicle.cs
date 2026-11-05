@@ -22,6 +22,8 @@ public class Vehicle : TenantOwnedEntityBase
     public decimal? ListedValue { get; private set; }
     public decimal? SaleValue { get; private set; }
     public string? Notes { get; private set; }
+    public Guid? WhatsAppContactId { get; private set; }
+    public TenantWhatsAppContact? WhatsAppContact { get; private set; }
 
     // Propriedades da Venda
     public Guid? SoldByUserId { get; private set; }
@@ -65,6 +67,12 @@ public class Vehicle : TenantOwnedEntityBase
         ModelYear = modelYear;
         PurchaseValue = purchaseValue;
         Status = VehicleStatus.AVenda;
+    }
+
+    public void AssignWhatsAppContact(Guid? contactId)
+    {
+        WhatsAppContactId = contactId;
+        UpdatedAt = DateTime.UtcNow;
     }
 
     public void ChangeStatus(VehicleStatus newStatus)
