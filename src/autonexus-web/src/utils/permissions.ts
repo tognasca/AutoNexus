@@ -8,8 +8,8 @@ export const UserProfileEnum = {
 export const canAccessView = (profile?: number, view?: string): boolean => {
   if (profile === undefined || profile === null || !view) return false;
   if (view === 'catalog') return true;
-  if (profile === UserProfileEnum.SuperAdmin) return view === 'superadmin' || view === 'production-readiness';
-  if (profile === UserProfileEnum.Admin) return view !== 'superadmin' && view !== 'production-readiness';
+  if (profile === UserProfileEnum.SuperAdmin) return view === 'superadmin' || view === 'production-readiness' || view === 'legal-documents';
+  if (profile === UserProfileEnum.Admin) return view !== 'superadmin' && view !== 'production-readiness' && view !== 'legal-documents';
   if (profile === UserProfileEnum.Seller) {
     const sellerAllowedViews = ['dashboard', 'commercial-dashboard', 'vehicles', 'leads', 'trades', 'simulator', 'financing', 'reports', 'commissions', 'catalog', 'subscription', 'onboarding', 'commercial'];
     return sellerAllowedViews.includes(view);
