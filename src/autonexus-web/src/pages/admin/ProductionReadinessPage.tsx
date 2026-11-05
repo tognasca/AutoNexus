@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, CircleX, RefreshCw, ShieldCheck, Rocket, CreditCard, Mail, Handshake, Server, Info, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleX, RefreshCw, ShieldCheck, Rocket, CreditCard, Server, Info, SlidersHorizontal } from 'lucide-react';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { superAdminService, ProductionReadiness, MercadoPagoConfigurationStatus } from '../../services/superAdminService';
 import { PlatformIntegrationsSettings } from './PlatformIntegrationsSettings';
@@ -12,18 +12,7 @@ const configurationGroups = [
     { label: 'Chave JWT', key: 'Jwt__SecretKey', description: 'Segredo aleatório forte com pelo menos 32 caracteres. Não reutilize a chave de desenvolvimento.' },
     { label: 'URL pública HTTPS', key: 'APPLICATION_URL', description: 'Endereço público HTTPS da aplicação, sem apontar para localhost.' },
   ]},
-  { title: 'E-mail transacional — Resend', icon: Mail, items: [
-    { label: 'API Key', key: 'RESEND_API_KEY', description: 'Chave da API Resend.' },
-    { label: 'E-mail remetente', key: 'RESEND_FROM_EMAIL', description: 'Endereço de domínio verificado no Resend.' },
-    { label: 'Nome remetente', key: 'RESEND_FROM_NAME', description: 'Nome exibido nos e-mails enviados pelo AutoNexus.' },
-  ]},
-  { title: 'Crédito externo — BV', icon: Handshake, items: [
-    { label: 'Access Token', key: 'BV_OPEN_ACCESS_TOKEN', description: 'Credencial fornecida pela instituição após homologação.' },
-    { label: 'Código do parceiro', key: 'BV_OPEN_COMMERCIAL_PARTNER_CODE', description: 'Identificador comercial do parceiro.' },
-    { label: 'Endpoint de condições', key: 'BV_OPEN_FINANCING_CONDITIONS_ENDPOINT', description: 'Endpoint oficial fornecido pela instituição.' },
-    { label: 'Envio externo', key: 'AUTONEXUS_ENABLE_EXTERNAL_CREDIT_SUBMISSION', description: 'Mantenha false até concluir homologação e testes integrados.' },
-  ]},
-];
+;
 
 export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
   const [data, setData] = useState<ProductionReadiness | null>(null);
