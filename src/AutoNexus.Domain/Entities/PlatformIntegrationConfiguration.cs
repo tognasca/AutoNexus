@@ -12,7 +12,7 @@ public sealed class PlatformIntegrationConfiguration : EntityBase
         "https://apige-uat-sbx.bancobv.com.br/partner-funding/v1/financing-conditions";
     public DateTime ConfiguredAtUtc { get; private set; }
 
-    private PlatformIntegrationConfiguration() { }
+    public PlatformIntegrationConfiguration() { }
 
     public void Update(string? encryptedResendApiKey, string? resendFromEmail, string? resendFromName,
         string? encryptedBvAccessToken, string? encryptedBvCommercialPartnerCode, string? bvEndpoint)
