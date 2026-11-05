@@ -8,7 +8,7 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/vehicles/{vehicleId:guid}/whatsapp-contact")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Vendedor")]
 public sealed class VehicleWhatsAppAssignmentController : ControllerBase
 {
     private readonly AutoNexusDbContext _db;
