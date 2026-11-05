@@ -49,11 +49,11 @@ public class AutoNexusDbContext : DbContext
         modelBuilder.Entity<MercadoPagoConfiguration>().Property(x => x.Environment).HasMaxLength(20).IsRequired();
         modelBuilder.Entity<MercadoPagoConfiguration>().HasIndex(x => x.ConfiguredAtUtc);
         modelBuilder.Entity<PlatformIntegrationConfiguration>().ToTable("platform_integration_configurations");
-        modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.EncryptedResendApiKey).HasMaxLength(4000);
+        modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.EncryptedResendApiKey).HasMaxLength(5000);
         modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.ResendFromEmail).HasMaxLength(320);
         modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.ResendFromName).HasMaxLength(120).IsRequired();
-        modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.EncryptedBvAccessToken).HasMaxLength(4000);
-        modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.EncryptedBvCommercialPartnerCode).HasMaxLength(4000);
+        modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.EncryptedBvAccessToken).HasMaxLength(5000);
+        modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.EncryptedBvCommercialPartnerCode).HasMaxLength(5000);
         modelBuilder.Entity<PlatformIntegrationConfiguration>().Property(x => x.BvFinancingConditionsEndpoint).HasMaxLength(1000).IsRequired();
         modelBuilder.Entity<PlatformIntegrationConfiguration>().HasIndex(x => x.ConfiguredAtUtc);
         modelBuilder.Entity<CreditProposalRecord>().ToTable("credit_proposals").HasIndex(x => x.ProposalNumber);
