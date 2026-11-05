@@ -66,7 +66,12 @@ public sealed class ProductionReadinessController : ControllerBase
             legalReady = legalTypes.All(type => legalDocuments.Any(x => x.Type == type &&
                 !x.Content.Contains("[RASCUNHO ESTRUTURAL", StringComparison.OrdinalIgnoreCase) &&
                 !x.Content.Contains("[CNPJ]", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[Razão social]", StringComparison.OrdinalIgnoreCase)));
+                !x.Content.Contains("[Razão social]", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[e-mail", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[a definir", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[data de publicação", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[nome/e-mail", StringComparison.OrdinalIgnoreCase) &&
+                !x.Content.Contains("[endereço", StringComparison.OrdinalIgnoreCase)));
         }
         checks.Add(Check("Documentos legais finais publicados", legalReady, true,
             "Termos, Privacidade e Cookies ainda contêm placeholders ou precisam de revisão jurídica."));
