@@ -17,11 +17,11 @@ public partial class AddPlatformIntegrationConfiguration : Migration
             columns: table => new
             {
                 id = table.Column<Guid>(type: "uuid", nullable: false),
-                encryptedResendApiKey = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                encryptedResendApiKey = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
                 resendFromEmail = table.Column<string>(type: "character varying(320)", maxLength: 320, nullable: true),
                 resendFromName = table.Column<string>(type: "character varying(120)", maxLength: 120, nullable: false),
-                encryptedBvAccessToken = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
-                encryptedBvCommercialPartnerCode = table.Column<string>(type: "character varying(4000)", maxLength: 4000, nullable: true),
+                encryptedBvAccessToken = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
+                encryptedBvCommercialPartnerCode = table.Column<string>(type: "character varying(5000)", maxLength: 5000, nullable: true),
                 bvFinancingConditionsEndpoint = table.Column<string>(type: "character varying(1000)", maxLength: 1000, nullable: false),
                 configuredAtUtc = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
                 createdAt = table.Column<DateTime>(type: "timestamp with time zone", nullable: false),
