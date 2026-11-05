@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { tenantSettingsService, TenantSettings } from '../../services/tenantSettingsService';
+import { tenantSettingsService, TenantSettings, WhatsAppContact } from '../../services/tenantSettingsService';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { Building2, Save, RefreshCw, CheckCircle2, MessageCircle, ExternalLink } from 'lucide-react';
 
@@ -24,12 +24,18 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
+  const [contactName, setContactName] = useState('');
+  const [contactPhone, setContactPhone] = useState('');
+  const [contactSaving, setContactSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
     try {
       const data = await tenantSettingsService.get();
       setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
+      const contacts = await tenantSettingsService.getWhatsAppContacts();
+      setWhatsappContacts(contacts);
     } catch (err) {
       console.error('Erro ao carregar configurações da empresa:', err);
     } finally {
@@ -234,6 +240,19 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
                   </a>
                 )}
               </div>
+
+              <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
+                <div><h3 className="text-sm font-bold text-white">Contatos dos vendedores</h3><p className="mt-1 text-[11px] text-slate-400">Cadastre vários WhatsApps. Depois, o administrador poderá vincular um contato a cada veículo; sem vínculo, será usado o WhatsApp comercial principal.</p></div>
+                <div className="grid gap-2 sm:grid-cols-[1fr_1fr_auto]">
+                  <input value={contactName} onChange={e => setContactName(e.target.value)} placeholder="Nome do vendedor" className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white" />
+                  <input value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="WhatsApp com DDI + DDD" inputMode="tel" className="rounded-lg border border-slate-800 bg-slate-950 px-3 py-2 text-sm text-white" />
+                  <button type="button" disabled={contactSaving || !contactName.trim() || !contactPhone.trim()} onClick={async () => { setContactSaving(true); try { const item = await tenantSettingsService.createWhatsAppContact({ name: contactName.trim(), phoneNumber: contactPhone, isDefault: whatsappContacts.length === 0 }); setWhatsappContacts(v => [...v, item]); setContactName(''); setContactPhone(''); } catch (err: any) { alert(err.message || 'Não foi possível cadastrar o contato.'); } finally { setContactSaving(false); } }} className="rounded-lg bg-emerald-600 px-4 py-2 text-xs font-bold text-white disabled:opacity-50">Adicionar</button>
+                </div>
+                <div className="space-y-2">{whatsappContacts.map(contact => <div key={contact.id} className="flex flex-wrap items-center justify-between gap-3 rounded-lg border border-slate-800 bg-slate-900 p-3">
+                  <div><p className="text-sm font-semibold text-white">{contact.name} {contact.isDefault && <span className="ml-1 text-[10px] text-emerald-400">Principal</span>}</p><p className="text-xs text-slate-400">{contact.phoneNumber}</p></div>
+                  <div className="flex items-center gap-2"><button type="button" disabled={!contact.isActive || contact.isDefault} onClick={async () => { try { const updated = await tenantSettingsService.updateWhatsAppContact(contact.id, { name: contact.name, phoneNumber: contact.phoneNumber, isDefault: true }); setWhatsappContacts(v => v.map(x => ({ ...x, isDefault: x.id === updated.id }))); } catch (err: any) { alert(err.message || 'Falha ao definir contato principal.'); } }} className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300 disabled:opacity-40">Tornar principal</button><button type="button" onClick={async () => { try { await tenantSettingsService.setWhatsAppContactActive(contact.id, !contact.isActive); setWhatsappContacts(v => v.map(x => x.id === contact.id ? { ...x, isActive: !x.isActive } : x)); } catch (err: any) { alert(err.message || 'Falha ao atualizar contato.'); } }} className="rounded border border-slate-700 px-2 py-1 text-[10px] text-slate-300">{contact.isActive ? 'Desativar' : 'Ativar'}</button></div>
+                </div>)}</div>
+              </section>
 
               <div>
                 <label className="text-slate-400 block mb-1">Fuso Horário</label>

@@ -43,6 +43,7 @@ export interface PublicVehicleDetail {
   transmission?: number | string;
   status?: number | string;
   listedValue?: number;
+  whatsappNumber?: string | null;
   notes?: string;
   mainPhotoUrl?: string;
   photos?: PublicVehiclePhoto[];

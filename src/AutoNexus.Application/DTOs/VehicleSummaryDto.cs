@@ -22,6 +22,7 @@ public class VehicleSummaryDto
     public decimal? ListedValue { get; set; }
     public decimal? SaleValue { get; set; }
     public string? MainPhotoUrl { get; set; }
+    public Guid? WhatsAppContactId { get; set; }
     public DateTime CreatedAt { get; set; }
 
     public VehicleSummaryDto() { }
