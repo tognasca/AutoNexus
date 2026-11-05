@@ -36,6 +36,7 @@ export const vehicleService = {
       listedValue: Number(v.listedValue ?? v.ListedValue ?? 0),
       saleValue: v.saleValue ?? v.SaleValue,
       mainPhotoUrl: v.mainPhotoUrl || v.MainPhotoUrl,
+      whatsappContactId: v.whatsAppContactId || v.WhatsAppContactId || null,
       createdAt: v.createdAt || v.CreatedAt || new Date().toISOString(),
     }));
 
@@ -79,6 +80,8 @@ export const vehicleService = {
       body: JSON.stringify(input),
     });
   },
+
+  assignWhatsAppContact: async (id: string, contactId: string | null): Promise<void> => { await request<void>(`/vehicles/${id}/whatsapp-contact`, { method: 'PUT', body: JSON.stringify({ contactId }) }); },
 
   delete: async (id: string): Promise<void> => {
     await request<void>(`/vehicles/${id}`, {
