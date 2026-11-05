@@ -64,6 +64,11 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
                .HasForeignKey(f => f.VehicleId)
                .OnDelete(DeleteBehavior.Cascade);
 
+        builder.HasOne(x => x.WhatsAppContact)
+               .WithMany()
+               .HasForeignKey(x => x.WhatsAppContactId)
+               .OnDelete(DeleteBehavior.SetNull);
+
         // Índices para buscas rápidas (Filtros Seção 24)
         builder.HasIndex(x => x.Status);
         builder.HasIndex(x => x.Plate);

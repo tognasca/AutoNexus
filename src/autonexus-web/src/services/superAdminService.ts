@@ -23,4 +23,16 @@ export const superAdminService = {
   getMercadoPagoConfiguration: async (): Promise<MercadoPagoConfigurationStatus> => await request<MercadoPagoConfigurationStatus>('/superadmin/mercadopago'),
   saveMercadoPagoConfiguration: async (data: { accessToken: string; webhookSecret: string; environment: 'test' | 'production' }): Promise<{ message: string }> => await request<{ message: string }>('/superadmin/mercadopago', { method: 'PUT', body: JSON.stringify(data) }),
   validateMercadoPagoConfiguration: async (): Promise<{ valid: boolean; message: string; account?: string }> => await request<{ valid: boolean; message: string; account?: string }>('/superadmin/mercadopago/validate', { method: 'POST' }),
+  getPlatformIntegrationSettings: async (): Promise<PlatformIntegrationSettings> => await request<PlatformIntegrationSettings>('/superadmin/integrations'),
+  savePlatformIntegrationSettings: async (data: { resendApiKey: string; resendFromEmail: string; resendFromName: string; bvAccessToken: string; bvCommercialPartnerCode: string; bvFinancingConditionsEndpoint: string }): Promise<{ message: string }> => await request<{ message: string }>('/superadmin/integrations', { method: 'PUT', body: JSON.stringify(data) }),
+};
+
+export interface PlatformIntegrationSettings {
+  resendConfigured: boolean; resendApiKeyHint: string | null; resendFromEmail: string | null; resendFromName: string;
+  bvConfigured: boolean; bvAccessTokenHint: string | null; bvPartnerCodeHint: string | null; bvEndpoint: string | null; configuredAtUtc: string | null;
+}
+export const platformIntegrationSettingsApi = {
+  get: async (): Promise<PlatformIntegrationSettings> => await request<PlatformIntegrationSettings>('/superadmin/integrations'),
+  save: async (data: { resendApiKey: string; resendFromEmail: string; resendFromName: string; bvAccessToken: string; bvCommercialPartnerCode: string; bvFinancingConditionsEndpoint: string }): Promise<{ message: string }> =>
+    await request<{ message: string }>('/superadmin/integrations', { method: 'PUT', body: JSON.stringify(data) }),
 };

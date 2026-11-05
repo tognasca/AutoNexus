@@ -11,6 +11,7 @@ import { VehicleDocumentsModal } from '../components/vehicles/VehicleDocumentsMo
 import { VehicleSaleModal } from '../components/vehicles/VehicleSaleModal';
 import { TradeNegotiationModal } from '../components/vehicles/TradeNegotiationModal';
 import { vehicleService } from '../services/vehicleService';
+import { tenantSettingsService, type WhatsAppContact } from '../services/tenantSettingsService';
 import { lookupService } from '../services/lookupService';
 import { VehicleStatus, type VehicleSummary, type CreateVehicleInput } from '../types/vehicle';
 import type { LookupItem } from '../types/lookup';
@@ -19,6 +20,7 @@ import { Plus, Loader2 } from 'lucide-react';
 export function VehiclesPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<LookupItem[]>([]);
+  const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -62,6 +64,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
       ]);
       setVehicleTypes(typesRes);
       setVehicles(vehiclesRes.items);
+      const contacts = await tenantSettingsService.getWhatsAppContacts().catch(() => []);
+      setWhatsappContacts(contacts.filter(x => x.isActive));
     } catch (err) {
       console.error('Erro ao carregar dados:', err);
     } finally {
@@ -137,8 +141,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
           {vehicles.map((v) => (
+            <div key={v.id} className="space-y-2">
             <VehicleCard
-              key={v.id}
               vehicle={v}
               onEditVehicle={handleOpenEdit}
               onManagePhotos={(veh) => { setSelectedVehicleForPhotos(veh); setIsPhotosModalOpen(true); }}
@@ -149,6 +153,14 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
               onTradeVehicle={(veh) => { setSelectedVehicleForTrade(veh); setIsTradeModalOpen(true); }}
               onDeleteVehicle={handleDeleteVehicle}
             />
+            <label className="block rounded-lg border border-nexus-border bg-nexus-card p-2 text-[11px] text-slate-400">
+              WhatsApp responsável por este veículo
+              <select value={v.whatsappContactId ?? ''} onChange={async e => { const contactId = e.target.value || null; try { await vehicleService.assignWhatsAppContact(v.id, contactId); setVehicles(items => items.map(item => item.id === v.id ? { ...item, whatsappContactId: contactId } : item)); } catch (err: any) { alert(err.message || 'Não foi possível atualizar o contato do veículo.'); } }} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-white">
+                <option value="">Usar WhatsApp principal da empresa</option>
+                {whatsappContacts.map(contact => <option key={contact.id} value={contact.id}>{contact.name} · {contact.phoneNumber}</option>)}
+              </select>
+            </label>
+            </div>
           ))}
         </div>
       )}

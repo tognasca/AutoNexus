@@ -880,13 +880,30 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
                     b.Property<DateTime>("ConfiguredAtUtc").HasColumnType("timestamp with time zone").HasColumnName("configuredAtUtc");
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
-                    b.Property<string>("EncryptedAccessToken").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedAccessToken");
-                    b.Property<string>("EncryptedWebhookSecret").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedWebhookSecret");
+                    b.Property<string>("EncryptedAccessToken").IsRequired().HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedAccessToken");
+                    b.Property<string>("EncryptedWebhookSecret").IsRequired().HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedWebhookSecret");
                     b.Property<string>("Environment").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasColumnName("environment");
                     b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
                     b.HasKey("Id");
                     b.HasIndex("ConfiguredAtUtc");
                     b.ToTable("mercado_pago_configuration", (string)null);
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.PlatformIntegrationConfiguration", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
+                    b.Property<DateTime>("ConfiguredAtUtc").HasColumnType("timestamp with time zone").HasColumnName("configuredAtUtc");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
+                    b.Property<string>("EncryptedBvAccessToken").HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedBvAccessToken");
+                    b.Property<string>("EncryptedBvCommercialPartnerCode").HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedBvCommercialPartnerCode");
+                    b.Property<string>("EncryptedResendApiKey").HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedResendApiKey");
+                    b.Property<string>("BvFinancingConditionsEndpoint").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)").HasColumnName("bvFinancingConditionsEndpoint");
+                    b.Property<string>("ResendFromEmail").HasMaxLength(320).HasColumnType("character varying(320)").HasColumnName("resendFromEmail");
+                    b.Property<string>("ResendFromName").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)").HasColumnName("resendFromName");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
+                    b.HasKey("Id");
+                    b.HasIndex("ConfiguredAtUtc");
+                    b.ToTable("platform_integration_configurations", (string)null);
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
@@ -1203,6 +1220,58 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("leads", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.TenantWhatsAppContact", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("createdAt");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isActive");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("boolean")
+                        .HasColumnName("isDefault");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("PhoneNumber")
+                        .IsRequired()
+                        .HasMaxLength(15)
+                        .HasColumnType("character varying(15)")
+                        .HasColumnName("phoneNumber");
+
+                    b.Property<Guid>("TenantId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000001"))
+                        .HasColumnName("tenantId");
+
+                    b.Property<DateTime?>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updatedAt");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId");
+
+                    b.HasIndex("TenantId", "IsActive");
+
+                    b.HasIndex("TenantId", "IsDefault");
+
+                    b.ToTable("tenant_whatsapp_contacts", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.User", b =>
                 {
                     b.Property<Guid>("Id")
@@ -1403,6 +1472,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("soldAt");
 
+                    b.Property<Guid?>("WhatsAppContactId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("whatsAppContactId");
+
                     b.Property<Guid?>("SoldByUserId")
                         .HasColumnType("uuid")
                         .HasColumnName("soldByUserId");
@@ -1449,6 +1522,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.HasIndex("TenantId");
 
                     b.HasIndex("VehicleTypeId");
+
+                    b.HasIndex("WhatsAppContactId");
 
                     b.ToTable("vehicles", (string)null);
                 });
@@ -1845,6 +1920,16 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasForeignKey("TenantId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>
+                {
+                    b.HasOne("AutoNexus.Domain.Entities.TenantWhatsAppContact", "WhatsAppContact")
+                        .WithMany()
+                        .HasForeignKey("WhatsAppContactId")
+                        .OnDelete(DeleteBehavior.SetNull);
+
+                    b.Navigation("WhatsAppContact");
                 });
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>

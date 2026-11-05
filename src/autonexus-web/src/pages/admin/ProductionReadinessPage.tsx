@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, CheckCircle2, CircleX, RefreshCw, ShieldCheck, Rocket, CreditCard, Mail, Handshake, Server, Info, SlidersHorizontal } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, CircleX, RefreshCw, ShieldCheck, Rocket, CreditCard, Server, Info, SlidersHorizontal } from 'lucide-react';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { superAdminService, ProductionReadiness, MercadoPagoConfigurationStatus } from '../../services/superAdminService';
+import { PlatformIntegrationsSettings } from './PlatformIntegrationsSettings';
 
 interface Props { currentView?: string; onNavigate?: (view: string) => void; }
 
@@ -10,17 +11,6 @@ const configurationGroups = [
     { label: 'Conexão PostgreSQL', key: 'ConnectionStrings__DefaultConnection', description: 'String de conexão da instância PostgreSQL usada pela API.' },
     { label: 'Chave JWT', key: 'Jwt__SecretKey', description: 'Segredo aleatório forte com pelo menos 32 caracteres. Não reutilize a chave de desenvolvimento.' },
     { label: 'URL pública HTTPS', key: 'APPLICATION_URL', description: 'Endereço público HTTPS da aplicação, sem apontar para localhost.' },
-  ]},
-  { title: 'E-mail transacional — Resend', icon: Mail, items: [
-    { label: 'API Key', key: 'RESEND_API_KEY', description: 'Chave da API Resend.' },
-    { label: 'E-mail remetente', key: 'RESEND_FROM_EMAIL', description: 'Endereço de domínio verificado no Resend.' },
-    { label: 'Nome remetente', key: 'RESEND_FROM_NAME', description: 'Nome exibido nos e-mails enviados pelo AutoNexus.' },
-  ]},
-  { title: 'Crédito externo — BV', icon: Handshake, items: [
-    { label: 'Access Token', key: 'BV_OPEN_ACCESS_TOKEN', description: 'Credencial fornecida pela instituição após homologação.' },
-    { label: 'Código do parceiro', key: 'BV_OPEN_COMMERCIAL_PARTNER_CODE', description: 'Identificador comercial do parceiro.' },
-    { label: 'Endpoint de condições', key: 'BV_OPEN_FINANCING_CONDITIONS_ENDPOINT', description: 'Endpoint oficial fornecido pela instituição.' },
-    { label: 'Envio externo', key: 'AUTONEXUS_ENABLE_EXTERNAL_CREDIT_SUBMISSION', description: 'Mantenha false até concluir homologação e testes integrados.' },
   ]},
 ];
 
@@ -112,10 +102,11 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
         </section>
 
         <section id="configuracao-producao" className="scroll-mt-24 rounded-xl border border-blue-900 bg-[#06172c]">
-          <button onClick={()=>setShowConfiguration(v=>!v)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-blue-400">Configuração global</p><h2 className="mt-1 text-lg font-black text-white">Configurações de produção</h2><p className="mt-1 text-xs text-slate-400">Variáveis que devem ser cadastradas no ambiente da API / gerenciador de secrets.</p></div><span className="rounded-lg border border-blue-800 px-3 py-2 text-xs font-bold text-blue-200">{showConfiguration?'Recolher':'Expandir'}</span></button>
+          <button onClick={()=>setShowConfiguration(v=>!v)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-blue-400">Configuração global</p><h2 className="mt-1 text-lg font-black text-white">Configurações de produção</h2><p className="mt-1 text-xs text-slate-400">Somente os segredos de infraestrutura que não são configurações de integração.</p></div><span className="rounded-lg border border-blue-800 px-3 py-2 text-xs font-bold text-blue-200">{showConfiguration?'Recolher':'Expandir'}</span></button>
           {showConfiguration&&<div className="grid gap-3 border-t border-blue-900 p-4 lg:grid-cols-2">{configurationGroups.map(group=><div key={group.title} className="rounded-xl border border-blue-900/80 bg-slate-950/60 p-4"><div className="mb-3 flex items-center gap-2"><group.icon className="text-blue-400" size={19}/><h3 className="text-sm font-bold text-white">{group.title}</h3></div><div className="space-y-3">{group.items.map(item=><div key={item.key} className="border-t border-slate-800 pt-3 first:border-0 first:pt-0"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs text-slate-200">{item.label}</strong><code className="rounded bg-blue-950 px-2 py-1 text-[10px] text-blue-200">{item.key}</code></div><p className="mt-1 text-[10px] leading-4 text-slate-500">{item.description}</p></div>)}</div></div>)}</div>}
-          <div className="border-t border-blue-900 bg-blue-950/30 px-5 py-4 text-[11px] leading-5 text-slate-300"><strong className="text-white">Segurança:</strong> esta tela não recebe, exibe ou grava senhas e tokens. Cadastre os valores no gerenciador de secrets do servidor/host (ou variáveis protegidas do deploy). O backend lê essas variáveis ao iniciar. Depois de atualizar o ambiente, reinicie somente a API e clique em Atualizar. Nunca coloque credenciais em appsettings.json, no Git ou no banco de dados.</div>
+          <div className="border-t border-blue-900 bg-blue-950/30 px-5 py-4 text-[11px] leading-5 text-slate-300"><strong className="text-white">Segurança:</strong> Connection string e chave JWT permanecem no gerenciador de secrets do servidor. Resend e BV são configurados no formulário acima e persistidos criptografados no banco. Nunca coloque credenciais em appsettings.json ou no Git.</div>
         </section>
+        <PlatformIntegrationsSettings />
       </div>
     </MainLayout>
   );

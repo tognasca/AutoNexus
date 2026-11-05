@@ -15,8 +15,6 @@ using Microsoft.IdentityModel.Tokens;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Variáveis de ambiente de produção com os nomes definidos pelo negócio
-// (nunca valores no código): mapeadas para a configuração da aplicação.
 var envToConfig = new Dictionary<string, string>
 {
     ["MERCADOPAGO_ACCESS_TOKEN"] = "MercadoPago:AccessToken",
@@ -40,10 +38,7 @@ foreach (var (envName, configKey) in envToConfig)
 }
 
 var wwwrootFolder = Path.Combine(builder.Environment.ContentRootPath, "wwwroot");
-if (!Directory.Exists(wwwrootFolder))
-{
-    Directory.CreateDirectory(wwwrootFolder);
-}
+if (!Directory.Exists(wwwrootFolder)) Directory.CreateDirectory(wwwrootFolder);
 builder.Environment.WebRootPath = wwwrootFolder;
 
 builder.Services.AddApplication();
@@ -51,10 +46,6 @@ builder.Services.AddInfrastructure(builder.Configuration);
 
 var jwtSecretKey = builder.Configuration["Jwt:SecretKey"]
     ?? throw new InvalidOperationException("Jwt:SecretKey não configurada.");
-
-// Os valores padrão precisam ser idênticos aos usados por JwtTokenGenerator.
-// Sem isso, uma configuração sem Jwt:Issuer/Jwt:Audience gera um token que a
-// própria API rejeita na primeira chamada autenticada (401 / "sessão expirada").
 var jwtIssuer = builder.Configuration["Jwt:Issuer"] ?? "AutoNexusApi";
 var jwtAudience = builder.Configuration["Jwt:Audience"] ?? "AutoNexusApp";
 
@@ -67,99 +58,57 @@ builder.Services.AddAuthentication(options =>
 {
     options.TokenValidationParameters = new TokenValidationParameters
     {
-        ValidateIssuer = true,
-        ValidateAudience = true,
-        ValidateLifetime = true,
-        ValidateIssuerSigningKey = true,
-        ValidIssuer = jwtIssuer,
-        ValidAudience = jwtAudience,
+        ValidateIssuer = true, ValidateAudience = true, ValidateLifetime = true,
+        ValidateIssuerSigningKey = true, ValidIssuer = jwtIssuer, ValidAudience = jwtAudience,
         IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSecretKey)),
         ClockSkew = TimeSpan.Zero
     };
 });
 
-builder.WebHost.ConfigureKestrel(options =>
-{
-    options.Limits.MaxRequestBodySize = 52_428_800;
-});
-
+builder.WebHost.ConfigureKestrel(options => options.Limits.MaxRequestBodySize = 52_428_800);
 builder.Services.Configure<FormOptions>(options =>
 {
     options.MultipartBodyLengthLimit = 52_428_800;
     options.ValueLengthLimit = int.MaxValue;
     options.MultipartHeadersLengthLimit = int.MaxValue;
 });
-
 builder.Services.AddAuthorization();
-
-// Limita tentativas de login/cadastro por cliente, e não globalmente.
-// AddFixedWindowLimiter cria um único contador compartilhado por toda a API;
-// isso faria os 5 primeiros erros de login de qualquer usuário bloquearem todos
-// os demais usuários durante a janela. RateLimitPartition cria um contador por IP.
 builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("login", context =>
     {
-        // Em produção, o frontend fica atrás do Nginx/Cloudflare Tunnel.
-        // RemoteIpAddress pode ser o IP do proxy compartilhado por todos os
-        // usuários, fazendo uma conta bloquear o login de outras contas.
-        // O Nginx encaminha CF-Connecting-IP recebido da Cloudflare.
         var cloudflareClientIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
         var clientIp = !string.IsNullOrWhiteSpace(cloudflareClientIp)
             ? cloudflareClientIp.Trim()
             : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
-
-        return RateLimitPartition.GetFixedWindowLimiter(
-            clientIp,
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 5,
-                Window = TimeSpan.FromMinutes(1),
-                QueueProcessingOrder = QueueProcessingOrder.OldestFirst,
-                QueueLimit = 0
-            });
+        return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
+        {
+            PermitLimit = 5, Window = TimeSpan.FromMinutes(1),
+            QueueProcessingOrder = QueueProcessingOrder.OldestFirst, QueueLimit = 0
+        });
     });
-
     options.AddPolicy("signup", context =>
-        RateLimitPartition.GetFixedWindowLimiter(
-            context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-            _ => new FixedWindowRateLimiterOptions
-            {
-                PermitLimit = 10,
-                Window = TimeSpan.FromHours(1),
-                QueueLimit = 0
-            }));
-
+        RateLimitPartition.GetFixedWindowLimiter(context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = 10, Window = TimeSpan.FromHours(1), QueueLimit = 0 }));
     options.OnRejected = async (context, cancellationToken) =>
     {
         context.HttpContext.Response.StatusCode = StatusCodes.Status429TooManyRequests;
         await context.HttpContext.Response.WriteAsJsonAsync(
-            new { message = "Muitas tentativas. Aguarde um instante e tente novamente." },
-            cancellationToken);
+            new { message = "Muitas tentativas. Aguarde um instante e tente novamente." }, cancellationToken);
     };
 });
 
 builder.Services.AddHostedService<AutoNexus.Api.Workers.BillingMaintenanceWorker>();
-
 builder.Services.AddSingleton<MercadoPagoCredentialProtector>();
 builder.Services.AddHttpClient();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
-builder.Services.AddHealthChecks(); // Diagnóstico de Saúde da Aplicação
-builder.Services.AddCors(options =>
+builder.Services.AddHealthChecks();
+builder.Services.AddCors(options => options.AddPolicy("AllowFrontend", policy =>
 {
-    options.AddPolicy("AllowFrontend", policy =>
-    {
-        policy.WithOrigins(
-            "https://ademartognasca.com.br",
-            "https://www.ademartognasca.com.br",
-            "http://localhost:3000"
-        )
-        .AllowAnyHeader()
-        .AllowAnyMethod()
-        .AllowCredentials();
-    });
-});
+    policy.WithOrigins("https://ademartognasca.com.br", "https://www.ademartognasca.com.br", "http://localhost:3000")
+        .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+}));
 
 var app = builder.Build();
 
@@ -167,112 +116,91 @@ using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoNexusDbContext>();
     await DbInitializer.SeedAsync(context, builder.Configuration, builder.Environment.IsDevelopment());
-    // Credenciais configuradas pelo SuperAdmin no banco prevalecem sobre variáveis legadas.
+    var protector = scope.ServiceProvider.GetRequiredService<MercadoPagoCredentialProtector>();
+
     var savedMercadoPago = await context.MercadoPagoConfigurations
         .OrderByDescending(x => x.ConfiguredAtUtc).FirstOrDefaultAsync();
     if (savedMercadoPago != null)
     {
-        var protector = scope.ServiceProvider.GetRequiredService<MercadoPagoCredentialProtector>();
         try
         {
             builder.Configuration["MercadoPago:AccessToken"] = protector.Unprotect(savedMercadoPago.EncryptedAccessToken);
             builder.Configuration["MercadoPago:WebhookSecret"] = protector.Unprotect(savedMercadoPago.EncryptedWebhookSecret);
             builder.Configuration["MercadoPago:Environment"] = savedMercadoPago.Environment;
         }
-        catch (CryptographicException)
+        catch (Exception ex) when (ex is CryptographicException or FormatException)
         {
-            // Uma rotação da chave JWT invalida a chave derivada de criptografia.
-            // A API continua inicializando para que o SuperAdmin possa cadastrar novamente as credenciais.
-            Console.Error.WriteLine("As credenciais salvas do Mercado Pago não puderam ser descriptografadas. Cadastre-as novamente no painel SuperAdmin.");
+            Console.Error.WriteLine("Credenciais Mercado Pago inválidas/ilegíveis. Cadastre novamente no painel SuperAdmin.");
         }
-        catch (FormatException)
+    }
+
+    var savedIntegrations = await context.PlatformIntegrationConfigurations
+        .OrderByDescending(x => x.ConfiguredAtUtc).FirstOrDefaultAsync();
+    if (savedIntegrations != null)
+    {
+        try
         {
-            Console.Error.WriteLine("O registro criptografado do Mercado Pago está inválido. Cadastre novamente as credenciais no painel SuperAdmin.");
+            if (!string.IsNullOrWhiteSpace(savedIntegrations.EncryptedResendApiKey))
+                builder.Configuration["Resend:ApiKey"] = protector.Unprotect(savedIntegrations.EncryptedResendApiKey);
+            if (!string.IsNullOrWhiteSpace(savedIntegrations.ResendFromEmail))
+                builder.Configuration["Resend:FromEmail"] = savedIntegrations.ResendFromEmail;
+            builder.Configuration["Resend:FromName"] = savedIntegrations.ResendFromName;
+            if (!string.IsNullOrWhiteSpace(savedIntegrations.EncryptedBvAccessToken))
+                builder.Configuration["BvOpen:AccessToken"] = protector.Unprotect(savedIntegrations.EncryptedBvAccessToken);
+            if (!string.IsNullOrWhiteSpace(savedIntegrations.EncryptedBvCommercialPartnerCode))
+                builder.Configuration["BvOpen:CommercialPartnerCode"] = protector.Unprotect(savedIntegrations.EncryptedBvCommercialPartnerCode);
+            builder.Configuration["BvOpen:FinancingConditionsEndpoint"] = savedIntegrations.BvFinancingConditionsEndpoint;
+        }
+        catch (Exception ex) when (ex is CryptographicException or FormatException)
+        {
+            Console.Error.WriteLine("Configurações Resend/BV não puderam ser descriptografadas. Rotacione e salve novamente as credenciais no painel SuperAdmin.");
         }
     }
 }
 
-if (app.Environment.IsDevelopment())
-{
-    app.MapOpenApi();
-}
-// Garantir que a pasta /uploads exista e seja servida
-var uploadsDirectory = Path.Combine(builder.Environment.ContentRootPath, "uploads");
-if (!Directory.Exists(uploadsDirectory))
-{
-    Directory.CreateDirectory(uploadsDirectory);
-}
+if (app.Environment.IsDevelopment()) app.MapOpenApi();
 
-// A pasta /uploads contém fotos públicas e documentos privados. Antes de
-// servir qualquer arquivo, permita somente imagens de veículos em caminhos
-// conhecidos. Documentos, contratos e arquivos de outras áreas devem passar
-// pelas rotas autenticadas que validam o tenant proprietário.
+var uploadsDirectory = Path.Combine(builder.Environment.ContentRootPath, "uploads");
+if (!Directory.Exists(uploadsDirectory)) Directory.CreateDirectory(uploadsDirectory);
 app.Use(async (context, next) =>
 {
     if (context.Request.Path.StartsWithSegments("/uploads", out var relativePath))
     {
-        var segments = relativePath.Value?
-            .Split('/', StringSplitOptions.RemoveEmptyEntries) ?? [];
-
-        var isImage = segments.Length > 0 &&
-            new[] { ".jpg", ".jpeg", ".png", ".webp" }
-                .Contains(Path.GetExtension(segments[^1]), StringComparer.OrdinalIgnoreCase);
-
-        var isTenantBrandingImage =
-            segments.Length == 4 &&
+        var segments = relativePath.Value?.Split('/', StringSplitOptions.RemoveEmptyEntries) ?? [];
+        var isImage = segments.Length > 0 && new[] { ".jpg", ".jpeg", ".png", ".webp" }
+            .Contains(Path.GetExtension(segments[^1]), StringComparer.OrdinalIgnoreCase);
+        var isTenantBrandingImage = segments.Length == 4 &&
             segments[0].Equals("tenants", StringComparison.OrdinalIgnoreCase) &&
-            Guid.TryParse(segments[1], out _) &&
-            segments[2].Equals("branding", StringComparison.OrdinalIgnoreCase) &&
+            Guid.TryParse(segments[1], out _) && segments[2].Equals("branding", StringComparison.OrdinalIgnoreCase) &&
             Path.GetFileName(segments[3]) == segments[3];
-
-        var isTenantVehiclePhoto =
-            segments.Length == 5 &&
+        var isTenantVehiclePhoto = segments.Length == 5 &&
             segments[0].Equals("tenants", StringComparison.OrdinalIgnoreCase) &&
-            Guid.TryParse(segments[1], out _) &&
-            segments[2].Equals("vehicles", StringComparison.OrdinalIgnoreCase) &&
-            Guid.TryParse(segments[3], out _) &&
-            Path.GetFileName(segments[4]) == segments[4];
-
-        // Compatibilidade com fotos antigas salvas em /uploads/vehicles/{id}/{arquivo}.
-        var isLegacyVehiclePhoto =
-            segments.Length == 3 &&
+            Guid.TryParse(segments[1], out _) && segments[2].Equals("vehicles", StringComparison.OrdinalIgnoreCase) &&
+            Guid.TryParse(segments[3], out _) && Path.GetFileName(segments[4]) == segments[4];
+        var isLegacyVehiclePhoto = segments.Length == 3 &&
             segments[0].Equals("vehicles", StringComparison.OrdinalIgnoreCase) &&
-            Guid.TryParse(segments[1], out _) &&
-            Path.GetFileName(segments[2]) == segments[2];
-
+            Guid.TryParse(segments[1], out _) && Path.GetFileName(segments[2]) == segments[2];
         if (!isImage || (!isTenantVehiclePhoto && !isTenantBrandingImage && !isLegacyVehiclePhoto))
         {
             context.Response.StatusCode = StatusCodes.Status404NotFound;
             return;
         }
     }
-
     await next();
 });
-
 app.UseStaticFiles(new StaticFileOptions
 {
     FileProvider = new PhysicalFileProvider(uploadsDirectory),
     RequestPath = "/uploads"
 });
-
-app.UseStaticFiles(); // Suporte a wwwroot se existir
-
-if (!app.Environment.IsDevelopment())
-{
-    app.UseHttpsRedirection();
-}
-
+app.UseStaticFiles();
+if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
-
 app.UseRateLimiter();
-
 app.UseAuthentication();
 app.UseMiddleware<AutoNexus.Api.Middleware.PlanLimitExceptionMiddleware>();
 app.UseMiddleware<AutoNexus.Api.Middleware.SubscriptionAccessMiddleware>();
 app.UseAuthorization();
-
-app.MapHealthChecks("/health"); // Mapeamento da rota pública /health
+app.MapHealthChecks("/health");
 app.MapControllers();
-
 app.Run();

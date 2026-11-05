@@ -54,6 +54,7 @@ public class VehicleService : IVehicleService
             ListedValue = v.ListedValue,
             SaleValue = v.SaleValue,
             MainPhotoUrl = v.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? v.Photos?.FirstOrDefault()?.StoragePath,
+            WhatsAppContactId = v.WhatsAppContactId,
             CreatedAt = v.CreatedAt
         });
     }
@@ -82,6 +83,7 @@ public class VehicleService : IVehicleService
             ListedValue = v.ListedValue,
             SaleValue = v.SaleValue,
             MainPhotoUrl = v.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? v.Photos?.FirstOrDefault()?.StoragePath,
+            WhatsAppContactId = v.WhatsAppContactId,
             CreatedAt = v.CreatedAt
         }).ToList();
     }
@@ -158,6 +160,7 @@ public class VehicleService : IVehicleService
             ListedValue = v.ListedValue,
             SaleValue = v.SaleValue,
             MainPhotoUrl = v.Photos?.FirstOrDefault(p => p.IsMain)?.StoragePath ?? v.Photos?.FirstOrDefault()?.StoragePath,
+            WhatsAppContactId = v.WhatsAppContactId,
             CreatedAt = v.CreatedAt
         }).ToList();
 
