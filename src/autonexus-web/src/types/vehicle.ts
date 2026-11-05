@@ -44,6 +44,7 @@ export interface VehicleSummary {
   listedValue?: number;
   saleValue?: number;
   mainPhotoUrl?: string;
+  whatsappContactId?: string | null;
   createdAt: string;
 }
 
