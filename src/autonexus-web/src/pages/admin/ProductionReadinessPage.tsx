@@ -12,7 +12,7 @@ const configurationGroups = [
     { label: 'Chave JWT', key: 'Jwt__SecretKey', description: 'Segredo aleatório forte com pelo menos 32 caracteres. Não reutilize a chave de desenvolvimento.' },
     { label: 'URL pública HTTPS', key: 'APPLICATION_URL', description: 'Endereço público HTTPS da aplicação, sem apontar para localhost.' },
   ]},
-;
+];
 
 export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
   const [data, setData] = useState<ProductionReadiness | null>(null);
