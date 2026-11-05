@@ -889,6 +889,23 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.ToTable("mercado_pago_configuration", (string)null);
                 });
 
+            modelBuilder.Entity("AutoNexus.Domain.Entities.PlatformIntegrationConfiguration", b =>
+                {
+                    b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
+                    b.Property<DateTime>("ConfiguredAtUtc").HasColumnType("timestamp with time zone").HasColumnName("configuredAtUtc");
+                    b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
+                    b.Property<string>("EncryptedBvAccessToken").HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedBvAccessToken");
+                    b.Property<string>("EncryptedBvCommercialPartnerCode").HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedBvCommercialPartnerCode");
+                    b.Property<string>("EncryptedResendApiKey").HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedResendApiKey");
+                    b.Property<string>("BvFinancingConditionsEndpoint").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)").HasColumnName("bvFinancingConditionsEndpoint");
+                    b.Property<string>("ResendFromEmail").HasMaxLength(320).HasColumnType("character varying(320)").HasColumnName("resendFromEmail");
+                    b.Property<string>("ResendFromName").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)").HasColumnName("resendFromName");
+                    b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
+                    b.HasKey("Id");
+                    b.HasIndex("ConfiguredAtUtc");
+                    b.ToTable("platform_integration_configurations", (string)null);
+                });
+
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
                 {
                     b.Property<Guid>("Id")
