@@ -1,6 +1,6 @@
 ﻿import { useAuth } from '../../contexts/AuthContext';
 import { canAccessView } from '../../utils/permissions';
-import { LayoutDashboard, Car, ArrowLeftRight, Calculator, BarChart3, Building2, Users, FileDown, Rocket, MessageCircle, SlidersHorizontal } from 'lucide-react';
+import { LayoutDashboard, Car, ArrowLeftRight, Calculator, BarChart3, Building2, Users, FileDown, Rocket, MessageCircle, SlidersHorizontal, FileText } from 'lucide-react';
 
 interface BottomNavProps { currentView: string; onNavigate?: (view: string) => void; }
 
@@ -26,5 +26,6 @@ export function BottomNav({ currentView, onNavigate }: BottomNavProps) {
     {button('bank-configs', 'Bancos', Building2)}
     {button('users', 'Usuários', Users)}
     {button('settings-center', 'Config.', SlidersHorizontal)}
+    {button('legal-documents', 'Docs Legais', FileText)}
   </nav>;
 }
