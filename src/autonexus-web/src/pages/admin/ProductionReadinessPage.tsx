@@ -60,6 +60,8 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
 
         {error && <div role="alert" className="rounded-xl border border-red-500/30 bg-red-500/10 p-4 text-sm text-red-200">{error}</div>}
 
+        <PlatformIntegrationsSettings />
+
         <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <div className="flex items-center gap-4 rounded-xl border-l-4 border-blue-500 bg-gradient-to-r from-blue-950/80 to-slate-900 p-4"><div className="rounded-full bg-blue-500 p-3"><CheckCircle2 size={24}/></div><div><strong className="text-3xl font-black">{stats.ok}/{stats.total}</strong><p className="text-xs text-slate-300">Itens OK</p></div></div>
           <div className="flex items-center gap-4 rounded-xl border-l-4 border-amber-400 bg-gradient-to-r from-amber-950/50 to-slate-900 p-4"><div className="rounded-full bg-amber-400 p-3 text-slate-950"><AlertTriangle size={24}/></div><div><strong className="text-3xl font-black">{stats.pending}</strong><p className="text-xs text-slate-300">Pendências não bloqueantes</p></div></div>
@@ -106,7 +108,6 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
           {showConfiguration&&<div className="grid gap-3 border-t border-blue-900 p-4 lg:grid-cols-2">{configurationGroups.map(group=><div key={group.title} className="rounded-xl border border-blue-900/80 bg-slate-950/60 p-4"><div className="mb-3 flex items-center gap-2"><group.icon className="text-blue-400" size={19}/><h3 className="text-sm font-bold text-white">{group.title}</h3></div><div className="space-y-3">{group.items.map(item=><div key={item.key} className="border-t border-slate-800 pt-3 first:border-0 first:pt-0"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs text-slate-200">{item.label}</strong><code className="rounded bg-blue-950 px-2 py-1 text-[10px] text-blue-200">{item.key}</code></div><p className="mt-1 text-[10px] leading-4 text-slate-500">{item.description}</p></div>)}</div></div>)}</div>}
           <div className="border-t border-blue-900 bg-blue-950/30 px-5 py-4 text-[11px] leading-5 text-slate-300"><strong className="text-white">Segurança:</strong> Connection string e chave JWT permanecem no gerenciador de secrets do servidor. Resend e BV são configurados no formulário acima e persistidos criptografados no banco. Nunca coloque credenciais em appsettings.json ou no Git.</div>
         </section>
-        <PlatformIntegrationsSettings />
       </div>
     </MainLayout>
   );
