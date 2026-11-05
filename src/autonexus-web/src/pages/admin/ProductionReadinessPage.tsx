@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { AlertTriangle, CheckCircle2, CircleX, RefreshCw, ShieldCheck, Rocket, CreditCard, Mail, Handshake, Server, Info, SlidersHorizontal } from 'lucide-react';
 import { MainLayout } from '../../components/layout/MainLayout';
 import { superAdminService, ProductionReadiness, MercadoPagoConfigurationStatus } from '../../services/superAdminService';
+import { PlatformIntegrationsSettings } from './PlatformIntegrationsSettings';
 
 interface Props { currentView?: string; onNavigate?: (view: string) => void; }
 
@@ -116,6 +117,7 @@ export function ProductionReadinessPage({ currentView, onNavigate }: Props) {
           {showConfiguration&&<div className="grid gap-3 border-t border-blue-900 p-4 lg:grid-cols-2">{configurationGroups.map(group=><div key={group.title} className="rounded-xl border border-blue-900/80 bg-slate-950/60 p-4"><div className="mb-3 flex items-center gap-2"><group.icon className="text-blue-400" size={19}/><h3 className="text-sm font-bold text-white">{group.title}</h3></div><div className="space-y-3">{group.items.map(item=><div key={item.key} className="border-t border-slate-800 pt-3 first:border-0 first:pt-0"><div className="flex flex-wrap items-center justify-between gap-2"><strong className="text-xs text-slate-200">{item.label}</strong><code className="rounded bg-blue-950 px-2 py-1 text-[10px] text-blue-200">{item.key}</code></div><p className="mt-1 text-[10px] leading-4 text-slate-500">{item.description}</p></div>)}</div></div>)}</div>}
           <div className="border-t border-blue-900 bg-blue-950/30 px-5 py-4 text-[11px] leading-5 text-slate-300"><strong className="text-white">Segurança:</strong> esta tela não recebe, exibe ou grava senhas e tokens. Cadastre os valores no gerenciador de secrets do servidor/host (ou variáveis protegidas do deploy). O backend lê essas variáveis ao iniciar. Depois de atualizar o ambiente, reinicie somente a API e clique em Atualizar. Nunca coloque credenciais em appsettings.json, no Git ou no banco de dados.</div>
         </section>
+        <PlatformIntegrationsSettings />
       </div>
     </MainLayout>
   );
