@@ -880,8 +880,8 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
                     b.Property<DateTime>("ConfiguredAtUtc").HasColumnType("timestamp with time zone").HasColumnName("configuredAtUtc");
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
-                    b.Property<string>("EncryptedAccessToken").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedAccessToken");
-                    b.Property<string>("EncryptedWebhookSecret").IsRequired().HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedWebhookSecret");
+                    b.Property<string>("EncryptedAccessToken").IsRequired().HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedAccessToken");
+                    b.Property<string>("EncryptedWebhookSecret").IsRequired().HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedWebhookSecret");
                     b.Property<string>("Environment").IsRequired().HasMaxLength(20).HasColumnType("character varying(20)").HasColumnName("environment");
                     b.Property<DateTime?>("UpdatedAt").HasColumnType("timestamp with time zone").HasColumnName("updatedAt");
                     b.HasKey("Id");
@@ -894,9 +894,9 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid").HasColumnName("id");
                     b.Property<DateTime>("ConfiguredAtUtc").HasColumnType("timestamp with time zone").HasColumnName("configuredAtUtc");
                     b.Property<DateTime>("CreatedAt").HasColumnType("timestamp with time zone").HasColumnName("createdAt");
-                    b.Property<string>("EncryptedBvAccessToken").HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedBvAccessToken");
-                    b.Property<string>("EncryptedBvCommercialPartnerCode").HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedBvCommercialPartnerCode");
-                    b.Property<string>("EncryptedResendApiKey").HasMaxLength(4000).HasColumnType("character varying(4000)").HasColumnName("encryptedResendApiKey");
+                    b.Property<string>("EncryptedBvAccessToken").HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedBvAccessToken");
+                    b.Property<string>("EncryptedBvCommercialPartnerCode").HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedBvCommercialPartnerCode");
+                    b.Property<string>("EncryptedResendApiKey").HasMaxLength(5000).HasColumnType("character varying(5000)").HasColumnName("encryptedResendApiKey");
                     b.Property<string>("BvFinancingConditionsEndpoint").IsRequired().HasMaxLength(1000).HasColumnType("character varying(1000)").HasColumnName("bvFinancingConditionsEndpoint");
                     b.Property<string>("ResendFromEmail").HasMaxLength(320).HasColumnType("character varying(320)").HasColumnName("resendFromEmail");
                     b.Property<string>("ResendFromName").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)").HasColumnName("resendFromName");
