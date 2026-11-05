@@ -17,11 +17,11 @@ public sealed class PlatformIntegrationConfiguration : EntityBase
     public void Update(string? encryptedResendApiKey, string? resendFromEmail, string? resendFromName,
         string? encryptedBvAccessToken, string? encryptedBvCommercialPartnerCode, string? bvEndpoint)
     {
-        EncryptedResendApiKey = Normalize(encryptedResendApiKey, 4000);
+        EncryptedResendApiKey = Normalize(encryptedResendApiKey, 5000);
         ResendFromEmail = Normalize(resendFromEmail, 320);
         ResendFromName = Normalize(resendFromName, 120) ?? "AutoNexus";
-        EncryptedBvAccessToken = Normalize(encryptedBvAccessToken, 4000);
-        EncryptedBvCommercialPartnerCode = Normalize(encryptedBvCommercialPartnerCode, 4000);
+        EncryptedBvAccessToken = Normalize(encryptedBvAccessToken, 5000);
+        EncryptedBvCommercialPartnerCode = Normalize(encryptedBvCommercialPartnerCode, 5000);
         var endpoint = Normalize(bvEndpoint, 1000) ??
             "https://apige-uat-sbx.bancobv.com.br/partner-funding/v1/financing-conditions";
         if (!Uri.TryCreate(endpoint, UriKind.Absolute, out var uri) || uri.Scheme != Uri.UriSchemeHttps)
