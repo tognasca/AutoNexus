@@ -9,7 +9,7 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/tenant-settings/whatsapp-contacts")]
-[Authorize(Roles = "Admin")]
+[Authorize(Roles = "Admin,Vendedor")]
 public sealed class TenantWhatsAppContactsController : ControllerBase
 {
     private readonly AutoNexusDbContext _db;
