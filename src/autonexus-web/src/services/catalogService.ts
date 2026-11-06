@@ -106,8 +106,7 @@ export const catalogService = {
   },
 
   getXmlFeedUrl: (): string => {
-    const host = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-    const baseURL = import.meta.env.VITE_API_URL || `http://${host}:5000/api`;
+    const baseURL = import.meta.env.VITE_API_URL || (typeof window !== 'undefined' ? `${window.location.origin}/api` : 'http://localhost:5000/api');
     return `${baseURL}/public/feed/xml`;
   }
 };

@@ -105,7 +105,7 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddCors(options => options.AddPolicy("AllowFrontend", policy =>
 {
-    policy.WithOrigins("https://autonexus.ademartognasca.com.br", "https://ademartognasca.com.br", "https://www.ademartognasca.com.br", "http://localhost:3000")
+    policy.WithOrigins("https://novamarcha.ademartognasca.com.br", "https://autonexus.ademartognasca.com.br", "https://ademartognasca.com.br", "https://www.ademartognasca.com.br", "http://localhost:3000")
         .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
 }));
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

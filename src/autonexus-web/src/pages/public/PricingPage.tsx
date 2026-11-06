@@ -55,7 +55,7 @@ export function PricingPage() {
     }
 
     return {
-      label: 'Plano AutoNexus',
+      label: 'Plano Nova Marcha',
       description: 'Uma solução profissional para organizar a operação e acompanhar o negócio em um só lugar.',
       icon: Car,
       accent: 'border-slate-700',
@@ -85,8 +85,8 @@ export function PricingPage() {
   return (
     <div className="min-h-screen bg-nexus-dark text-slate-100">
       <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <a href="/" aria-label="AutoNexus - início" className="flex shrink-0 items-center">
-          <img src="/autonexus-logo.webp?v=20261106" alt="AutoNexus" className="h-14 w-auto max-w-36 object-contain sm:h-16 sm:max-w-44" />
+        <a href="/" aria-label="Nova Marcha - início" className="flex shrink-0 items-center">
+          <span className="text-xl sm:text-2xl font-black tracking-tight text-white">Nova <span className="text-blue-400">Marcha</span></span>
         </a>
         <nav aria-label="Navegação principal" className="flex items-center gap-3 sm:gap-6 text-sm">
           <a href="#como-funciona" className="hidden text-slate-300 transition-colors hover:text-white md:inline">Como funciona</a>
@@ -121,7 +121,7 @@ export function PricingPage() {
               <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Acesso pelo celular ou computador</span>
             </div>
           </div>
-          <div className="relative mx-auto flex min-h-[330px] w-full max-w-xl items-center justify-center sm:min-h-[450px]" aria-label="Visão ilustrativa das funcionalidades AutoNexus">
+          <div className="relative mx-auto flex min-h-[330px] w-full max-w-xl items-center justify-center sm:min-h-[450px]" aria-label="Visão ilustrativa das funcionalidades Nova Marcha">
             <div aria-hidden="true" className="absolute inset-8 rounded-full bg-blue-500/15 blur-[65px] motion-safe:animate-pulse" />
             <div aria-hidden="true" className="absolute h-[78%] w-[78%] rounded-full border border-cyan-400/20 motion-safe:animate-[spin_28s_linear_infinite]" />
             <div aria-hidden="true" className="absolute h-[96%] w-[96%] rounded-full border border-dashed border-blue-400/15 motion-safe:animate-[spin_42s_linear_infinite_reverse]" />
@@ -146,7 +146,7 @@ export function PricingPage() {
       <section id="como-funciona" className="max-w-6xl mx-auto px-4 pb-14">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-3xl border border-nexus-border bg-nexus-card p-6 sm:p-8 shadow-xl shadow-black/10">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o AutoNexus</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o Nova Marcha</p>
             <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Sua loja organizada em um só lugar</h2>
             <p className="mt-4 text-sm leading-6 text-slate-400">Veja como centralizar estoque, compras, vendas, trocas, documentos e resultados financeiros em uma plataforma feita para lojas de veículos.</p>
             <a href="#planos" className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors">Ver planos e começar <ArrowRight className="h-4 w-4" /></a>
@@ -191,7 +191,7 @@ export function PricingPage() {
         <div className="text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Planos e preços</p>
           <h2 className="mt-2 text-2xl sm:text-3xl font-black text-white">Escolha como sua loja quer crescer</h2>
-          <p className="mt-3 text-sm text-slate-400">Todos os valores são carregados do painel do AutoNexus. Sem preço escondido.</p>
+          <p className="mt-3 text-sm text-slate-400">Todos os valores são carregados do painel do Nova Marcha. Sem preço escondido.</p>
         </div>
 
         <div className="flex justify-center mt-6">

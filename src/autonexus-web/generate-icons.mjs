@@ -5,7 +5,7 @@ import path from 'path';
 // Garante que a pasta public/icons existe
 fs.mkdirSync('public/icons', { recursive: true });
 
-// 1. Criação do SVG Base do AutoNexus
+// 1. Criação do SVG Base do Nova Marcha
 const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
   <defs>
     <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
@@ -32,7 +32,7 @@ const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" w
   <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
   <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#brandGrad)" stroke-width="3" stroke-opacity="0.3" />
 
-  <!-- Logo AutoNexus (Monograma Aerodinâmico A + N + Velocidade/Conexão) -->
+  <!-- Logo Nova Marcha (Monograma Aerodinâmico A + N + Velocidade/Conexão) -->
   <g filter="url(#glow)" transform="translate(0, 0)">
     <!-- Asa / Aerofólio Superior -->
     <path d="M 120 320 L 256 120 L 392 320 L 328 320 L 256 210 L 184 320 Z" fill="url(#brandGrad)" />
@@ -96,7 +96,7 @@ async function buildPngs() {
     .toFile('public/favicon.ico');
   console.log('✅ public/favicon.ico criado');
 
-  console.log('\n🚀 Todos os ícones do AutoNexus foram gerados com sucesso!');
+  console.log('\n🚀 Todos os ícones do Nova Marcha foram gerados com sucesso!');
 }
 
 buildPngs();
