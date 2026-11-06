@@ -86,13 +86,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
     setIsEditModalOpen(true);
   };
 
-  const handleDeleteVehicle = async (vehicle: VehicleSummary) => {
-    try {
-      await vehicleService.delete(vehicle.id);
-      await loadData();
-    } catch (err) {
-      alert('Erro ao excluir o veículo do estoque.');
-    }
+  const handleDeleteVehicle = async (_vehicle: VehicleSummary) => {
+    alert('Não é possível excluir veículos definitivamente. Utilize Registrar venda para manter o histórico da loja.');
   };
 
   return (

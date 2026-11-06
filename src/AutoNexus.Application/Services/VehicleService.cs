@@ -257,8 +257,7 @@ public class VehicleService : IVehicleService
         var vehicle = await _vehicleRepository.GetByIdAsync(id, false, cancellationToken)
             ?? throw new KeyNotFoundException("Veículo não encontrado.");
 
-        _vehicleRepository.Delete(vehicle);
-        await _unitOfWork.CommitAsync(cancellationToken);
+        throw new InvalidOperationException("A exclusão definitiva de veículos não é permitida. Registre a venda ou altere a situação do veículo.");
     }
 
     public async Task SellVehicleAsync(Guid vehicleId, SellVehicleDto dto, CancellationToken cancellationToken = default)
