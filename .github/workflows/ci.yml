@@ -100,9 +100,11 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Lint (existing baseline debt)
-        continue-on-error: true
-        run: npm run lint
+      - name: Lint with explicit legacy baseline
+        run: |
+          npm run lint -- --format json --output-file eslint-results.json || lint_exit=$?
+          node scripts/check-eslint-baseline.mjs eslint-results.json
+          echo "ESLint legacy baseline enforced (new violations fail CI)."
 
   docker-smoke:
     name: Docker ephemeral smoke and persistence
