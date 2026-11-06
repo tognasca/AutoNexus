@@ -84,21 +84,63 @@ export function PricingPage() {
 
   return (
     <div className="min-h-screen bg-nexus-dark text-slate-100">
-      <header className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
-        <a href="/" aria-label="AutoNexus - início" className="flex items-center"><img src="/autonexus-logo.webp" alt="AutoNexus" className="w-40 h-auto object-contain" /></a>
-        <div className="flex items-center gap-4 text-sm">
-          <a href="/entrar" className="text-slate-300 hover:text-white transition-colors">Entrar</a>
-          <a href="/cadastro" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-white transition-colors">Começar teste grátis</a>
-        </div>
+      <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
+        <a href="/" aria-label="AutoNexus - início" className="flex shrink-0 items-center">
+          <img src="/autonexus-logo.webp" alt="AutoNexus" className="h-14 w-auto max-w-36 object-contain sm:h-16 sm:max-w-44" />
+        </a>
+        <nav aria-label="Navegação principal" className="flex items-center gap-3 sm:gap-6 text-sm">
+          <a href="#como-funciona" className="hidden text-slate-300 transition-colors hover:text-white md:inline">Como funciona</a>
+          <a href="#planos" className="hidden text-slate-300 transition-colors hover:text-white sm:inline">Planos</a>
+          <a href="/entrar" className="text-slate-200 transition-colors hover:text-white">Entrar</a>
+          <a href="/cadastro" className="rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-500 sm:px-5 sm:text-sm">Teste grátis</a>
+        </nav>
       </header>
 
-      <section className="max-w-4xl mx-auto px-4 pt-10 pb-12 text-center">
-        <div className="inline-flex items-center gap-2 rounded-full border border-blue-500/20 bg-blue-500/10 px-3 py-1.5 text-xs font-semibold text-blue-300">
-          <Sparkles className="h-3.5 w-3.5" /> Feito para lojas de veículos
+      <section className="relative isolate overflow-hidden border-b border-blue-400/10">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_45%,rgba(14,92,205,0.23),transparent_55%),radial-gradient(ellipse_at_15%_20%,rgba(0,196,255,0.09),transparent_45%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(59,130,246,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.14)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 pb-16 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1.06fr_0.94fr] lg:gap-10 lg:pb-24 lg:pt-24">
+          <div className="relative z-10 max-w-2xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
+              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 motion-safe:animate-pulse" />
+              Sua loja de veículos, no próximo nível
+            </div>
+            <h1 className="mt-7 text-4xl font-black leading-[1.08] tracking-tight text-white sm:text-5xl xl:text-6xl">
+              Menos planilhas.<span className="block bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">Mais negócios.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
+              Estoque, vendas, trocas, financeiro e catálogo da sua loja em um só lugar. Organize a operação e tenha mais tempo para vender.
+            </p>
+            <div className="mt-8 flex flex-wrap items-center gap-3">
+              <a href="/cadastro" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white shadow-xl shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">Começar 7 dias grátis <ArrowRight className="h-4 w-4" /></a>
+              <a href="#como-funciona" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-600/70 bg-white/5 px-5 py-3 font-semibold text-white transition-colors hover:bg-white/10">Conhecer a plataforma</a>
+            </div>
+            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
+              <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Sem fidelidade</span>
+              <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Catálogo exclusivo da loja</span>
+              <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Acesso pelo celular ou computador</span>
+            </div>
+          </div>
+          <div className="relative mx-auto flex min-h-[330px] w-full max-w-xl items-center justify-center sm:min-h-[450px]" aria-label="Visão ilustrativa das funcionalidades AutoNexus">
+            <div aria-hidden="true" className="absolute inset-8 rounded-full bg-blue-500/15 blur-[65px] motion-safe:animate-pulse" />
+            <div aria-hidden="true" className="absolute h-[78%] w-[78%] rounded-full border border-cyan-400/20 motion-safe:animate-[spin_28s_linear_infinite]" />
+            <div aria-hidden="true" className="absolute h-[96%] w-[96%] rounded-full border border-dashed border-blue-400/15 motion-safe:animate-[spin_42s_linear_infinite_reverse]" />
+            <div className="relative w-[86%] max-w-[460px] overflow-hidden rounded-[28px] border border-blue-300/25 bg-[#08182d]/95 p-5 shadow-[0_0_90px_rgba(0,132,255,0.18)] backdrop-blur-xl sm:p-7 motion-safe:animate-[float_7s_ease-in-out_infinite]">
+              <div className="flex items-center justify-between border-b border-white/10 pb-4">
+                <div className="flex items-center gap-2 text-sm font-bold text-white"><Car className="h-5 w-5 text-cyan-400" /> Central da sua loja</div>
+                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">Tudo conectado</span>
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><Car className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Estoque</p><p className="mt-1 text-[11px] text-slate-400">Veículos e fotos</p></div>
+                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><BarChart3 className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Resultados</p><p className="mt-1 text-[11px] text-slate-400">Controle financeiro</p></div>
+                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><Users className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Clientes</p><p className="mt-1 text-[11px] text-slate-400">Negócios e contatos</p></div>
+                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><FileText className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Catálogo</p><p className="mt-1 text-[11px] text-slate-400">Compartilhe sua vitrine</p></div>
+              </div>
+              <div className="mt-4 flex items-center gap-2 rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3 text-xs text-cyan-100"><Sparkles className="h-4 w-4 shrink-0 text-cyan-400" /> Uma operação organizada, do primeiro contato à venda.</div>
+            </div>
+          </div>
         </div>
-        <h1 className="mt-5 text-3xl sm:text-5xl font-black tracking-tight text-white">Escolha o plano que acompanha sua loja</h1>
-        <p className="mt-4 max-w-2xl mx-auto text-sm sm:text-base leading-7 text-slate-400">Tenha estoque, compras, vendas, trocas, financeiro, documentos e indicadores em uma única plataforma. Comece pequeno e evolua quando sua operação crescer.</p>
-        <a href="#planos" className="inline-flex items-center gap-2 mt-7 px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-xl font-bold text-white transition-colors">Ver planos <ArrowRight className="h-4 w-4" /></a>
+        <style>{`@keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } } @media (prefers-reduced-motion: reduce) { .motion-safe\\:animate-\\[float_7s_ease-in-out_infinite\\] { animation: none !important; } }`}</style>
       </section>
 
       <section id="como-funciona" className="max-w-6xl mx-auto px-4 pb-14">
