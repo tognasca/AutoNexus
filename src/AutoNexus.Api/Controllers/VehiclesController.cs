@@ -88,8 +88,7 @@ public class VehiclesController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken cancellationToken)
     {
-        await _vehicleService.DeleteAsync(id, cancellationToken);
-        return NoContent();
+        return StatusCode(StatusCodes.Status403Forbidden, new { message = "A exclusão definitiva de veículos não é permitida. Registre a venda ou altere a situação do veículo para preservar o histórico da loja." });
     }
 
     [HttpPost("{id:guid}/sell")]
