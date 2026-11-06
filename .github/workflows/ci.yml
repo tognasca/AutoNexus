@@ -103,3 +103,57 @@ jobs:
       - name: Lint (existing baseline debt)
         continue-on-error: true
         run: npm run lint
+
+  docker-smoke:
+    name: Docker ephemeral smoke and persistence
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Validate Docker Compose configuration
+        env:
+          POSTGRES_PASSWORD: ci-postgres-only
+          JWT_SECRET_KEY: ci-only-jwt-secret-with-at-least-32-characters-123456
+          CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-encryption-key-123456789
+        run: docker compose config --quiet
+      - name: Build and start isolated containers
+        env:
+          POSTGRES_PASSWORD: ci-postgres-only
+          JWT_SECRET_KEY: ci-only-jwt-secret-with-at-least-32-characters-123456
+          CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-encryption-key-123456789
+        run: |
+          docker compose up --build -d
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:5000/health >/dev/null; then break; fi
+            if [ "$attempt" -eq 60 ]; then docker compose logs --tail=100 api; exit 1; fi
+            sleep 5
+          done
+          curl -fsS http://127.0.0.1:3000/ >/dev/null
+          docker compose exec -T postgres pg_isready -U autonexus -d autonexus
+          docker compose exec -T api sh -c 'printf smoke-persist > /app/uploads/.ci-persistence-test'
+          docker compose restart api
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://127.0.0.1:5000/health >/dev/null; then break; fi
+            if [ "$attempt" -eq 30 ]; then docker compose logs --tail=100 api; exit 1; fi
+            sleep 3
+          done
+          docker compose exec -T api sh -c 'test "$(cat /app/uploads/.ci-persistence-test)" = smoke-persist'
+          docker compose exec -T api rm /app/uploads/.ci-persistence-test
+      - name: Inspect container privilege settings
+        if: success()
+        env:
+          POSTGRES_PASSWORD: ci-postgres-only
+          JWT_SECRET_KEY: ci-only-jwt-secret-with-at-least-32-characters-123456
+          CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-encryption-key-123456789
+        run: |
+          for service in api frontend postgres; do
+            id="$(docker compose ps -q "$service")"
+            docker inspect --format '{{json .HostConfig.SecurityOpt}}' "$id" | grep -q no-new-privileges
+          done
+      - name: Cleanup temporary CI containers and volumes
+        if: always()
+        env:
+          POSTGRES_PASSWORD: ci-postgres-only
+          JWT_SECRET_KEY: ci-only-jwt-secret-with-at-least-32-characters-123456
+          CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-encryption-key-123456789
+        run: docker compose down --volumes --remove-orphans
