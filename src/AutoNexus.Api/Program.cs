@@ -77,10 +77,8 @@ builder.Services.AddRateLimiter(options =>
 {
     options.AddPolicy("login", context =>
     {
-        var cloudflareClientIp = context.Request.Headers["CF-Connecting-IP"].FirstOrDefault();
-        var clientIp = !string.IsNullOrWhiteSpace(cloudflareClientIp)
-            ? cloudflareClientIp.Trim()
-            : context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+        // Use only the connection IP; forwarded headers must be handled by trusted proxy middleware.
+        var clientIp = context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         return RateLimitPartition.GetFixedWindowLimiter(clientIp, _ => new FixedWindowRateLimiterOptions
         {
             PermitLimit = 5, Window = TimeSpan.FromMinutes(1),
