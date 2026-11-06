@@ -191,7 +191,7 @@ export function UsersPage({ currentView, onNavigate }: UsersPageProps) {
                 <label className="text-slate-400 block mb-1">E-mail de Acesso *</label>
                 <input
                   type="email"
-                  placeholder="carlos@autonexus.com.br"
+                  placeholder="carlos@empresa.com.br"
                   value={email}
                   onChange={e => setEmail(e.target.value)}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
@@ -222,7 +222,7 @@ export function UsersPage({ currentView, onNavigate }: UsersPageProps) {
                   onChange={e => setProfile(Number(e.target.value))}
                   className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-sm text-white outline-none focus:border-blue-500"
                 >
-                  <option value={1}>Administrador (Acesso Total)</option>
+                  <option value={1}>Administrador (Acesso da Empresa)</option>
                   <option value={2}>Vendedor (Acesso Operacional e Vendas)</option>
                   <option value={3}>Cliente (Acesso Restrito ao Portal)</option>
                 </select>
