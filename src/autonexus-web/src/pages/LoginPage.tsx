@@ -31,7 +31,7 @@ export function LoginPage() {
 
       <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md p-8 relative shadow-2xl z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          <img src="/autonexus-logo.webp?v=20261106" alt="AutoNexus" className="w-64 max-w-full h-auto object-contain mb-2" />
+          <img src="/novamarcha-logo.png?v=20261106" alt="Nova Marcha" className="w-64 max-w-full h-auto object-contain mb-2" />
           <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Sistema de Gestão de Veículos</p>
         </div>
 
@@ -108,7 +108,7 @@ export function LoginPage() {
           </p>
           <p className="mt-1 text-[11px] font-semibold text-blue-400">Filipenses 4:13</p>
           <p className="mt-5 text-[11px] text-slate-500">
-            Acesso restrito a usuários autorizados • AutoNexus Hub v1.0
+            Acesso restrito a usuários autorizados • Nova Marcha Hub v1.0
           </p>
         </div>
       </div>
