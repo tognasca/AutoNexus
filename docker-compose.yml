@@ -3,6 +3,8 @@ services:
     image: postgres:16-alpine
     container_name: autonexus-db
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       POSTGRES_DB: autonexus
       POSTGRES_USER: autonexus
@@ -23,6 +25,8 @@ services:
       dockerfile: Dockerfile
     container_name: autonexus-api
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       ASPNETCORE_URLS: http://+:5000
@@ -63,6 +67,8 @@ services:
         VITE_PUBLIC_WHATSAPP_NUMBER: ${VITE_PUBLIC_WHATSAPP_NUMBER:-}
     container_name: autonexus-frontend
     restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
     ports:
       - "127.0.0.1:3000:80"
     depends_on:
