@@ -135,6 +135,16 @@ export function DashboardPage({ currentView, onNavigate }: { currentView?: strin
           </div>
         </div>
       )}
+      <section aria-label="Inspiração bíblica" className="mt-8 rounded-xl border border-nexus-border bg-nexus-card px-5 py-4 text-center">
+        <p className="text-xs italic leading-relaxed text-slate-400">
+          “Confia ao SENHOR as tuas obras, e teus pensamentos serão estabelecidos.”
+        </p>
+        <p className="mt-1 text-[11px] font-semibold text-blue-400">Provérbios 16:3</p>
+        <p className="mt-3 text-xs italic leading-relaxed text-slate-400">
+          “Posso todas as coisas naquele que me fortalece.”
+        </p>
+        <p className="mt-1 text-[11px] font-semibold text-blue-400">Filipenses 4:13</p>
+      </section>
     </MainLayout>
   );
 }

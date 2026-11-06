@@ -106,7 +106,11 @@ export function LoginPage() {
         </div>
 
         <div className="mt-8 pt-6 border-t border-nexus-border/60 text-center">
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs italic leading-relaxed text-slate-400">
+            “Posso todas as coisas naquele que me fortalece.”
+          </p>
+          <p className="mt-1 text-[11px] font-semibold text-blue-400">Filipenses 4:13</p>
+          <p className="mt-5 text-[11px] text-slate-500">
             Acesso restrito a usuários autorizados • AutoNexus Hub v1.0
           </p>
         </div>
