@@ -15,6 +15,7 @@ public class VehiclePhotosController : ControllerBase
     private readonly IVehicleRepository _vehicleRepository;
     private readonly IStorageService _storageService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ILogger<VehiclePhotosController> _logger;
 
     private static readonly HashSet<string> AllowedExtensions = new(StringComparer.OrdinalIgnoreCase)
 {
@@ -29,11 +30,13 @@ public class VehiclePhotosController : ControllerBase
     public VehiclePhotosController(
         IVehicleRepository vehicleRepository,
         IStorageService storageService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ILogger<VehiclePhotosController> logger)
     {
         _vehicleRepository = vehicleRepository;
         _storageService = storageService;
         _unitOfWork = unitOfWork;
+        _logger = logger;
     }
 
     [HttpPost]
@@ -171,13 +174,13 @@ public class VehiclePhotosController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Falha na operação de fotos do veículo {VehicleId}", vehicleId);
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new
                 {
                     message = "Erro ao salvar fotos.",
-                    detail = ex.Message,
-                    innerException = ex.InnerException?.Message
+                    errorId = HttpContext.TraceIdentifier
                 });
         }
     }
@@ -253,13 +256,13 @@ public class VehiclePhotosController : ControllerBase
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "Falha na operação de fotos do veículo {VehicleId}", vehicleId);
             return StatusCode(
                 StatusCodes.Status500InternalServerError,
                 new
                 {
                     message = "Erro ao definir foto principal.",
-                    detail = ex.Message,
-                    innerException = ex.InnerException?.Message
+                    errorId = HttpContext.TraceIdentifier
                 });
         }
     }
@@ -406,8 +409,7 @@ public class VehiclePhotosController : ControllerBase
                 new
                 {
                     message = "Erro ao excluir foto.",
-                    detail = ex.Message,
-                    innerException = ex.InnerException?.Message
+                    errorId = HttpContext.TraceIdentifier
                 });
         }
     }
