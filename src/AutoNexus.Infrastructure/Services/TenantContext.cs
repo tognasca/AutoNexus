@@ -17,13 +17,25 @@ namespace AutoNexus.Infrastructure.Services;
 /// </summary>
 public class TenantContext : ITenantContext
 {
-    public Guid TenantId { get; }
-    public bool HasTenant { get; }
+    public Guid TenantId { get; private set; }
+    public bool HasTenant { get; private set; }
     public bool HasHttpContext { get; }
     public Guid? UserId { get; }
 
+    private readonly IHttpContextAccessor _httpContextAccessor;
+
+    public void SetTenantFromValidatedPortalLink(Guid tenantId)
+    {
+        var request = _httpContextAccessor.HttpContext?.Request;
+        if (tenantId == Guid.Empty || request == null || !request.Path.StartsWithSegments("/api/portal", StringComparison.OrdinalIgnoreCase))
+            throw new UnauthorizedAccessException("Escopo de portal inválido.");
+        TenantId = tenantId;
+        HasTenant = true;
+    }
+
     public TenantContext(IHttpContextAccessor httpContextAccessor)
     {
+        _httpContextAccessor = httpContextAccessor;
         var httpContext = httpContextAccessor.HttpContext;
         HasHttpContext = httpContext is not null;
         var user = httpContext?.User;

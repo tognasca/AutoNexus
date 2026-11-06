@@ -8,7 +8,7 @@ services:
       POSTGRES_USER: autonexus
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
     ports:
-      - "5433:5432"
+      - "127.0.0.1:5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
@@ -28,6 +28,7 @@ services:
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=autonexus;Username=autonexus;Password=${POSTGRES_PASSWORD}"
       Jwt__SecretKey: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}
+      Security__CredentialEncryptionKey: ${CREDENTIAL_ENCRYPTION_KEY:?Defina CREDENTIAL_ENCRYPTION_KEY no arquivo .env}
       Jwt__Issuer: AutoNexusApi
       Jwt__Audience: AutoNexusApp
       Jwt__ExpirationInHours: "8"
@@ -46,7 +47,7 @@ services:
       AUTONEXUS_SUPERADMIN_EMAIL: ${AUTONEXUS_SUPERADMIN_EMAIL:-}
       AUTONEXUS_SUPERADMIN_PASSWORD: ${AUTONEXUS_SUPERADMIN_PASSWORD:-}
     ports:
-      - "5000:5000"
+      - "127.0.0.1:5000:5000"
     volumes:
       - autonexus_uploads:/app/uploads
     depends_on:
@@ -63,7 +64,7 @@ services:
     container_name: autonexus-frontend
     restart: unless-stopped
     ports:
-      - "3000:80"
+      - "127.0.0.1:3000:80"
     depends_on:
       - api
 

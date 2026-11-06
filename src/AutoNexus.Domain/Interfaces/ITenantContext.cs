@@ -36,4 +36,7 @@ public interface ITenantContext
     /// chamadas de serviço.
     /// </summary>
     Guid? UserId { get; }
+
+    /// <summary>Sets tenant after a validated buyer portal link has been resolved.</summary>
+    void SetTenantFromValidatedPortalLink(Guid tenantId);
 }

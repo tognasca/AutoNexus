@@ -138,7 +138,7 @@ public class VehicleRepository : IVehicleRepository
 
     public async Task DeleteAsync(Guid id, CancellationToken cancellationToken = default)
     {
-        var vehicle = await _context.Vehicles.FindAsync(new object[] { id }, cancellationToken);
+        var vehicle = await _context.Vehicles.FirstOrDefaultAsync(v => v.Id == id, cancellationToken);
         if (vehicle != null)
         {
             _context.Vehicles.Remove(vehicle);

@@ -13,6 +13,7 @@ public class PortalService : IPortalService
     private readonly IDocumentRepository _documentRepository;
     private readonly IStorageService _storageService;
     private readonly IUnitOfWork _unitOfWork;
+    private readonly ITenantContext _tenantContext;
 
     public PortalService(
         IBuyerLinkRepository buyerLinkRepository,
@@ -20,7 +21,8 @@ public class PortalService : IPortalService
         IVehicleRepository vehicleRepository,
         IDocumentRepository documentRepository,
         IStorageService storageService,
-        IUnitOfWork unitOfWork)
+        IUnitOfWork unitOfWork,
+        ITenantContext tenantContext)
     {
         _buyerLinkRepository = buyerLinkRepository;
         _acceptanceRepository = acceptanceRepository;
@@ -28,6 +30,7 @@ public class PortalService : IPortalService
         _documentRepository = documentRepository;
         _storageService = storageService;
         _unitOfWork = unitOfWork;
+        _tenantContext = tenantContext;
     }
 
     public async Task<BuyerLinkDto> CreateBuyerLinkAsync(Guid vehicleId, Guid createdByUserId, CreateBuyerLinkDto dto, CancellationToken cancellationToken = default)
@@ -140,6 +143,7 @@ public class PortalService : IPortalService
         if (link == null || !link.IsValid())
             throw new UnauthorizedAccessException("Link do comprador inválido, expirado ou revogado.");
 
+        _tenantContext.SetTenantFromValidatedPortalLink(link.TenantId);
         return link;
     }
 }

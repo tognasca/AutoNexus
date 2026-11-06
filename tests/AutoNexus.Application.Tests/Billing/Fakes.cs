@@ -22,6 +22,7 @@ internal class FakeTenantContext : ITenantContext
     public bool HasTenant { get; set; } = true;
     public bool HasHttpContext { get; set; } = true;
     public Guid? UserId { get; set; } = Guid.NewGuid();
+    public void SetTenantFromValidatedPortalLink(Guid tenantId) { TenantId = tenantId; HasTenant = true; }
 }
 
 internal class FakeAudit : IAuditLogService

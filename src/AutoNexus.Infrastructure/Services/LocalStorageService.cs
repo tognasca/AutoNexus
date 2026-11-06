@@ -124,6 +124,14 @@ public class LocalStorageService : IStorageService
             sanitized = sanitized["uploads".Length..].TrimStart(Path.DirectorySeparatorChar);
         }
 
-        return Path.Combine(GetUploadsRoot(), sanitized);
+        if (Path.IsPathRooted(sanitized))
+            throw new UnauthorizedAccessException("Caminho de arquivo inválido.");
+
+        var root = Path.GetFullPath(GetUploadsRoot());
+        var fullPath = Path.GetFullPath(Path.Combine(root, sanitized));
+        var rootPrefix = Path.EndsInDirectorySeparator(root) ? root : root + Path.DirectorySeparatorChar;
+        if (!fullPath.StartsWith(rootPrefix, OperatingSystem.IsWindows() ? StringComparison.OrdinalIgnoreCase : StringComparison.Ordinal))
+            throw new UnauthorizedAccessException("Caminho fora do diretório autorizado.");
+        return fullPath;
     }
 }

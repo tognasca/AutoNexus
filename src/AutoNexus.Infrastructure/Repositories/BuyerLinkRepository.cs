@@ -16,7 +16,9 @@ public class BuyerLinkRepository : IBuyerLinkRepository
 
     public async Task<BuyerAccessLink?> GetByTokenAsync(string token, CancellationToken cancellationToken = default)
     {
-        return await _context.BuyerAccessLinks
+        // The opaque token is the authorization credential for this public route.
+        // The service validates expiry/revocation before activating its tenant scope.
+        return await _context.BuyerAccessLinks.IgnoreQueryFilters()
             .FirstOrDefaultAsync(l => l.Token == token, cancellationToken);
     }
 
