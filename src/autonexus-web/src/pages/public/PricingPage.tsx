@@ -63,6 +63,25 @@ export function PricingPage() {
     };
   };
 
+  const planBenefits = (name: string, maxVehicles: number | null, maxUsers: number | null) => {
+    const key = name.toLowerCase();
+    const base = [
+      `Até ${maxVehicles ?? 'ilimitados'} veículos ativos e ${maxUsers ?? 'ilimitados'} usuários.`,
+      'Estoque, compras, vendas, trocas e custos.',
+      'Catálogo público exclusivo com WhatsApp.',
+      'Financeiro básico, documentos e portal do comprador.',
+    ];
+    if (key.includes('profissional') || key.includes('professional') || key.includes('premium')) {
+      base.push('DRE, relatórios completos, leads e funil comercial.');
+      base.push('Simulação de financiamento e comissões.');
+    }
+    if (key.includes('premium')) {
+      base.push('Personalização avançada do catálogo e indicadores comerciais.');
+      base.push('Exportação de catálogo, integrações disponíveis e suporte prioritário.');
+    }
+    return base;
+  };
+
   return (
     <div className="min-h-screen bg-nexus-dark text-slate-100">
       <header className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
@@ -185,11 +204,14 @@ export function PricingPage() {
 
                 <ul className="mt-6 space-y-3 text-xs text-slate-300 flex-1">
                   {plan.trialDays > 0 && <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span><strong className="text-white">{plan.trialDays} dias grátis</strong> para testar a plataforma.</span></li>}
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span>Gestão de <strong className="text-white">estoque, compras, vendas e trocas</strong>.</span></li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span><strong className="text-white">Financeiro, relatórios e DRE</strong> para acompanhar o negócio.</span></li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span><strong className="text-white">Documentos e portal do comprador</strong>.</span></li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span>Ambiente separado por empresa e controle de usuários.</span></li>
-                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span>Pagamento por <strong className="text-white">Pix, cartão ou boleto</strong>, conforme o checkout disponível.</span></li>
+                  {plan.trialDays > 0 && <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span><strong className="text-white">{plan.trialDays} dias grátis</strong> para testar a plataforma.</span></li>}
+                  {planBenefits(plan.name, plan.maxVehicles, plan.maxUsers).map(benefit => (
+                    <li key={benefit} className="flex items-start gap-2">
+                      <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                      <span>{benefit}</span>
+                    </li>
+                  ))}
+                  <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span>Pagamento por Pix, cartão ou boleto, conforme o checkout disponível.</span></li>
                 </ul>
 
                 <a href={`/cadastro?plano=${plan.id}&ciclo=${annual ? 2 : 1}`} className={`mt-7 inline-flex items-center justify-center gap-2 px-4 py-3 rounded-xl font-bold text-white text-sm transition-all ${isProfessional ? 'bg-blue-600 hover:bg-blue-500 shadow-lg shadow-blue-600/20' : 'bg-slate-800 hover:bg-slate-700 border border-slate-700'}`}>
