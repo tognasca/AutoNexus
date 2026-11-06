@@ -1,3 +1,4 @@
+using AutoNexus.Api.Security;
 ﻿using System;
 using System.Globalization;
 using System.Threading;
@@ -48,6 +49,9 @@ public class CompanyDocumentsController : ControllerBase
             return BadRequest(new { message = "Selecione um arquivo válido para upload." });
         }
 
+        if (!await UploadValidation.IsValidAsync(file, false, cancellationToken))
+            return BadRequest(new { message = "Documento inválido. Permitidos PDF, JPG, PNG ou WEBP até 20 MB." });
+
         if (string.IsNullOrWhiteSpace(title))
         {
             return BadRequest(new { message = "O título do documento é obrigatório." });
@@ -83,7 +87,7 @@ public class CompanyDocumentsController : ControllerBase
         }
         catch (Exception ex)
         {
-            return BadRequest(new { message = ex.Message });
+            return BadRequest(new { message = "Não foi possível concluir a operação de documento." });
         }
     }
 
