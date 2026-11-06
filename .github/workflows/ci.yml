@@ -149,6 +149,25 @@ jobs:
           done
           curl -fsS http://127.0.0.1:3000/ >/dev/null
           docker compose exec -T postgres pg_isready -U autonexus -d autonexus
+          # A forged forwarded IP must not reset the login rate-limit partition.
+          # Run against the Nginx entry point used by Cloudflare Tunnel.
+          for attempt in $(seq 1 5); do
+            status="$(curl -s -o /dev/null -w '%{http_code}' \
+              -H 'Content-Type: application/json' \
+              -H "CF-Connecting-IP: 198.51.100.$attempt" \
+              -H "X-Forwarded-For: 203.0.113.$attempt" \
+              --data '{}' http://127.0.0.1:3000/api/auth/login)"
+            if [ "$status" = 429 ]; then
+              echo "Rate limit triggered earlier than expected at request $attempt"
+              exit 1
+            fi
+          done
+          status="$(curl -s -o /dev/null -w '%{http_code}' \
+            -H 'Content-Type: application/json' \
+            -H 'CF-Connecting-IP: 192.0.2.200' \
+            -H 'X-Forwarded-For: 192.0.2.201' \
+            --data '{}' http://127.0.0.1:3000/api/auth/login)"
+          test "$status" = 429 || { echo "Spoofed IP bypassed login rate limit: HTTP $status"; exit 1; }
           docker compose exec -T api sh -c 'printf smoke-persist > /app/uploads/.ci-persistence-test'
           docker compose restart api
           for attempt in $(seq 1 30); do
