@@ -58,6 +58,11 @@ public class UsersController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> Create([FromBody] CreateUserDto dto, CancellationToken cancellationToken)
     {
+        // Somente perfis pertencentes a empresas podem ser criados por Admin.
+        // Nunca permitir SuperAdmin (0), inclusive via chamada direta à API.
+        if (dto.Profile is not (UserProfile.Admin or UserProfile.Vendedor or UserProfile.Cliente))
+            return BadRequest(new { message = "Perfil inválido. SuperAdmin é exclusivo do proprietário da plataforma." });
+
         // Checagem global (não só do tenant atual): o e-mail é único no banco
         // inteiro, então a validação amigável também precisa ser global —
         // ver EmailExistsAsync.
