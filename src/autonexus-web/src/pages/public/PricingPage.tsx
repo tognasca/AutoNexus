@@ -112,7 +112,7 @@ export function PricingPage() {
               Da entrada do veículo à venda: controle estoque, negociações, trocas, documentos e resultados em uma plataforma criada para o mercado automotivo.
             </p>
             <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a href="/cadastro" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 py-3 font-bold text-white shadow-xl shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500">Conhecer os planos <ArrowRight className="h-4 w-4" /></a>
+              <a href="#planos" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 py-3 font-bold text-white shadow-xl shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500">Conhecer os planos <ArrowRight className="h-4 w-4" /></a>
               <a href="#como-funciona" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-600/70 bg-white/5 px-6 py-3 font-semibold text-white transition-colors hover:bg-white/10">Ver como funciona</a>
             </div>
             <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-slate-400">
