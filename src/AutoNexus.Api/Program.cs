@@ -12,7 +12,8 @@ using Microsoft.AspNetCore.Http.Features;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.IdentityModel.Tokens;
-
+using Microsoft.AspNetCore.HttpOverrides;
+using System.Net;
 var builder = WebApplication.CreateBuilder(args);
 
 var envToConfig = new Dictionary<string, string>
@@ -104,12 +105,24 @@ builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
 builder.Services.AddCors(options => options.AddPolicy("AllowFrontend", policy =>
 {
-    policy.WithOrigins("https://ademartognasca.com.br", "https://www.ademartognasca.com.br", "http://localhost:3000")
+    policy.WithOrigins("https://autonexus.ademartognasca.com.br", "https://ademartognasca.com.br", "https://www.ademartognasca.com.br", "http://localhost:3000")
         .AllowAnyHeader().AllowAnyMethod().AllowCredentials();
 }));
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders =
+        ForwardedHeaders.XForwardedFor |
+        ForwardedHeaders.XForwardedProto;
 
+    options.KnownProxies.Add(IPAddress.Loopback);
+    options.KnownProxies.Add(IPAddress.IPv6Loopback);
+
+    options.KnownProxies.Add(IPAddress.Parse("172.18.0.1"));
+
+    options.ForwardLimit = 1;
+});
 var app = builder.Build();
-
+app.UseForwardedHeaders();
 using (var scope = app.Services.CreateScope())
 {
     var context = scope.ServiceProvider.GetRequiredService<AutoNexusDbContext>();

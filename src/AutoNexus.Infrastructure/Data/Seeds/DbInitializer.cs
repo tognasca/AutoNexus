@@ -9,7 +9,10 @@ public static class DbInitializer
 {
     public static async Task SeedAsync(AutoNexusDbContext context, IConfiguration configuration, bool isDevelopment)
     {
-        await context.Database.MigrateAsync();
+        if (isDevelopment)
+        {
+            await context.Database.MigrateAsync();
+        }
 
 
         if (!await context.VehicleBrands.AnyAsync())
