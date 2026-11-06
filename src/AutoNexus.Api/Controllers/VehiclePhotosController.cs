@@ -1,3 +1,4 @@
+using AutoNexus.Api.Security;
 using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
@@ -91,6 +92,9 @@ public class VehiclePhotosController : ControllerBase
                         message = $"O arquivo {file.FileName} excede o limite de 10MB."
                     });
                 }
+
+                if (!await UploadValidation.IsValidAsync(file, true, cancellationToken))
+                    return BadRequest(new { message = "Imagem inválida ou incompatível com o formato declarado." });
 
                 var extension = ResolveExtension(file);
 
