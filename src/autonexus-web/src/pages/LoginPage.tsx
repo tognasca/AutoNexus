@@ -31,7 +31,7 @@ export function LoginPage() {
 
       <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md p-8 relative shadow-2xl z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          <img src="/novamarcha-logo.png?v=20261106" alt="Nova Marcha" className="w-64 max-w-full h-auto object-contain mb-2" />
+          <div role="img" aria-label="Nova Marcha" className="text-4xl font-black tracking-tight text-white mb-2">Nova <span className="text-blue-400">Marcha</span></div>
           <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Sistema de Gestão de Veículos</p>
         </div>
 
