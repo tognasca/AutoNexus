@@ -116,13 +116,30 @@ jobs:
           JWT_SECRET_KEY: ci-only-jwt-secret-with-at-least-32-characters-123456
           CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-encryption-key-123456789
         run: docker compose config --quiet
+      - name: Setup .NET for isolated database migrations
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
       - name: Build and start isolated containers
         env:
           POSTGRES_PASSWORD: ci-postgres-only
           JWT_SECRET_KEY: ci-only-jwt-secret-with-at-least-32-characters-123456
           CREDENTIAL_ENCRYPTION_KEY: ci-only-credential-encryption-key-123456789
         run: |
-          docker compose up --build -d
+          # Somente o PostgreSQL efemero sobe primeiro. A API em Production
+          # nao aplica migrations automaticamente, portanto migramos antes do seed.
+          docker compose up -d postgres
+          for attempt in $(seq 1 30); do
+            if docker compose exec -T postgres pg_isready -U autonexus -d autonexus; then break; fi
+            if [ "$attempt" -eq 30 ]; then docker compose logs postgres; exit 1; fi
+            sleep 2
+          done
+          dotnet tool install --global dotnet-ef --version 9.0.12
+          dotnet restore AutoNexus.slnx
+          ConnectionStrings__DefaultConnection="Host=127.0.0.1;Port=5433;Database=autonexus;Username=autonexus;Password=${POSTGRES_PASSWORD}" \
+            Jwt__SecretKey="$JWT_SECRET_KEY" \
+            dotnet ef database update --project src/AutoNexus.Infrastructure --startup-project src/AutoNexus.Api --configuration Release
+          docker compose up --build -d api frontend
           for attempt in $(seq 1 60); do
             if curl -fsS http://127.0.0.1:5000/health >/dev/null; then break; fi
             if [ "$attempt" -eq 60 ]; then docker compose logs --tail=100 api; exit 1; fi
