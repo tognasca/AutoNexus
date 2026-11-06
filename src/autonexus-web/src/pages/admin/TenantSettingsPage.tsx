@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { tenantSettingsService, TenantSettings, WhatsAppContact } from '../../services/tenantSettingsService';
 import { MainLayout } from '../../components/layout/MainLayout';
+import { catalogService } from '../../services/catalogService';
 import { Building2, Save, RefreshCw, CheckCircle2, MessageCircle, ExternalLink } from 'lucide-react';
 
 interface TenantSettingsPageProps {
@@ -28,12 +29,20 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactSaving, setContactSaving] = useState(false);
+  const [catalogSlug, setCatalogSlug] = useState<string | null>(null);
+  const catalogUrl = catalogSlug ? `${window.location.origin}/loja/${encodeURIComponent(catalogSlug)}` : null;
 
   const load = async () => {
     setLoading(true);
     try {
       const data = await tenantSettingsService.get();
       setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
+      try {
+        const catalog = await catalogService.getPublicCatalog('current');
+        setCatalogSlug(catalog.store?.slug ?? null);
+      } catch {
+        setCatalogSlug(null);
+      }
       const contacts = await tenantSettingsService.getWhatsAppContacts();
       setWhatsappContacts(contacts);
     } catch (err) {
@@ -88,6 +97,21 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
+
+        <section className="bg-nexus-card border border-nexus-border rounded-xl p-5 space-y-3">
+          <h2 className="text-base font-bold text-white">Compartilhar catálogo da minha loja</h2>
+          <p className="text-xs text-slate-400">Link público exclusivo da sua empresa. Seus clientes não precisam fazer login.</p>
+          {catalogUrl ? (
+            <>
+              <a className="block break-all text-sm text-blue-400 underline" href={catalogUrl} target="_blank" rel="noopener noreferrer">{catalogUrl}</a>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" onClick={() => navigator.clipboard.writeText(catalogUrl)} className="rounded-lg bg-blue-600 px-4 py-2 text-xs font-bold text-white">Copiar link</button>
+                <a className="rounded-lg bg-emerald-700 px-4 py-2 text-xs font-bold text-white" target="_blank" rel="noopener noreferrer" href={`https://wa.me/?text=${encodeURIComponent(`Confira os veículos da nossa loja: ${catalogUrl}`)}`}>Enviar pelo WhatsApp</a>
+                <a className="rounded-lg bg-slate-800 px-4 py-2 text-xs font-bold text-white" href={catalogUrl} target="_blank" rel="noopener noreferrer">Abrir catálogo</a>
+              </div>
+            </>
+          ) : <p className="text-xs text-amber-300">Não foi possível identificar o endereço público da empresa. Atualize para tentar novamente.</p>}
+        </section>
 
         <div className="bg-nexus-card border border-nexus-border rounded-xl p-6">
           {loading ? (
