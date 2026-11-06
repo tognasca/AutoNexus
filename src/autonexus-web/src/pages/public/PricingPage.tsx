@@ -66,7 +66,7 @@ export function PricingPage() {
   return (
     <div className="min-h-screen bg-nexus-dark text-slate-100">
       <header className="max-w-6xl mx-auto px-4 py-5 flex items-center justify-between">
-        <a href="/" className="font-bold text-lg text-white">Auto<span className="text-blue-400">Nexus</span></a>
+        <a href="/" aria-label="AutoNexus - início" className="flex items-center"><img src="/autonexus-logo.webp" alt="AutoNexus" className="w-40 h-auto object-contain" /></a>
         <div className="flex items-center gap-4 text-sm">
           <a href="/entrar" className="text-slate-300 hover:text-white transition-colors">Entrar</a>
           <a href="/cadastro" className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold text-white transition-colors">Começar teste grátis</a>
