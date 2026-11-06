@@ -55,6 +55,10 @@ jobs:
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=autonexus_ci;Username=postgres
           Jwt__SecretKey: ${{ github.repository }}-${{ github.run_id }}-${{ github.sha }}-ci-only
         run: |
+          # Production/Testing nao aplicam migrations automaticamente.
+          # Preparar somente o banco efemero deste job antes de iniciar a API.
+          dotnet tool install --global dotnet-ef --version 9.0.12
+          dotnet ef database update --project src/AutoNexus.Infrastructure --startup-project src/AutoNexus.Api --configuration Release --no-build
           dotnet run --project src/AutoNexus.Api --configuration Release --no-build --no-launch-profile > /tmp/autonexus-api.log 2>&1 &
           api_pid=$!
           trap 'kill "$api_pid" 2>/dev/null || true' EXIT
