@@ -126,7 +126,7 @@ export function PricingPage() {
             </div>
             <div className="absolute bottom-0 right-0 w-[96%] max-w-[540px] -rotate-1 overflow-hidden rounded-2xl border border-cyan-300/30 bg-[#061529]/95 shadow-[0_30px_70px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:w-[86%]">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-black text-white">NM</span><div><p className="text-xs font-bold text-white">Nova Marcha</p><p className="text-[10px] text-slate-400">Visão geral da loja</p></div></div>
+                <div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-black text-white">NM</span><div><p className="text-xs font-bold text-white">Nova Marcha</p><p className="text-[10px] text-slate-400">Visão geral da loja</p></div></div>
                 <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[9px] text-cyan-300">Demonstração visual</span>
               </div>
               <div className="grid grid-cols-3 gap-2 p-3 sm:gap-3 sm:p-5">
@@ -139,16 +139,16 @@ export function PricingPage() {
           </div>
         </div>
         <div className="relative border-t border-cyan-400/15 bg-[#061528]/70">
-          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-4 px-4 py-5 text-xs font-semibold text-slate-300 sm:px-6 lg:grid-cols-4">
-            <span className="flex items-center gap-2"><ShieldCheck className="h-5 w-5 text-cyan-400" /> Dados separados por empresa</span>
-            <span className="flex items-center gap-2"><Sparkles className="h-5 w-5 text-cyan-400" /> Gestão integrada</span>
-            <span className="flex items-center gap-2"><Users className="h-5 w-5 text-cyan-400" /> Acesso por perfil</span>
-            <span className="flex items-center gap-2"><Car className="h-5 w-5 text-cyan-400" /> Feito para o setor automotivo</span>
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-8 gap-y-5 px-5 py-7 text-xs font-semibold text-slate-300 sm:grid-cols-2 sm:px-8 lg:grid-cols-4 lg:gap-x-10 lg:py-8">
+            <span className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-400" /> Dados separados por empresa</span>
+            <span className="flex items-center gap-3"><Sparkles className="h-5 w-5 text-cyan-400" /> Gestão integrada</span>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-cyan-400" /> Acesso por perfil</span>
+            <span className="flex items-center gap-3"><Car className="h-5 w-5 text-cyan-400" /> Feito para o setor automotivo</span>
           </div>
         </div>
       </section>
 
-      <section id="como-funciona" className="max-w-6xl mx-auto px-4 pb-14">
+      <section id="como-funciona" className="max-w-6xl mx-auto px-4 pt-14 pb-14 sm:pt-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-3xl border border-nexus-border bg-nexus-card p-6 sm:p-8 shadow-xl shadow-black/10">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o Nova Marcha</p>
@@ -170,7 +170,7 @@ export function PricingPage() {
                     <p className="mt-1 font-semibold text-white">Veja o que você pode gerenciar</p>
                   </div>
                 </div>
-                <ol className="mt-5 space-y-3 text-sm text-slate-300">
+                <ol className="mt-5 list-none space-y-3 pl-0 text-sm text-slate-300">
                   <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-300">1</span><span><strong className="text-white">Estoque:</strong> cadastre veículos, fotos, características e valores de venda.</span></li>
                   <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-300">2</span><span><strong className="text-white">Negócios:</strong> organize compras, vendas, trocas e documentos.</span></li>
                   <li className="flex items-start gap-3"><span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-blue-300">3</span><span><strong className="text-white">Resultados:</strong> acompanhe indicadores e informações financeiras.</span></li>
