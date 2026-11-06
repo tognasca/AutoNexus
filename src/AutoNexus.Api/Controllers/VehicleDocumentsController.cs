@@ -1,3 +1,4 @@
+using AutoNexus.Api.Security;
 ﻿using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
@@ -42,6 +43,9 @@ public class VehicleDocumentsController : ControllerBase
     {
         if (file == null || file.Length == 0)
             return BadRequest(new { message = "Arquivo não enviado." });
+
+        if (!await UploadValidation.IsValidAsync(file, false, cancellationToken))
+            return BadRequest(new { message = "Documento inválido. Permitidos PDF, JPG, PNG ou WEBP até 20 MB." });
 
         var vehicle = await _vehicleService.GetByIdAsync(vehicleId);
         if (vehicle == null)
