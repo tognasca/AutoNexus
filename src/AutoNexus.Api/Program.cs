@@ -117,7 +117,18 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
     options.KnownProxies.Add(IPAddress.Loopback);
     options.KnownProxies.Add(IPAddress.IPv6Loopback);
 
-    options.KnownProxies.Add(IPAddress.Parse("172.18.0.1"));
+    // Only explicitly configured reverse-proxy IPs may supply forwarded headers.
+    // Docker bridge addresses are deployment-specific; do not hardcode 172.18.0.1.
+    var trustedProxies = builder.Configuration["Security:TrustedProxyIps"];
+    if (!string.IsNullOrWhiteSpace(trustedProxies))
+    {
+        foreach (var entry in trustedProxies.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            if (!IPAddress.TryParse(entry, out var proxyIp))
+                throw new InvalidOperationException("Security:TrustedProxyIps contém um endereço IP inválido.");
+            options.KnownProxies.Add(proxyIp);
+        }
+    }
 
     options.ForwardLimit = 1;
 });

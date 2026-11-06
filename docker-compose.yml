@@ -29,6 +29,7 @@ services:
       - no-new-privileges:true
     environment:
       ASPNETCORE_ENVIRONMENT: Production
+      Security__TrustedProxyIps: ${TRUSTED_PROXY_IPS:-}
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=autonexus;Username=autonexus;Password=${POSTGRES_PASSWORD}"
       Jwt__SecretKey: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}
