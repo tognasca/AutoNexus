@@ -66,7 +66,8 @@ export function PricingPage() {
   const planBenefits = (name: string, maxVehicles: number | null, maxUsers: number | null) => {
     const key = name.toLowerCase();
     const base = [
-      `Até ${maxVehicles ?? 'ilimitados'} veículos ativos e ${maxUsers ?? 'ilimitados'} usuários.`,
+      ...(maxVehicles != null ? [`Até ${maxVehicles} veículos ativos no plano.`] : []),
+      ...(maxUsers != null ? [`Até ${maxUsers} usuários no plano.`] : []),
       'Estoque, compras, vendas, trocas e custos.',
       'Catálogo público exclusivo com WhatsApp.',
       'Financeiro básico, documentos e portal do comprador.',
@@ -97,50 +98,46 @@ export function PricingPage() {
       </header>
 
       <section className="relative isolate overflow-hidden border-b border-blue-400/10">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_70%_45%,rgba(14,92,205,0.23),transparent_55%),radial-gradient(ellipse_at_15%_20%,rgba(0,196,255,0.09),transparent_45%)]" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-20 [background-image:linear-gradient(rgba(59,130,246,0.14)_1px,transparent_1px),linear-gradient(90deg,rgba(59,130,246,0.14)_1px,transparent_1px)] [background-size:64px_64px] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-8 px-4 pb-16 pt-12 sm:px-6 sm:pt-20 lg:grid-cols-[1.06fr_0.94fr] lg:gap-10 lg:pb-24 lg:pt-24">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_78%_35%,rgba(20,100,230,0.22),transparent_55%),linear-gradient(145deg,#050b17_0%,#0a1a32_55%,#050b17_100%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(96,165,250,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(96,165,250,0.09)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_right,transparent,black)]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1fr_1.08fr] lg:py-28">
           <div className="relative z-10 max-w-2xl">
-            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-400/25 bg-cyan-400/10 px-3 py-1.5 text-xs font-semibold text-cyan-200">
-              <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 motion-safe:animate-pulse" />
-              Sua loja de veículos, no próximo nível
-            </div>
-            <h1 className="mt-7 text-4xl font-black leading-[1.08] tracking-tight text-white sm:text-5xl xl:text-6xl">
-              Menos planilhas.<span className="block bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">Mais negócios.</span>
-            </h1>
-            <p className="mt-6 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-              Estoque, vendas, trocas, financeiro e catálogo da sua loja em um só lugar. Organize a operação e tenha mais tempo para vender.
+            <p className="inline-flex items-center gap-2 rounded-full border border-blue-400/25 bg-blue-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-200">
+              <span className="h-2 w-2 rounded-full bg-cyan-400" /> Nova Marcha • Gestão automotiva
             </p>
-            <div className="mt-8 flex flex-wrap items-center gap-3">
-              <a href="/cadastro" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-6 py-3 font-bold text-white shadow-xl shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-300">Começar 7 dias grátis <ArrowRight className="h-4 w-4" /></a>
-              <a href="#como-funciona" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border border-slate-600/70 bg-white/5 px-5 py-3 font-semibold text-white transition-colors hover:bg-white/10">Conhecer a plataforma</a>
+            <h1 className="mt-8 text-4xl font-black leading-[1.05] tracking-[-0.045em] text-white sm:text-5xl xl:text-[4.4rem]">
+              Sua loja acelera.<span className="mt-2 block bg-gradient-to-r from-blue-300 via-cyan-300 to-white bg-clip-text text-transparent">Sua gestão acompanha.</span>
+            </h1>
+            <p className="mt-7 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
+              Da entrada do veículo à venda: controle estoque, negociações, trocas, documentos e resultados em uma plataforma criada para o mercado automotivo.
+            </p>
+            <div className="mt-9 flex flex-wrap items-center gap-3">
+              <a href="#planos" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 py-3 font-bold text-white shadow-xl shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500">Conhecer os planos <ArrowRight className="h-4 w-4" /></a>
+              <a href="#como-funciona" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-600/70 bg-white/5 px-6 py-3 font-semibold text-white transition-colors hover:bg-white/10">Ver como funciona</a>
             </div>
-            <div className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-400">
-              <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Sem fidelidade</span>
-              <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Catálogo exclusivo da loja</span>
-              <span className="flex items-center gap-1.5"><Check className="h-4 w-4 text-cyan-400" /> Acesso pelo celular ou computador</span>
+            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-slate-400">
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-400" /> Estoque e negociações</span>
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-400" /> Indicadores financeiros</span>
+              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-400" /> Catálogo da sua loja</span>
             </div>
           </div>
-          <div className="relative mx-auto flex min-h-[330px] w-full max-w-xl items-center justify-center sm:min-h-[450px]" aria-label="Visão ilustrativa das funcionalidades Nova Marcha">
-            <div aria-hidden="true" className="absolute inset-8 rounded-full bg-blue-500/15 blur-[65px] motion-safe:animate-pulse" />
-            <div aria-hidden="true" className="absolute h-[78%] w-[78%] rounded-full border border-cyan-400/20 motion-safe:animate-[spin_28s_linear_infinite]" />
-            <div aria-hidden="true" className="absolute h-[96%] w-[96%] rounded-full border border-dashed border-blue-400/15 motion-safe:animate-[spin_42s_linear_infinite_reverse]" />
-            <div className="relative w-[86%] max-w-[460px] overflow-hidden rounded-[28px] border border-blue-300/25 bg-[#08182d]/95 p-5 shadow-[0_0_90px_rgba(0,132,255,0.18)] backdrop-blur-xl sm:p-7 motion-safe:animate-[float_7s_ease-in-out_infinite]">
-              <div className="flex items-center justify-between border-b border-white/10 pb-4">
-                <div className="flex items-center gap-2 text-sm font-bold text-white"><Car className="h-5 w-5 text-cyan-400" /> Central da sua loja</div>
-                <span className="rounded-full border border-emerald-400/25 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">Tudo conectado</span>
+          <div className="relative mx-auto w-full max-w-[600px]" aria-label="Ilustração conceitual do painel Nova Marcha">
+            <div aria-hidden="true" className="absolute -inset-5 rounded-[36px] bg-blue-500/15 blur-3xl" />
+            <div className="relative overflow-hidden rounded-[26px] border border-blue-300/20 bg-[#0b1426] shadow-[0_35px_90px_rgba(0,0,0,0.55)]">
+              <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-4">
+                <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 font-black text-white">NM</div><div><p className="text-sm font-black text-white">Nova Marcha</p><p className="text-[10px] text-slate-400">Visão geral da operação</p></div></div>
+                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold text-cyan-200">Painel ilustrativo</span>
               </div>
-              <div className="mt-5 grid grid-cols-2 gap-3">
-                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><Car className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Estoque</p><p className="mt-1 text-[11px] text-slate-400">Veículos e fotos</p></div>
-                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><BarChart3 className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Resultados</p><p className="mt-1 text-[11px] text-slate-400">Controle financeiro</p></div>
-                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><Users className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Clientes</p><p className="mt-1 text-[11px] text-slate-400">Negócios e contatos</p></div>
-                <div className="rounded-xl border border-blue-400/15 bg-blue-500/10 p-4"><FileText className="mb-3 h-5 w-5 text-cyan-300" /><p className="text-sm font-bold text-white">Catálogo</p><p className="mt-1 text-[11px] text-slate-400">Compartilhe sua vitrine</p></div>
+              <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/15 to-transparent p-5"><Car className="h-6 w-6 text-cyan-300" /><p className="mt-5 text-lg font-bold text-white">Estoque</p><p className="mt-1 text-xs text-slate-400">Veículos, fotos e custos</p><div className="mt-4 h-1.5 w-3/4 rounded-full bg-blue-400/40" /></div>
+                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500/10 to-transparent p-5"><BarChart3 className="h-6 w-6 text-cyan-300" /><p className="mt-5 text-lg font-bold text-white">Resultados</p><p className="mt-1 text-xs text-slate-400">Margens e indicadores</p><div className="mt-4 flex h-7 items-end gap-1.5"><span className="h-3 w-5 rounded-t bg-blue-500/50"/><span className="h-5 w-5 rounded-t bg-blue-500/70"/><span className="h-7 w-5 rounded-t bg-cyan-400/80"/><span className="h-4 w-5 rounded-t bg-blue-500/60"/></div></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><Users className="h-6 w-6 text-cyan-300" /><p className="mt-4 text-base font-bold text-white">Negociações</p><p className="mt-1 text-xs text-slate-400">Leads, vendas e trocas</p></div>
+                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><FileText className="h-6 w-6 text-cyan-300" /><p className="mt-4 text-base font-bold text-white">Vitrine digital</p><p className="mt-1 text-xs text-slate-400">Catálogo para compradores</p></div>
               </div>
-              <div className="mt-4 flex items-center gap-2 rounded-xl border border-cyan-400/15 bg-cyan-400/5 px-4 py-3 text-xs text-cyan-100"><Sparkles className="h-4 w-4 shrink-0 text-cyan-400" /> Uma operação organizada, do primeiro contato à venda.</div>
+              <div className="border-t border-white/10 px-6 py-4 text-xs text-slate-400">Uma operação conectada, do anúncio à entrega.</div>
             </div>
           </div>
         </div>
-        <style>{`@keyframes float { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-14px) } } @media (prefers-reduced-motion: reduce) { .motion-safe\\:animate-\\[float_7s_ease-in-out_infinite\\] { animation: none !important; } }`}</style>
       </section>
 
       <section id="como-funciona" className="max-w-6xl mx-auto px-4 pb-14">
@@ -245,7 +242,6 @@ export function PricingPage() {
                 </div>
 
                 <ul className="mt-6 space-y-3 text-xs text-slate-300 flex-1">
-                  {plan.trialDays > 0 && <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span><strong className="text-white">{plan.trialDays} dias grátis</strong> para testar a plataforma.</span></li>}
                   {plan.trialDays > 0 && <li className="flex items-start gap-2"><Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" /><span><strong className="text-white">{plan.trialDays} dias grátis</strong> para testar a plataforma.</span></li>}
                   {planBenefits(plan.name, plan.maxVehicles, plan.maxUsers).map(benefit => (
                     <li key={benefit} className="flex items-start gap-2">
