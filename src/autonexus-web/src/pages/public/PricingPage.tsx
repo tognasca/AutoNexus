@@ -97,46 +97,66 @@ export function PricingPage() {
         </nav>
       </header>
 
-      <section className="relative isolate overflow-hidden border-b border-blue-400/10">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_78%_35%,rgba(20,100,230,0.22),transparent_55%),linear-gradient(145deg,#050b17_0%,#0a1a32_55%,#050b17_100%)]" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(rgba(96,165,250,0.09)_1px,transparent_1px),linear-gradient(90deg,rgba(96,165,250,0.09)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(to_right,transparent,black)]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-12 px-4 py-16 sm:px-6 sm:py-24 lg:grid-cols-[1fr_1.08fr] lg:py-28">
-          <div className="relative z-10 max-w-2xl">
-            <p className="inline-flex items-center gap-2 rounded-full border border-blue-400/25 bg-blue-400/10 px-4 py-2 text-xs font-bold uppercase tracking-[0.18em] text-blue-200">
-              <span className="h-2 w-2 rounded-full bg-cyan-400" /> Nova Marcha • Gestão automotiva
-            </p>
-            <h1 className="mt-8 text-4xl font-black leading-[1.05] tracking-[-0.045em] text-white sm:text-5xl xl:text-[4.4rem]">
-              Sua loja acelera.<span className="mt-2 block bg-gradient-to-r from-blue-300 via-cyan-300 to-white bg-clip-text text-transparent">Sua gestão acompanha.</span>
-            </h1>
-            <p className="mt-7 max-w-xl text-base leading-8 text-slate-300 sm:text-lg">
-              Da entrada do veículo à venda: controle estoque, negociações, trocas, documentos e resultados em uma plataforma criada para o mercado automotivo.
-            </p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a href="#planos" className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl bg-blue-600 px-7 py-3 font-bold text-white shadow-xl shadow-blue-600/25 transition-all hover:-translate-y-0.5 hover:bg-blue-500">Conhecer os planos <ArrowRight className="h-4 w-4" /></a>
-              <a href="#como-funciona" className="inline-flex min-h-12 items-center justify-center rounded-xl border border-slate-600/70 bg-white/5 px-6 py-3 font-semibold text-white transition-colors hover:bg-white/10">Ver como funciona</a>
+      <section className="relative isolate overflow-hidden border-b border-white/10 bg-[#030915]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_78%_38%,rgba(28,108,255,0.30),transparent_48%),radial-gradient(ellipse_at_20%_80%,rgba(6,182,212,0.12),transparent_48%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-35 [background-image:linear-gradient(110deg,transparent_42%,rgba(59,130,246,0.16)_43%,transparent_44%),linear-gradient(110deg,transparent_57%,rgba(59,130,246,0.12)_58%,transparent_59%)] [background-size:180px_100%]" />
+        <div className="relative mx-auto max-w-7xl px-4 pb-14 pt-14 sm:px-6 sm:pt-20 lg:pb-24 lg:pt-24">
+          <div className="grid items-center gap-12 lg:grid-cols-[0.95fr_1.05fr] lg:gap-6">
+            <div className="relative z-10">
+              <div className="inline-flex items-center gap-3 text-xs font-black uppercase tracking-[0.22em] text-cyan-300"><span className="h-px w-9 bg-cyan-400" /> Uma nova era para sua loja</div>
+              <h1 className="mt-7 max-w-3xl text-[clamp(3.2rem,6.5vw,6.6rem)] font-black leading-[0.98] tracking-[-0.065em] text-white">
+                Sua loja não pode <span className="block bg-gradient-to-r from-white via-blue-200 to-cyan-400 bg-clip-text text-transparent">ficar parada.</span>
+              </h1>
+              <p className="mt-7 max-w-lg text-base leading-8 text-slate-300 sm:text-lg">Estoque, vendas, negociações e gestão financeira conectados para levar seu negócio à próxima marcha.</p>
+              <div className="mt-9 flex flex-wrap items-center gap-3">
+                <a href="#planos" className="group inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-blue-600 px-7 py-4 text-sm font-black uppercase tracking-wide text-white shadow-[0_18px_50px_rgba(37,99,235,0.35)] transition-all hover:-translate-y-1 hover:bg-blue-500">Explorar os planos <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" /></a>
+                <a href="#como-funciona" className="inline-flex min-h-14 items-center justify-center rounded-xl border border-white/20 bg-white/5 px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-white/10">Conheça a plataforma</a>
+              </div>
+              <div className="mt-10 grid max-w-lg grid-cols-3 gap-3 border-t border-white/10 pt-7 text-xs font-semibold text-slate-300">
+                <span className="flex items-start gap-2"><Check className="h-4 w-4 shrink-0 text-cyan-400" /> Estoque inteligente</span>
+                <span className="flex items-start gap-2"><Check className="h-4 w-4 shrink-0 text-cyan-400" /> Gestão integrada</span>
+                <span className="flex items-start gap-2"><Check className="h-4 w-4 shrink-0 text-cyan-400" /> Vitrine digital</span>
+              </div>
             </div>
-            <div className="mt-8 flex flex-wrap gap-x-6 gap-y-3 text-xs text-slate-400">
-              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-400" /> Estoque e negociações</span>
-              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-400" /> Indicadores financeiros</span>
-              <span className="flex items-center gap-2"><Check className="h-4 w-4 text-cyan-400" /> Catálogo da sua loja</span>
+            <div className="relative min-h-[360px] sm:min-h-[520px] lg:min-h-[600px]" aria-label="Arte conceitual automotiva Nova Marcha">
+              <div aria-hidden="true" className="absolute left-0 right-[-18%] top-[12%] h-[65%] rotate-[-12deg] rounded-[50%] border border-blue-400/20 shadow-[0_0_90px_rgba(37,99,235,0.18)]" />
+              <div aria-hidden="true" className="absolute left-[12%] right-[-30%] top-[25%] h-[40%] rotate-[-12deg] rounded-[50%] border border-cyan-400/15" />
+              <div className="absolute left-0 right-0 top-[12%] sm:top-[14%]">
+                <svg viewBox="0 0 760 420" role="img" aria-label="Silhueta estilizada de veículo esportivo em azul" className="w-full drop-shadow-[0_25px_65px_rgba(8,100,255,0.35)]">
+                  <defs>
+                    <linearGradient id="nmBody" x1="0" x2="1" y1="0" y2="1"><stop offset="0%" stopColor="#7dd3fc"/><stop offset="36%" stopColor="#2563eb"/><stop offset="78%" stopColor="#0b2765"/><stop offset="100%" stopColor="#07152f"/></linearGradient>
+                    <linearGradient id="nmGlass" x1="0" x2="1"><stop offset="0%" stopColor="#0b1936"/><stop offset="100%" stopColor="#60a5fa"/></linearGradient>
+                    <linearGradient id="nmRoad" x1="0" x2="1"><stop offset="0%" stopColor="#0ea5e9" stopOpacity="0"/><stop offset="50%" stopColor="#38bdf8" stopOpacity=".8"/><stop offset="100%" stopColor="#0ea5e9" stopOpacity="0"/></linearGradient>
+                  </defs>
+                  <ellipse cx="390" cy="346" rx="328" ry="29" fill="#0c55c7" opacity=".28"/>
+                  <path d="M18 356H735" stroke="url(#nmRoad)" strokeWidth="3"/>
+                  <path d="M72 276 L122 261 L205 245 Q260 178 340 156 L510 147 Q574 160 626 233 L699 256 Q725 268 726 293 L720 323 L681 331 L122 333 L79 319 Q64 308 72 276Z" fill="url(#nmBody)" stroke="#7dd3fc" strokeWidth="3"/>
+                  <path d="M229 239 Q278 183 348 172 L499 166 Q550 176 594 235Z" fill="url(#nmGlass)" stroke="#7dd3fc" strokeOpacity=".65" strokeWidth="3"/>
+                  <path d="M394 173 L380 238" stroke="#7dd3fc" strokeOpacity=".5" strokeWidth="4"/>
+                  <path d="M124 270 Q390 253 693 268" fill="none" stroke="#bae6fd" strokeOpacity=".6" strokeWidth="4"/>
+                  <path d="M115 308 H698" stroke="#07152f" strokeWidth="12" strokeLinecap="round"/>
+                  <path d="M90 282 L152 279 L135 299 L85 300Z" fill="#dffaff"/>
+                  <path d="M649 274 L707 282 L714 299 L670 295Z" fill="#fef3c7"/>
+                  <circle cx="218" cy="326" r="53" fill="#020617" stroke="#334155" strokeWidth="8"/>
+                  <circle cx="218" cy="326" r="31" fill="#1e3a8a" stroke="#93c5fd" strokeWidth="7"/>
+                  <circle cx="218" cy="326" r="11" fill="#dbeafe"/>
+                  <circle cx="594" cy="326" r="53" fill="#020617" stroke="#334155" strokeWidth="8"/>
+                  <circle cx="594" cy="326" r="31" fill="#1e3a8a" stroke="#93c5fd" strokeWidth="7"/>
+                  <circle cx="594" cy="326" r="11" fill="#dbeafe"/>
+                  <path d="M42 210 H190 M12 232 H157 M32 253 H124" stroke="#38bdf8" strokeWidth="3" strokeLinecap="round" opacity=".55"/>
+                </svg>
+              </div>
+              <div className="absolute bottom-3 left-0 right-0 mx-auto w-[94%] max-w-[490px] rounded-2xl border border-white/15 bg-[#09162b]/90 p-4 shadow-[0_25px_65px_rgba(0,0,0,0.45)] backdrop-blur-xl sm:bottom-8 sm:p-5">
+                <div className="mb-4 flex items-center justify-between gap-3"><span className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.12em] text-white"><span className="flex h-7 w-7 items-center justify-center rounded-lg bg-blue-600 text-[10px]">NM</span> Sua operação, conectada</span><span className="text-[10px] text-cyan-300">Visão ilustrativa</span></div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-3"><Car className="mx-auto mb-2 h-5 w-5 text-cyan-300"/><span className="text-xs font-bold text-white">Estoque</span></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-3"><Users className="mx-auto mb-2 h-5 w-5 text-cyan-300"/><span className="text-xs font-bold text-white">Vendas</span></div>
+                  <div className="rounded-xl border border-white/10 bg-white/5 px-2 py-3"><BarChart3 className="mx-auto mb-2 h-5 w-5 text-cyan-300"/><span className="text-xs font-bold text-white">Resultados</span></div>
+                </div>
+              </div>
             </div>
           </div>
-          <div className="relative mx-auto w-full max-w-[600px]" aria-label="Ilustração conceitual do painel Nova Marcha">
-            <div aria-hidden="true" className="absolute -inset-5 rounded-[36px] bg-blue-500/15 blur-3xl" />
-            <div className="relative overflow-hidden rounded-[26px] border border-blue-300/20 bg-[#0b1426] shadow-[0_35px_90px_rgba(0,0,0,0.55)]">
-              <div className="flex items-center justify-between border-b border-white/10 bg-white/[0.035] px-5 py-4">
-                <div className="flex items-center gap-3"><div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 font-black text-white">NM</div><div><p className="text-sm font-black text-white">Nova Marcha</p><p className="text-[10px] text-slate-400">Visão geral da operação</p></div></div>
-                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[10px] font-semibold text-cyan-200">Painel ilustrativo</span>
-              </div>
-              <div className="grid gap-3 p-5 sm:grid-cols-2 sm:p-6">
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-blue-500/15 to-transparent p-5"><Car className="h-6 w-6 text-cyan-300" /><p className="mt-5 text-lg font-bold text-white">Estoque</p><p className="mt-1 text-xs text-slate-400">Veículos, fotos e custos</p><div className="mt-4 h-1.5 w-3/4 rounded-full bg-blue-400/40" /></div>
-                <div className="rounded-2xl border border-white/10 bg-gradient-to-br from-cyan-500/10 to-transparent p-5"><BarChart3 className="h-6 w-6 text-cyan-300" /><p className="mt-5 text-lg font-bold text-white">Resultados</p><p className="mt-1 text-xs text-slate-400">Margens e indicadores</p><div className="mt-4 flex h-7 items-end gap-1.5"><span className="h-3 w-5 rounded-t bg-blue-500/50"/><span className="h-5 w-5 rounded-t bg-blue-500/70"/><span className="h-7 w-5 rounded-t bg-cyan-400/80"/><span className="h-4 w-5 rounded-t bg-blue-500/60"/></div></div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><Users className="h-6 w-6 text-cyan-300" /><p className="mt-4 text-base font-bold text-white">Negociações</p><p className="mt-1 text-xs text-slate-400">Leads, vendas e trocas</p></div>
-                <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-5"><FileText className="h-6 w-6 text-cyan-300" /><p className="mt-4 text-base font-bold text-white">Vitrine digital</p><p className="mt-1 text-xs text-slate-400">Catálogo para compradores</p></div>
-              </div>
-              <div className="border-t border-white/10 px-6 py-4 text-xs text-slate-400">Uma operação conectada, do anúncio à entrega.</div>
-            </div>
-          </div>
+          <div className="mt-12 flex items-center gap-5 border-t border-white/10 pt-6 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500"><span>Nova Marcha</span><span className="h-px flex-1 bg-gradient-to-r from-blue-500/50 to-transparent" /><span>Gestão que movimenta negócios</span></div>
         </div>
       </section>
 
