@@ -31,10 +31,7 @@ export function LoginPage() {
 
       <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md p-8 relative shadow-2xl z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          <div className="w-14 h-14 rounded-2xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center font-bold text-white text-2xl mb-4 shadow-lg shadow-blue-500/30">
-            AN
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">AutoNexus</h1>
+          <img src="/autonexus-logo.webp" alt="AutoNexus" className="w-64 max-w-full h-auto object-contain mb-2" />
           <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Sistema de Gestão de Veículos</p>
         </div>
 
