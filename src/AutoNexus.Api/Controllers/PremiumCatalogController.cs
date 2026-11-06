@@ -14,8 +14,11 @@ public sealed class PremiumCatalogController : ControllerBase
     public PremiumCatalogController(IPremiumCatalogService service) => _service = service;
 
     [HttpGet("publication")]
-    public async Task<ActionResult<PremiumCatalogPublicationDto?>> GetPublication(CancellationToken cancellationToken) =>
-        Ok(await _service.GetPublicationAsync(cancellationToken));
+    public async Task<ActionResult<PremiumCatalogPublicationDto?>> GetPublication(CancellationToken cancellationToken)
+    {
+        try { return Ok(await _service.GetPublicationAsync(cancellationToken)); }
+        catch (UnauthorizedAccessException ex) { return StatusCode(StatusCodes.Status403Forbidden, new { message = ex.Message }); }
+    }
 
     [HttpPut("publication")]
     public async Task<ActionResult<PremiumCatalogPublicationDto>> SavePublication(
