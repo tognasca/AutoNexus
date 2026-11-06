@@ -1,10 +1,10 @@
 # Security release runbook — production hardening
 
-This branch does **not** deploy, rotate server credentials, purge Git history, or migrate existing encrypted rows.
+The Git history of all published branches was rewritten with `git-filter-repo` on 2026-11-06, and a clean clone was verified. This branch does **not** deploy, rotate server credentials, purge GitHub's internal pull-request references/caches, or migrate existing encrypted rows.
 
 ## Required operator actions (before merge/deploy)
 
-1. **Back up the uploads and SQL files** in encrypted, access-controlled storage and verify restoration. This branch removes tracked runtime files only from the current Git tree; **historical commits still contain them**. Coordinate history rewriting with all collaborators, forks and deployment mirrors; do not force-push without a separately approved migration plan.
+1. **Back up the uploads and SQL files** in encrypted, access-controlled storage and verify restoration. The tracked runtime files and their reachable history have been removed from published branch refs. **Old clones, local mirror backups, pull-request refs, caches, and downloaded copies may still retain them.** Keep backups secured offline; contact GitHub Support for sensitive-data cleanup and ensure no old clone pushes rewritten-away commits.
 2. **Rotate all real credentials** previously committed or reused (database passwords, JWT signing keys, payment provider tokens/secrets, email/API keys, initial admin passwords). Check GitHub Actions secrets, Docker Compose environment, Cloudflare Tunnel and live deployments. A Git commit cannot rotate remote credentials.
 3. Configure `ConnectionStrings__DefaultConnection` and `Jwt__SecretKey` using a protected secret store or environment variables. The committed development config no longer provides passwords or signing secrets.
 4. Generate an **independent** encryption key (32 cryptographically random bytes, Base64), supply as `Security__CredentialEncryptionKey`. Keep it backed up in a separate secret manager. Never commit it.
@@ -18,8 +18,15 @@ This branch does **not** deploy, rotate server credentials, purge Git history, o
 ## Known limitations
 
 - No server-side secret rotation has been performed.
-- The Git commit history has not been scrubbed; data is still accessible in old commits.
+- Published branch history has been scrubbed and locally verified, but GitHub internal pull-request references/caches and external clones have not been confirmed purged.
 - Stored credentials are **not automatically re-encrypted**; migration is required.
 - Signature sniffing is not complete content validation or malware detection.
 - Proxy trust and network access control must be configured in the actual deployment.
 - This branch has not been tested against the running production infrastructure.
+
+## CI status after history rewrite
+
+- GitHub Actions workflow run `42220087955` for rewritten head `2236f316fbec476273f1c9b90967689e36a741f6` completed successfully: `.NET build and tests` and `Frontend build and lint`.
+- This verifies the configured CI jobs only, not production readiness, migrations, live webhooks, Cloudflare routing, or secret migration.
+- **Release gate:** do not deploy with a newly generated JWT key until legacy encrypted integration credentials have been migrated, and do not assume changing `POSTGRES_PASSWORD` in `.env` rotates the password inside an existing PostgreSQL volume.
+- The clean checkout does not include `.env`. Restore required runtime configuration securely from the existing deployment, never commit it, and validate `docker compose config --quiet` before any deployment.
