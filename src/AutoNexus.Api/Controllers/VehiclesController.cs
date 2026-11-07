@@ -7,7 +7,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AutoNexus.Infrastructure.Data;
-using System.Text.Json;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -89,7 +88,7 @@ public class VehiclesController : ControllerBase
     [HttpPatch("{id:guid}/status")]
     public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeVehicleStatusRequest request, CancellationToken cancellationToken)
     {
-        if (!Enum.IsDefined(typeof(VehicleStatus), request.Status))
+        if (request is null || !Enum.IsDefined(typeof(VehicleStatus), request.Status))
             return BadRequest(new { message = "Status do veículo inválido." });
 
         var vehicle = await _vehicleService.GetByIdAsync(id, cancellationToken);
