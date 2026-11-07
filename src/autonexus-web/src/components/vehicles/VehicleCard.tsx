@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -14,7 +14,8 @@ import {
   FileText,
   FileSignature,
   Trash2,
-  Pencil
+  Pencil,
+  History
 } from 'lucide-react';
 import { ContractFormModal } from '../Contract/ContractFormModal';
 
@@ -28,6 +29,7 @@ interface VehicleCardProps {
   onSellVehicle: (vehicle: VehicleSummary) => void;
   onTradeVehicle: (vehicle: VehicleSummary) => void;
   onDeleteVehicle?: (vehicle: VehicleSummary) => void;
+  onViewHistory?: (vehicle: VehicleSummary) => void;
 }
 
 export function VehicleCard({
@@ -40,6 +42,7 @@ export function VehicleCard({
   onSellVehicle,
   onTradeVehicle,
   onDeleteVehicle,
+  onViewHistory,
 }: VehicleCardProps) {
   const [showContractModal, setShowContractModal] = useState(false);
 
@@ -62,6 +65,8 @@ export function VehicleCard({
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-blue-500/20 text-blue-400 border border-blue-500/30">À Venda</span>;
       case VehicleStatus.EmTroca:
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30">Em Troca</span>;
+      case VehicleStatus.Reservado:
+        return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-violet-500/20 text-violet-300 border border-violet-500/40">Reservado</span>;
       case VehicleStatus.Vendido:
         return <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">Vendido</span>;
       default:
@@ -71,32 +76,17 @@ export function VehicleCard({
 
   const getAgingBadge = (createdAt?: string, status?: VehicleStatus) => {
     if (!createdAt || status === VehicleStatus.Vendido) return null;
-
-    const days = Math.floor((new Date().getTime() - new Date(createdAt).getTime()) / (1000 * 3600 * 24));
-
-    if (days < 30) return null;
-
-    if (days < 60) {
-      return (
-        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-amber-500/20 text-amber-400 border border-amber-500/30" title="Veículo há mais de 30 dias no pátio">
-          🟡 {days}d no pátio
-        </span>
-      );
-    }
-
-    if (days < 90) {
-      return (
-        <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-orange-500/20 text-orange-400 border border-orange-500/30" title="Veículo há mais de 60 dias no pátio">
-          🟠 {days}d no pátio
-        </span>
-      );
-    }
-
-    return (
-      <span className="px-2 py-0.5 text-[10px] font-bold rounded-full bg-rose-500/20 text-rose-400 border border-rose-500/30 animate-pulse" title="Atenção: Veículo parado há mais de 90 dias!">
-        🔴 {days}d PARADO
-      </span>
-    );
+    const parsed = new Date(createdAt);
+    if (Number.isNaN(parsed.getTime())) return null;
+    const days = Math.max(0, Math.floor((new Date().getTime() - parsed.getTime()) / 86400000));
+    const tone = days >= 90
+      ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
+      : days >= 60
+        ? 'bg-orange-500/20 text-orange-300 border-orange-500/40'
+        : days >= 30
+          ? 'bg-amber-500/20 text-amber-300 border-amber-500/40'
+          : 'bg-slate-700/70 text-slate-300 border-slate-600';
+    return <span className={`px-2 py-1 text-[10px] font-bold rounded-full border ${tone}`} title={`Cadastrado há ${days} dias`}>{days} {days === 1 ? 'dia' : 'dias'} no estoque</span>;
   };
 
   return (
@@ -116,13 +106,11 @@ export function VehicleCard({
             </div>
           )}
 
-          {/* Badges do Status e Envelhecimento */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 z-20">
             {getStatusBadge(vehicle.status)}
             {getAgingBadge(vehicle.createdAt, vehicle.status)}
           </div>
 
-          {/* Botões Superiores no topo direito: EDITAR (Amarelo) e EXCLUIR (Vermelho) */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
             {onEditVehicle && (
               <button
@@ -145,7 +133,13 @@ export function VehicleCard({
             )}
           </div>
 
-          {/* Barra de Ações Rápidas no canto inferior direito da imagem */}
+          {onViewHistory && (
+            <button onClick={() => onViewHistory(vehicle)} title="Histórico de alterações"
+              className="absolute bottom-3 left-3 z-20 p-2 rounded-lg bg-black/65 hover:bg-violet-600 text-white backdrop-blur-md shadow-md transition-colors">
+              <History size={16} />
+            </button>
+          )}
+
           <div className="absolute bottom-3 right-3 flex items-center gap-1.5 z-20">
             <button
               onClick={() => setShowContractModal(true)}
@@ -241,21 +235,19 @@ export function VehicleCard({
             <div>
               <span className="text-[10px] text-slate-500 uppercase font-medium block">Preço Anunciado</span>
               <span className="text-lg font-bold text-emerald-400">
-
                 {formatCurrency(listedVal > 0 ? listedVal : purchaseVal)}
               </span>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-slate-500 uppercase font-medium block">Compra</span>
               <span className="text-xs font-medium text-slate-400">
-                   {formatCurrency(purchaseVal)}
+                {formatCurrency(purchaseVal)}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal de Contrato e Proposta Comercial */}
       {showContractModal && (
         <ContractFormModal
           vehicle={{

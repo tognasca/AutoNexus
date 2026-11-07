@@ -54,6 +54,7 @@ export function VehicleFilters({
           <option value="">Todos os Status</option>
           <option value={VehicleStatus.AVenda}>À Venda</option>
           <option value={VehicleStatus.EmTroca}>Em Troca</option>
+          <option value={VehicleStatus.Reservado}>Reservado</option>
           <option value={VehicleStatus.Vendido}>Vendido</option>
         </select>
       </div>

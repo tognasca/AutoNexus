@@ -5,6 +5,8 @@ using AutoNexus.Domain.Enums;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using AutoNexus.Infrastructure.Data;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -16,15 +18,18 @@ public class VehiclesController : ControllerBase
     private readonly IVehicleService _vehicleService;
     private readonly IAuthService _authService;
     private readonly IWebHostEnvironment _environment;
+    private readonly AutoNexusDbContext _dbContext;
 
     public VehiclesController(
         IVehicleService vehicleService,
         IAuthService authService,
-        IWebHostEnvironment environment)
+        IWebHostEnvironment environment,
+        AutoNexusDbContext dbContext)
     {
         _vehicleService = vehicleService;
         _authService = authService;
         _environment = environment;
+        _dbContext = dbContext;
     }
 
     [HttpGet]
@@ -43,6 +48,65 @@ public class VehiclesController : ControllerBase
         var filter = new VehicleFilterDto(page, pageSize, vehicleTypeId, status, search, minPrice, maxPrice, minYear, maxYear);
         var result = await _vehicleService.GetAllPagedAsync(filter, cancellationToken);
         return Ok(result);
+    }
+
+    [HttpGet("inventory-summary")]
+    public async Task<IActionResult> GetInventorySummary(CancellationToken cancellationToken)
+    {
+        var now = DateTime.UtcNow;
+        var active = _dbContext.Vehicles.Where(v => v.Status != VehicleStatus.Vendido);
+        var result = new
+        {
+            total = await _dbContext.Vehicles.CountAsync(cancellationToken),
+            available = await _dbContext.Vehicles.CountAsync(v => v.Status == VehicleStatus.AVenda, cancellationToken),
+            reserved = await _dbContext.Vehicles.CountAsync(v => v.Status == VehicleStatus.Reservado, cancellationToken),
+            sold = await _dbContext.Vehicles.CountAsync(v => v.Status == VehicleStatus.Vendido, cancellationToken),
+            over60Days = await active.CountAsync(v => v.CreatedAt <= now.AddDays(-60), cancellationToken),
+            over90Days = await active.CountAsync(v => v.CreatedAt <= now.AddDays(-90), cancellationToken)
+        };
+        return Ok(result);
+    }
+
+    [HttpGet("{id:guid}/history")]
+    public async Task<IActionResult> GetVehicleHistory(Guid id, CancellationToken cancellationToken)
+    {
+        var vehicle = await _dbContext.Vehicles.AsNoTracking()
+            .Where(v => v.Id == id)
+            .Select(v => new { v.Id })
+            .FirstOrDefaultAsync(cancellationToken);
+        if (vehicle is null) return NotFound(new { message = "Veículo não encontrado." });
+
+        var history = await _dbContext.AuditLogs.AsNoTracking()
+            .Where(x => x.Resource == "Vehicle" && x.ResourceId == id.ToString())
+            .OrderByDescending(x => x.ExecutedAt)
+            .Select(x => new { x.Id, x.Operation, x.Details, x.UserId, x.ExecutedAt })
+            .Take(100)
+            .ToListAsync(cancellationToken);
+        return Ok(history);
+    }
+
+    [HttpPatch("{id:guid}/status")]
+    public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeVehicleStatusRequest request, CancellationToken cancellationToken)
+    {
+        if (request is null || !Enum.IsDefined(typeof(VehicleStatus), request.Status))
+            return BadRequest(new { message = "Status do veículo inválido." });
+
+        var vehicle = await _vehicleService.GetByIdAsync(id, cancellationToken);
+        if (vehicle is null) return NotFound(new { message = "Veículo não encontrado." });
+        var previousStatus = vehicle.Status;
+        await _vehicleService.ChangeStatusAsync(id, request.Status, cancellationToken);
+        await RegisterVehicleHistoryAsync(id, "Alteração de status", $"Status alterado de {previousStatus} para {request.Status}.", cancellationToken);
+        return Ok(new { message = "Status atualizado com sucesso." });
+    }
+
+    public sealed record ChangeVehicleStatusRequest(VehicleStatus Status);
+
+    private async Task RegisterVehicleHistoryAsync(Guid vehicleId, string operation, string details, CancellationToken cancellationToken)
+    {
+        var userIdValue = User.FindFirst(ClaimTypes.NameIdentifier)?.Value ?? User.FindFirst("sub")?.Value;
+        Guid? userId = Guid.TryParse(userIdValue, out var parsedUserId) ? parsedUserId : null;
+        _dbContext.AuditLogs.Add(new AuditLog(userId, operation, "Vehicle", vehicleId.ToString(), details));
+        await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     [HttpGet("{id:guid}")]
@@ -66,6 +130,7 @@ public class VehiclesController : ControllerBase
             return BadRequest(new { message = validationError });
 
         var vehicleId = await _vehicleService.CreateAsync(dto, cancellationToken);
+        await RegisterVehicleHistoryAsync(vehicleId, "Cadastro", $"Veículo {dto.Brand} {dto.Model} cadastrado no estoque.", cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = vehicleId }, new { id = vehicleId });
     }
 
@@ -81,7 +146,14 @@ public class VehiclesController : ControllerBase
         if (validationError != null)
             return BadRequest(new { message = validationError });
 
+        var before = await _vehicleService.GetByIdAsync(id, cancellationToken);
         await _vehicleService.UpdateAsync(id, dto, cancellationToken);
+        var changes = new List<string>();
+        if (before is not null && before.ListedValue != dto.ListedValue) changes.Add($"Preço anunciado: {before.ListedValue:C} → {dto.ListedValue:C}");
+        if (before is not null && before.PurchaseValue != dto.PurchaseValue) changes.Add($"Valor de compra: {before.PurchaseValue:C} → {dto.PurchaseValue:C}");
+        if (before is not null && before.Status != dto.Status) changes.Add($"Status: {before.Status} → {dto.Status}");
+        if (changes.Count == 0) changes.Add("Dados cadastrais do veículo atualizados.");
+        await RegisterVehicleHistoryAsync(id, "Edição", string.Join("; ", changes), cancellationToken);
         return Ok(new { message = "Veículo atualizado com sucesso." });
     }
 
@@ -114,6 +186,7 @@ public class VehiclesController : ControllerBase
         var updatedDto = new SellVehicleDto(dto.SaleValue, sellerId, dto.SoldAt);
 
         await _vehicleService.SellVehicleAsync(id, updatedDto, cancellationToken);
+        await RegisterVehicleHistoryAsync(id, "Venda registrada", $"Veículo vendido por {dto.SaleValue:C}.", cancellationToken);
         return Ok(new { message = "Venda registrada com sucesso." });
     }
 

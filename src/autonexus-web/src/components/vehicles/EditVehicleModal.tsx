@@ -356,7 +356,8 @@ export function EditVehicleModal({ isOpen, vehicleId, onClose, onSuccess, vehicl
                   <div>
                     <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Status</label>
                     <select value={form.status} onChange={e => setForm(prev => ({ ...prev, status: Number(e.target.value) as VehicleStatus }))} className="w-full bg-nexus-dark border border-nexus-border rounded-lg p-2.5 text-sm text-white focus:outline-none focus:border-nexus-accent font-semibold">
-                      <option value={VehicleStatus.AVenda}>À Venda</option><option value={VehicleStatus.EmTroca}>Em Troca</option><option value={VehicleStatus.Vendido}>Vendido</option>
+                      <option value={VehicleStatus.AVenda}>À Venda</option><option value={VehicleStatus.EmTroca}>Em Troca</option>
+              <option value={VehicleStatus.Reservado}>Reservado</option><option value={VehicleStatus.Vendido}>Vendido</option>
                     </select>
                   </div>
                 </div>
