@@ -50,11 +50,11 @@ export const vehicleService = {
   },
 
   getInventorySummary: async (): Promise<{ total: number; available: number; reserved: number; sold: number; over60Days: number; over90Days: number }> => {
-    return await request('/vehicles/inventory-summary');
+    return await request<{ total: number; available: number; reserved: number; sold: number; over60Days: number; over90Days: number }>('/vehicles/inventory-summary');
   },
 
   getHistory: async (id: string): Promise<Array<{ id: string; operation: string; details?: string; userId?: string; executedAt: string }>> => {
-    return await request(`/vehicles/${id}/history`);
+    return await request<Array<{ id: string; operation: string; details?: string; userId?: string; executedAt: string }>>(`/vehicles/${id}/history`);
   },
 
   getById: async (id: string): Promise<any> => {
