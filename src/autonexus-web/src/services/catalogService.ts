@@ -59,12 +59,17 @@ export function getPhotoUrl(input?: string | null): string {
   if (/^https?:\/\//i.test(url)) {
     try {
       const parsed = new URL(url);
-      return parsed.pathname + parsed.search;
+
+      // Preserve external image hosts (for example, the selectable Hero templates).
+      // Only normalize same-origin URLs to a path; external absolute URLs must not
+      // be redirected to the frontend host.
+      if (typeof window === 'undefined' || parsed.origin !== window.location.origin) {
+        return url;
+      }
+
+      return parsed.pathname + parsed.search + parsed.hash;
     } catch {
-      const withoutProtocol = url.replace(/^https?:\/\//i, '');
-      const slashIndex = withoutProtocol.indexOf('/');
-      if (slashIndex !== -1) return withoutProtocol.substring(slashIndex);
-      return '';
+      return url;
     }
   }
 
