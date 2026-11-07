@@ -7,6 +7,55 @@ import type {
   UpdateVehicleInput
 } from '../types/vehicle';
 
+interface VehicleApiRecord {
+  id?: string;
+  Id?: string;
+  vehicleTypeId?: string;
+  VehicleTypeId?: string;
+  vehicleTypeName?: string;
+  VehicleTypeName?: string;
+  brand?: string;
+  Brand?: string;
+  model?: string;
+  Model?: string;
+  version?: string;
+  Version?: string;
+  manufacturingYear?: number;
+  ManufacturingYear?: number;
+  modelYear?: number;
+  ModelYear?: number;
+  plate?: string;
+  Plate?: string;
+  mileage?: number;
+  Mileage?: number;
+  color?: string;
+  Color?: string;
+  status?: number | string;
+  Status?: number | string;
+  purchaseValue?: number;
+  PurchaseValue?: number;
+  listedValue?: number;
+  ListedValue?: number;
+  saleValue?: number;
+  SaleValue?: number;
+  mainPhotoUrl?: string;
+  MainPhotoUrl?: string;
+  whatsAppContactId?: string | null;
+  WhatsAppContactId?: string | null;
+  createdAt?: string;
+  CreatedAt?: string;
+  photos?: Array<{ id: string; fileName?: string; storagePath?: string; url?: string; isMain?: boolean; order?: number }>;
+  [key: string]: unknown;
+}
+
+interface VehicleApiPage {
+  items?: VehicleApiRecord[];
+  totalCount?: number;
+  page?: number;
+  pageSize?: number;
+  totalPages?: number;
+}
+
 export const vehicleService = {
   getAll: async (filter: VehicleFilter = {}): Promise<PagedResult<VehicleSummary>> => {
     const params = new URLSearchParams();
@@ -16,10 +65,11 @@ export const vehicleService = {
     if (filter.status !== undefined && filter.status !== null) params.append('status', filter.status.toString());
     if (filter.vehicleTypeId) params.append('vehicleTypeId', filter.vehicleTypeId);
 
-    const response = await request<any>(`/vehicles?${params.toString()}`);
-    const rawItems = response.items || response || [];
+    const response = await request<VehicleApiPage | VehicleApiRecord[]>(`/vehicles?${params.toString()}`);
+    const page = Array.isArray(response) ? undefined : response;
+    const rawItems: VehicleApiRecord[] = Array.isArray(response) ? response : page?.items || [];
 
-    const items: VehicleSummary[] = rawItems.map((v: any) => ({
+    const items: VehicleSummary[] = rawItems.map((v) => ({
       id: v.id || v.Id,
       vehicleTypeId: v.vehicleTypeId || v.VehicleTypeId,
       vehicleTypeName: v.vehicleTypeName || v.VehicleTypeName || '',
@@ -42,10 +92,10 @@ export const vehicleService = {
 
     return {
       items,
-      totalCount: response.totalCount ?? items.length,
-      page: response.page ?? 1,
-      pageSize: response.pageSize ?? 10,
-      totalPages: response.totalPages ?? 1,
+      totalCount: page?.totalCount ?? items.length,
+      page: page?.page ?? 1,
+      pageSize: page?.pageSize ?? 10,
+      totalPages: page?.totalPages ?? 1,
     };
   },
 
@@ -57,12 +107,12 @@ export const vehicleService = {
     return await request<Array<{ id: string; operation: string; details?: string; userId?: string; executedAt: string }>>(`/vehicles/${id}/history`);
   },
 
-  getById: async (id: string): Promise<any> => {
-    return await request<any>(`/vehicles/${id}`);
+  getById: async (id: string): Promise<VehicleApiRecord> => {
+    return await request<VehicleApiRecord>(`/vehicles/${id}`);
   },
 
-  getVehicleById: async (id: string): Promise<any> => {
-    return await request<any>(`/vehicles/${id}`);
+  getVehicleById: async (id: string): Promise<VehicleApiRecord> => {
+    return await request<VehicleApiRecord>(`/vehicles/${id}`);
   },
 
   create: async (input: CreateVehicleInput): Promise<VehicleSummary> => {
