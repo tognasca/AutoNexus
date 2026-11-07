@@ -31,6 +31,15 @@ export interface PublicStoreInfo {
 }
 
 export interface PublicVehicleDetail {
+  vehicleTypeName?: string;
+  VehicleTypeName?: string;
+  Id?: string;
+  Brand?: string;
+  Model?: string;
+  ModelYear?: number;
+  ManufacturingYear?: number;
+  ListedValue?: number;
+  CreatedAt?: string;
   id: string;
   brand: string;
   model: string;
@@ -73,11 +82,11 @@ export function getPhotoUrl(input?: string | null): string {
 }
 
 export const catalogService = {
-  getPublicCatalog: async (storeSlug = 'default'): Promise<{ items: any[]; store?: PublicStoreInfo }> => {
+  getPublicCatalog: async (storeSlug = 'default'): Promise<{ items: PublicVehicleDetail[]; store?: PublicStoreInfo }> => {
     const endpoint = storeSlug === 'current'
       ? '/public/catalog/current'
       : `/public/catalog?store=${encodeURIComponent(storeSlug)}`;
-    const data = await request<any>(endpoint);
+    const data = await request<PublicVehicleDetail[] | { items?: PublicVehicleDetail[]; store?: PublicStoreInfo }>(endpoint);
     return Array.isArray(data) ? { items: data } : { items: data.items || [], store: data.store };
   },
 
