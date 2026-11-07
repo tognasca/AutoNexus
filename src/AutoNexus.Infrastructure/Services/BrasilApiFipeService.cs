@@ -1,10 +1,14 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Text.Json;
 using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 
 namespace AutoNexus.Infrastructure.Services;
 
+/// <summary>
+/// Integração com a API atual da Parallelum (FIPE v2).
+/// Mantém a consulta histórica por código FIPE via BrasilAPI.
+/// </summary>
 public class BrasilApiFipeService : IFipeExternalService
 {
     private readonly HttpClient _httpClient;
@@ -12,171 +16,155 @@ public class BrasilApiFipeService : IFipeExternalService
     public BrasilApiFipeService(HttpClient httpClient)
     {
         _httpClient = httpClient;
-        _httpClient.BaseAddress = new Uri("https://parallelum.com.br/fipe/api/v1/");
+        _httpClient.BaseAddress = new Uri("https://fipe.parallelum.com.br/api/v2/");
+        _httpClient.Timeout = TimeSpan.FromSeconds(20);
     }
 
     public async Task<IEnumerable<FipeLookupItemDto>> GetBrandsAsync(string vehicleType, CancellationToken cancellationToken = default)
     {
-        var type = MapVehicleType(vehicleType);
-        var response = await _httpClient.GetAsync($"{type}/marcas", cancellationToken);
+        var response = await _httpClient.GetAsync($"{MapVehicleType(vehicleType)}/brands", cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(json);
-
-        var list = new List<FipeLookupItemDto>();
-        foreach (var item in doc.RootElement.EnumerateArray())
-        {
-            var code = item.GetProperty("codigo").GetString() ?? "";
-            var name = item.GetProperty("nome").GetString() ?? "";
-            list.Add(new FipeLookupItemDto(code, name));
-        }
-
-        return list.OrderBy(x => x.Name);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return ReadLookupItems(doc.RootElement)
+            .OrderBy(x => x.Name)
+            .ToList();
     }
 
     public async Task<IEnumerable<FipeLookupItemDto>> GetModelsAsync(string vehicleType, string brandCode, CancellationToken cancellationToken = default)
     {
-        var type = MapVehicleType(vehicleType);
-        var response = await _httpClient.GetAsync($"{type}/marcas/{brandCode}/modelos", cancellationToken);
+        var response = await _httpClient.GetAsync(
+            $"{MapVehicleType(vehicleType)}/brands/{Uri.EscapeDataString(brandCode)}/models", cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        var root = doc.RootElement;
+        // A API v2 retorna um array; o objeto "modelos" é aceito para compatibilidade.
+        var items = root.ValueKind == JsonValueKind.Object && root.TryGetProperty("modelos", out var models)
+            ? models
+            : root;
 
-        var list = new List<FipeLookupItemDto>();
-        if (doc.RootElement.TryGetProperty("modelos", out var modelosArray))
-        {
-            foreach (var item in modelosArray.EnumerateArray())
-            {
-                var code = item.GetProperty("codigo").GetInt32().ToString();
-                var name = item.GetProperty("nome").GetString() ?? "";
-                list.Add(new FipeLookupItemDto(code, name));
-            }
-        }
-
-        return list.OrderBy(x => x.Name);
+        return ReadLookupItems(items).OrderBy(x => x.Name).ToList();
     }
 
     public async Task<IEnumerable<FipeLookupItemDto>> GetYearsAsync(string vehicleType, string brandCode, string modelCode, CancellationToken cancellationToken = default)
     {
-        var type = MapVehicleType(vehicleType);
-        var response = await _httpClient.GetAsync($"{type}/marcas/{brandCode}/modelos/{modelCode}/anos", cancellationToken);
+        var response = await _httpClient.GetAsync(
+            $"{MapVehicleType(vehicleType)}/brands/{Uri.EscapeDataString(brandCode)}/models/{Uri.EscapeDataString(modelCode)}/years",
+            cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(json);
-
-        var list = new List<FipeLookupItemDto>();
-        foreach (var item in doc.RootElement.EnumerateArray())
-        {
-            var code = item.GetProperty("codigo").GetString() ?? "";
-            var name = item.GetProperty("nome").GetString() ?? "";
-            list.Add(new FipeLookupItemDto(code, name));
-        }
-
-        return list;
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
+        return ReadLookupItems(doc.RootElement).ToList();
     }
 
     public async Task<(decimal FipeValue, int Month, int Year, string FipeCode)> FetchByBrandModelYearAsync(
         string vehicleType, string brandCode, string modelCode, string yearCode, CancellationToken cancellationToken = default)
     {
-        var type = MapVehicleType(vehicleType);
-        var response = await _httpClient.GetAsync($"{type}/marcas/{brandCode}/modelos/{modelCode}/anos/{yearCode}", cancellationToken);
+        var url = $"{MapVehicleType(vehicleType)}/brands/{Uri.EscapeDataString(brandCode)}/models/{Uri.EscapeDataString(modelCode)}/years/{Uri.EscapeDataString(yearCode)}";
+        var response = await _httpClient.GetAsync(url, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var root = doc.RootElement;
 
-        var valorStr = root.GetProperty("Valor").GetString() ?? "0";
-        var mesRefStr = root.GetProperty("MesReferencia").GetString() ?? "";
-        var fipeCode = root.GetProperty("CodigoFipe").GetString() ?? "";
+        // Campos da FIPE v2: price, referenceMonth e codeFipe.
+        // Mantém fallback para o formato legado da v1.
+        var price = ReadString(root, "price", "Valor");
+        var reference = ReadString(root, "referenceMonth", "MesReferencia");
+        var code = ReadString(root, "codeFipe", "CodigoFipe");
 
-        var decimalValue = ParseCurrency(valorStr);
-        var (month, year) = ParseReferenceMonthYear(mesRefStr);
-
-        return (decimalValue, month, year, fipeCode);
+        return (ParseCurrency(price), ParseReferenceMonthYear(reference).Month,
+            ParseReferenceMonthYear(reference).Year, code);
     }
 
-    public async Task<(decimal FipeValue, int Month, int Year)> FetchByFipeCodeAsync(string fipeCode, int? modelYear, CancellationToken cancellationToken = default)
+    public async Task<(decimal FipeValue, int Month, int Year)> FetchByFipeCodeAsync(
+        string fipeCode, int? modelYear, CancellationToken cancellationToken = default)
     {
         var sanitizedCode = fipeCode.Replace("-", "").Trim();
         using var client = new HttpClient { BaseAddress = new Uri("https://brasilapi.com.br/api/fipe/v1/") };
-        var response = await client.GetAsync($"{sanitizedCode}", cancellationToken);
+        var response = await client.GetAsync(sanitizedCode, cancellationToken);
         response.EnsureSuccessStatusCode();
 
-        var json = await response.Content.ReadAsStringAsync(cancellationToken);
-        using var doc = JsonDocument.Parse(json);
+        using var doc = JsonDocument.Parse(await response.Content.ReadAsStringAsync(cancellationToken));
         var root = doc.RootElement;
-
         if (root.ValueKind != JsonValueKind.Array || root.GetArrayLength() == 0)
             throw new InvalidOperationException($"Nenhum resultado FIPE para o código '{fipeCode}'.");
 
-        JsonElement targetElement = root[0];
+        var target = root[0];
         if (modelYear.HasValue)
         {
-            foreach (var element in root.EnumerateArray())
+            foreach (var item in root.EnumerateArray())
             {
-                if (element.TryGetProperty("anoModelo", out var yearProp) && yearProp.GetInt32() == modelYear.Value)
+                if (item.TryGetProperty("anoModelo", out var year) && year.GetInt32() == modelYear.Value)
                 {
-                    targetElement = element;
+                    target = item;
                     break;
                 }
             }
         }
 
-        var valorStr = targetElement.GetProperty("valor").GetString() ?? "0";
-        var mesRefStr = targetElement.GetProperty("mesReferencia").GetString() ?? "";
+        var value = target.GetProperty("valor").GetString() ?? "0";
+        var month = target.GetProperty("mesReferencia").GetString() ?? "";
+        var reference = ParseReferenceMonthYear(month);
+        return (ParseCurrency(value), reference.Month, reference.Year);
+    }
 
-        return (ParseCurrency(valorStr), ParseReferenceMonthYear(mesRefStr).Month, ParseReferenceMonthYear(mesRefStr).Year);
+    private static IEnumerable<FipeLookupItemDto> ReadLookupItems(JsonElement root)
+    {
+        if (root.ValueKind != JsonValueKind.Array)
+            throw new InvalidOperationException("A API FIPE retornou uma lista em formato inesperado.");
+
+        foreach (var item in root.EnumerateArray())
+        {
+            var code = ReadString(item, "code", "codigo");
+            var name = ReadString(item, "name", "nome");
+            if (!string.IsNullOrWhiteSpace(code) && !string.IsNullOrWhiteSpace(name))
+                yield return new FipeLookupItemDto(code, name);
+        }
+    }
+
+    private static string ReadString(JsonElement element, string currentName, string legacyName)
+    {
+        if (element.TryGetProperty(currentName, out var current) && current.ValueKind == JsonValueKind.String)
+            return current.GetString() ?? "";
+        if (element.TryGetProperty(legacyName, out var legacy) && legacy.ValueKind == JsonValueKind.String)
+            return legacy.GetString() ?? "";
+        return "";
     }
 
     private static string MapVehicleType(string type)
     {
-        var t = type?.ToLower().Trim() ?? "carro";
-        if (t.Contains("moto")) return "motos";
-        if (t.Contains("caminh")) return "caminhoes";
-        return "carros";
+        var normalized = type?.Trim().ToLowerInvariant() ?? "carro";
+        if (normalized.Contains("moto")) return "motorcycles";
+        if (normalized.Contains("caminh")) return "trucks";
+        return "cars";
     }
 
-    private static decimal ParseCurrency(string valorStr)
+    private static decimal ParseCurrency(string value)
     {
-        var clean = valorStr.Replace("R$", "").Replace(".", "").Trim();
-        if (decimal.TryParse(clean, NumberStyles.Currency, new CultureInfo("pt-BR"), out var val))
-            return val;
+        var clean = value.Replace("R$", "", StringComparison.OrdinalIgnoreCase).Trim();
+        if (decimal.TryParse(clean, NumberStyles.Currency, new CultureInfo("pt-BR"), out var parsed))
+            return parsed;
         return 0m;
     }
 
-    private static (int Month, int Year) ParseReferenceMonthYear(string mesRefStr)
+    private static (int Month, int Year) ParseReferenceMonthYear(string value)
     {
         var now = DateTime.UtcNow;
-        if (string.IsNullOrWhiteSpace(mesRefStr)) return (now.Month, now.Year);
+        if (string.IsNullOrWhiteSpace(value)) return (now.Month, now.Year);
 
-        var parts = mesRefStr.ToLower().Split(new[] { "de", " " }, StringSplitOptions.RemoveEmptyEntries);
+        var parts = value.ToLowerInvariant().Split(new[] { " de ", " " }, StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length < 2) return (now.Month, now.Year);
 
-        var monthName = parts[0].Trim();
-        var yearStr = parts[^1].Trim();
-
-        int month = monthName switch
+        var month = parts[0] switch
         {
-            "janeiro" => 1,
-            "fevereiro" => 2,
-            "março font" or "março" => 3,
-            "abril" => 4,
-            "maio" => 5,
-            "junho" => 6,
-            "julho" => 7,
-            "agosto" => 8,
-            "setembro" => 9,
-            "outubro" => 10,
-            "novembro" => 11,
-            "dezembro" => 12,
-            _ => now.Month
+            "janeiro" => 1, "fevereiro" => 2, "março" or "marco" => 3,
+            "abril" => 4, "maio" => 5, "junho" => 6, "julho" => 7,
+            "agosto" => 8, "setembro" => 9, "outubro" => 10,
+            "novembro" => 11, "dezembro" => 12, _ => now.Month
         };
-
-        int year = int.TryParse(yearStr, out var y) ? y : now.Year;
+        var year = int.TryParse(parts[^1], out var parsedYear) ? parsedYear : now.Year;
         return (month, year);
     }
 }
