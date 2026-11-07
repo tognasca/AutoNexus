@@ -105,7 +105,21 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
   const resetFilters = () => { setSearch(''); setBrand('ALL'); setModel('ALL'); setYear('ALL'); setPrice('ALL'); setSort('recent'); };
 
   return (
-    <div className="min-h-screen bg-[#f5f7fa] text-slate-900" style={{ '--store-accent': accent } as CSSProperties}>
+    <div className="public-catalog-saas min-h-screen bg-[#f5f7fa] text-slate-900" style={{ '--store-accent': accent } as CSSProperties}>
+      <style>{`
+        .public-catalog-saas .bg-blue-600,
+        .public-catalog-saas .bg-blue-500 { background-color: var(--store-accent) !important; }
+        .public-catalog-saas .hover\\:bg-blue-700:hover,
+        .public-catalog-saas .hover\\:bg-blue-900:hover { background-color: color-mix(in srgb, var(--store-accent) 82%, #000) !important; }
+        .public-catalog-saas .text-blue-700,
+        .public-catalog-saas .text-blue-600,
+        .public-catalog-saas .text-blue-500,
+        .public-catalog-saas .text-blue-400 { color: var(--store-accent) !important; }
+        .public-catalog-saas .border-blue-500,
+        .public-catalog-saas .border-blue-200 { border-color: var(--store-accent) !important; }
+        .public-catalog-saas .bg-blue-50 { background-color: color-mix(in srgb, var(--store-accent) 10%, white) !important; }
+        .public-catalog-saas .focus\\:border-blue-500:focus { border-color: var(--store-accent) !important; }
+      `}</style>
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#031326] text-white shadow-lg">
         <div className="mx-auto flex min-h-[60px] max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-8">
           <a href="#inicio" className="flex min-w-0 items-center gap-3">
