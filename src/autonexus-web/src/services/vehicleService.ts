@@ -8,7 +8,7 @@ import type {
 } from '../types/vehicle';
 
 interface VehicleApiRecord {
-  id?: string;
+  id: string;
   Id?: string;
   vehicleTypeId?: string;
   VehicleTypeId?: string;
@@ -44,6 +44,14 @@ interface VehicleApiRecord {
   WhatsAppContactId?: string | null;
   createdAt?: string;
   CreatedAt?: string;
+  chassis?: string;
+  renavam?: string;
+  Renavam?: string;
+  fuel?: number | string;
+  transmission?: number | string;
+  notes?: string;
+  documents?: Array<Record<string, unknown>>;
+  costs?: Array<Record<string, unknown>>;
   photos?: Array<{ id: string; fileName?: string; storagePath?: string; url?: string; isMain?: boolean; order?: number }>;
   [key: string]: unknown;
 }
@@ -70,7 +78,7 @@ export const vehicleService = {
     const rawItems: VehicleApiRecord[] = Array.isArray(response) ? response : page?.items || [];
 
     const items: VehicleSummary[] = rawItems.map((v) => ({
-      id: v.id || v.Id,
+      id: v.id || v.Id || '',
       vehicleTypeId: v.vehicleTypeId || v.VehicleTypeId,
       vehicleTypeName: v.vehicleTypeName || v.VehicleTypeName || '',
       brand: v.brand || v.Brand || '',
