@@ -15,7 +15,8 @@ import {
   FileSignature,
   Trash2,
   Pencil,
-  History
+  History,
+  Clock3
 } from 'lucide-react';
 import { ContractFormModal } from '../Contract/ContractFormModal';
 
@@ -29,6 +30,7 @@ interface VehicleCardProps {
   onSellVehicle: (vehicle: VehicleSummary) => void;
   onTradeVehicle: (vehicle: VehicleSummary) => void;
   onDeleteVehicle?: (vehicle: VehicleSummary) => void;
+  onViewHistory?: (vehicle: VehicleSummary) => void;
 }
 
 export function VehicleCard({
@@ -41,6 +43,7 @@ export function VehicleCard({
   onSellVehicle,
   onTradeVehicle,
   onDeleteVehicle,
+  onViewHistory,
 }: VehicleCardProps) {
   const [showContractModal, setShowContractModal] = useState(false);
 
@@ -132,6 +135,13 @@ export function VehicleCard({
               </button>
             )}
           </div>
+
+          {onViewHistory && (
+            <button onClick={() => onViewHistory(vehicle)} title="Histórico de alterações"
+              className="absolute bottom-3 left-3 z-20 p-2 rounded-lg bg-black/65 hover:bg-violet-600 text-white backdrop-blur-md shadow-md transition-colors">
+              <History size={16} />
+            </button>
+          )}
 
           {/* Barra de Ações Rápidas no canto inferior direito da imagem */}
           <div className="absolute bottom-3 right-3 flex items-center gap-1.5 z-20">
