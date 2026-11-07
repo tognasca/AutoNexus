@@ -3,7 +3,7 @@ import {
   Search, Gauge, Fuel, Cog, MessageCircle, X,
   ChevronLeft, ChevronRight, Car, FileText, ShieldCheck, Sparkles,
   ExternalLink, SlidersHorizontal, Heart, Menu, ArrowRight, Phone,
-  CheckCircle2
+  CheckCircle2, Bike, Truck
 } from 'lucide-react';
 import { catalogService, getPhotoUrl, type PublicStoreInfo, type PublicVehicleDetail } from '../services/catalogService';
 import { formatCurrency } from '../utils/formatters';
@@ -24,6 +24,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
   const [year, setYear] = useState('ALL');
   const [price, setPrice] = useState('ALL');
   const [sort, setSort] = useState('recent');
+  const [vehicleCategory, setVehicleCategory] = useState<'ALL' | 'CARS' | 'MOTOS' | 'TRUCKS'>('ALL');
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState<PublicVehicleDetail | null>(null);
   const [photoIndex, setPhotoIndex] = useState(0);
@@ -49,12 +50,24 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
     return () => { cancelled = true; };
   }, [storeSlug]);
 
-  const brands = useMemo(() => Array.from(new Set(vehicles.map(v => v.brand).filter(Boolean))).sort(), [vehicles]);
-  const models = useMemo(() => Array.from(new Set(vehicles.filter(v => brand === 'ALL' || (v.brand || '').toLowerCase() === brand.toLowerCase()).map(v => v.model).filter(Boolean))).sort(), [vehicles, brand]);
-  const years = useMemo(() => Array.from(new Set(vehicles.map(v => String(v.modelYear || v.manufacturingYear || '')).filter(x => x !== ''))).sort((a,b) => Number(b)-Number(a)), [vehicles]);
+  const getVehicleCategory = (vehicle: any): 'CARS' | 'MOTOS' | 'TRUCKS' => {
+    const typeName = String(vehicle.vehicleTypeName || vehicle.VehicleTypeName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+    if (typeName.includes('moto')) return 'MOTOS';
+    if (typeName.includes('caminh') || typeName.includes('truck')) return 'TRUCKS';
+    return 'CARS';
+  };
+  const categoryVehicles = useMemo(() => vehicleCategory === 'ALL' ? vehicles : vehicles.filter(v => getVehicleCategory(v) === vehicleCategory), [vehicles, vehicleCategory]);
+  const categoryCounts = useMemo(() => ({
+    CARS: vehicles.filter(v => getVehicleCategory(v) === 'CARS').length,
+    MOTOS: vehicles.filter(v => getVehicleCategory(v) === 'MOTOS').length,
+    TRUCKS: vehicles.filter(v => getVehicleCategory(v) === 'TRUCKS').length,
+  }), [vehicles]);
+  const brands = useMemo(() => Array.from(new Set(categoryVehicles.map(v => v.brand).filter(Boolean))).sort(), [categoryVehicles]);
+  const models = useMemo(() => Array.from(new Set(categoryVehicles.filter(v => brand === 'ALL' || (v.brand || '').toLowerCase() === brand.toLowerCase()).map(v => v.model).filter(Boolean))).sort(), [categoryVehicles, brand]);
+  const years = useMemo(() => Array.from(new Set(categoryVehicles.map(v => String(v.modelYear || v.manufacturingYear || '')).filter(x => x !== ''))).sort((a,b) => Number(b)-Number(a)), [categoryVehicles]);
   const filteredVehicles = useMemo(() => {
     const term = search.trim().toLowerCase();
-    const result = vehicles.filter(v => {
+    const result = categoryVehicles.filter(v => {
       const matchesBrand = brand === 'ALL' || (v.brand || '').toLowerCase() === brand.toLowerCase();
       const matchesModel = model === 'ALL' || (v.model || '').toLowerCase() === model.toLowerCase();
       const matchesYear = year === 'ALL' || String(v.modelYear || v.manufacturingYear) === year;
@@ -69,7 +82,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
       : sort === 'priceDesc'
         ? Number(b.listedValue ?? b.ListedValue ?? 0) - Number(a.listedValue ?? a.ListedValue ?? 0)
         : new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
-  }, [vehicles, search, brand, model, year, price, sort]);
+  }, [categoryVehicles, search, brand, model, year, price, sort]);
 
   const accent = store?.primaryColor || '#0878ed';
   const whatsapp = (store?.whatsappNumber || '').replace(/\D/g, '');
@@ -102,7 +115,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
     window.open(`https://wa.me/${destination}?text=${encodeURIComponent(message)}`, '_blank', 'noopener,noreferrer');
   };
   const photos = selectedVehicle?.photos?.length ? selectedVehicle.photos.map(p => getPhotoUrl(p.storagePath || p.url)).filter(Boolean) : [getPhotoUrl(selectedVehicle?.mainPhotoUrl)].filter(Boolean);
-  const resetFilters = () => { setSearch(''); setBrand('ALL'); setModel('ALL'); setYear('ALL'); setPrice('ALL'); setSort('recent'); };
+  const resetFilters = () => { setSearch(''); setVehicleCategory('ALL'); setBrand('ALL'); setModel('ALL'); setYear('ALL'); setPrice('ALL'); setSort('recent'); };
 
   return (
     <div className="min-h-screen bg-[#f5f7fa] text-slate-900" style={{ '--store-accent': accent } as CSSProperties}>
@@ -116,7 +129,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
           </a>
           <nav className="hidden items-center gap-7 text-xs font-semibold lg:flex">
             <a href="#inicio" className="flex items-center gap-2 border-b-2 border-transparent py-5 text-slate-200 hover:text-white"><Car size={17}/> Início</a>
-            <a href="#veiculos" className="flex items-center gap-2 border-b-2 py-5" style={{ color: '#ffc64a', borderColor: '#ffc64a' }}><Car size={17}/> Veículos</a>
+            <a href="#veiculos" className="flex items-center gap-2 border-b-2 py-5" style={{ color: '#ffc64a', borderColor: '#ffc64a' }}><Car size={17}/> Catálogo</a>
             <a href="#rodape" className="flex items-center gap-2 py-5 text-slate-200 hover:text-white"><SlidersHorizontal size={17}/> Atendimento</a>
           </nav>
           <div className="flex items-center gap-3">
@@ -134,7 +147,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
           <div className="relative mx-auto flex min-h-[300px] max-w-[1600px] items-center px-5 py-9 sm:min-h-[330px] sm:px-8 lg:min-h-[300px]">
             <div className="max-w-2xl">
               <p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-white sm:text-sm">{store?.welcomeText?.trim() || `Bem-vindo à ${store?.name || 'sua loja'}`}</p>
-              <h1 className="max-w-2xl text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-[42px]">{store?.heroTitle?.trim() || 'Seu próximo carro pode estar aqui.'}</h1>
+              <h1 className="max-w-2xl text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-[42px]">{store?.heroTitle?.trim() || 'Seu próximo veículo pode estar aqui.'}</h1>
               <p className="mt-3 max-w-xl text-xs leading-5 text-slate-200 sm:text-sm">Encontre o veículo ideal com praticidade, transparência e atendimento especializado.</p>
               <div className="mt-7 flex flex-wrap gap-4 text-[10px] font-semibold sm:gap-6 sm:text-xs">
                 <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400 text-amber-300"><ShieldCheck size={17}/></span><span>Veículos<br/><b className="text-slate-300">selecionados</b></span></div>
@@ -147,6 +160,17 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
         </section>
 
         <div className="mx-auto max-w-[1500px] space-y-4 px-4 py-4 sm:px-8 sm:py-5">
+          <section aria-label="Categorias de veículos" className="grid grid-cols-2 gap-2 rounded-xl border border-slate-200 bg-white p-3 shadow-sm sm:grid-cols-4">
+            {[{ key: 'ALL', label: 'Todos os veículos', count: vehicles.length, icon: Car }, { key: 'CARS', label: 'Carros', count: categoryCounts.CARS, icon: Car }, { key: 'MOTOS', label: 'Motos', count: categoryCounts.MOTOS, icon: Bike }, { key: 'TRUCKS', label: 'Caminhões', count: categoryCounts.TRUCKS, icon: Truck }].map(item => {
+              const Icon = item.icon;
+              const active = vehicleCategory === item.key;
+              return <button key={item.key} type="button" onClick={() => { setVehicleCategory(item.key as typeof vehicleCategory); setBrand('ALL'); setModel('ALL'); setYear('ALL'); setPrice('ALL'); }} aria-pressed={active} className={`flex min-h-[76px] items-center gap-3 rounded-lg border px-4 py-3 text-left transition ${active ? 'border-blue-500 bg-blue-50 text-blue-800 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:border-blue-300 hover:bg-slate-50'}`}>
+                <span className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${active ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}`}><Icon size={21}/></span>
+                <span className="min-w-0"><span className="block text-xs font-bold">{item.label}</span><span className="mt-1 block text-[10px] text-slate-500">{item.count} {item.count === 1 ? 'veículo' : 'veículos'}</span></span>
+              </button>;
+            })}
+          </section>
+
           <section aria-label="Marcas disponíveis" className="flex items-center gap-3 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <button onClick={() => {setBrand('ALL');setModel('ALL');}} className={`min-w-[135px] rounded-lg border px-3 py-2 text-left text-xs font-semibold ${brand === 'ALL' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'}`}>Todas as marcas <span className="block pt-1 text-[10px] font-normal text-slate-400">{brands.length} marcas</span></button>
             {brands.map((b) => <button key={b} onClick={() => {setBrand(b);setModel('ALL');}} className={`flex min-w-[88px] flex-col items-center justify-center gap-1 rounded-lg border px-3 py-2 text-center ${brand === b ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50'}`}><span className="flex h-7 items-center text-sm font-black tracking-tight">{b.length > 12 ? b.slice(0,11) : b}</span><span className="text-[9px] text-slate-400">{vehicles.filter(v => v.brand === b).length} veículos</span></button>)}
@@ -170,7 +194,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
 
           <section id="veiculos" className="scroll-mt-20">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-              <div><h2 className="flex items-center gap-2 text-lg font-black text-slate-900 sm:text-xl"><Car className="text-blue-600" size={23}/> Veículos em estoque</h2><p className="mt-1 text-xs text-slate-500">Confira nossa seleção de veículos disponíveis para pronta entrega.</p></div>
+              <div><h2 className="flex items-center gap-2 text-lg font-black text-slate-900 sm:text-xl">{vehicleCategory === 'MOTOS' ? <Bike className="text-blue-600" size={23}/> : vehicleCategory === 'TRUCKS' ? <Truck className="text-blue-600" size={23}/> : <Car className="text-blue-600" size={23}/>} {vehicleCategory === 'ALL' ? 'Todos os veículos em estoque' : vehicleCategory === 'CARS' ? 'Carros em estoque' : vehicleCategory === 'MOTOS' ? 'Motos em estoque' : 'Caminhões em estoque'}</h2><p className="mt-1 text-xs text-slate-500">Selecione uma categoria para navegar separadamente ou veja todo o estoque em uma única vitrine.</p></div>
               <label className="flex items-center gap-2 text-[11px] font-semibold text-slate-700">Ordenar por:
                 <select value={sort} onChange={e=>setSort(e.target.value)} className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-normal"><option value="recent">Mais recentes</option><option value="priceAsc">Menor preço</option><option value="priceDesc">Maior preço</option></select>
               </label>
@@ -183,7 +207,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
                   return <article key={vehicle.id} className="group overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
                     <button onClick={()=>openDetails(vehicle.id)} className="relative block h-40 w-full overflow-hidden bg-slate-100 text-left sm:h-32 lg:h-36">
                       {photo?<img src={photo} alt={`${vehicle.brand} ${vehicle.model}`} className="h-full w-full object-cover transition duration-500 group-hover:scale-105"/>:<div className="flex h-full items-center justify-center text-slate-400"><Car size={42}/></div>}
-                      <span className="absolute left-2 top-2 rounded-full bg-blue-600 px-2.5 py-1 text-[9px] font-bold text-white">Disponível</span>
+                      <span className="absolute left-2 top-2 rounded-full bg-blue-600 px-2.5 py-1 text-[9px] font-bold text-white">Disponível</span><span className="absolute bottom-2 left-2 rounded-md bg-slate-950/75 px-2 py-1 text-[9px] font-semibold text-white">{vehicle.vehicleTypeName || vehicle.VehicleTypeName || 'Veículo'}</span>
                       <span className="absolute right-2 top-2 rounded-full bg-black/40 p-1.5 text-white"><Heart size={14}/></span>
                     </button>
                     <div className="space-y-2.5 p-3">
