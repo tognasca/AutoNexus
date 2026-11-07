@@ -15,13 +15,16 @@ import { tenantSettingsService, type WhatsAppContact } from '../services/tenantS
 import { lookupService } from '../services/lookupService';
 import { VehicleStatus, type VehicleSummary, type CreateVehicleInput } from '../types/vehicle';
 import type { LookupItem } from '../types/lookup';
-import { Plus, Loader2 } from 'lucide-react';
+import { Plus, Loader2, CarFront, CheckCircle2, Clock3, AlertTriangle, History } from 'lucide-react';
+import { VehicleHistoryModal } from '../components/vehicles/VehicleHistoryModal';
 
 export function VehiclesPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<LookupItem[]>([]);
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
   const [loading, setLoading] = useState(true);
+  const [inventorySummary, setInventorySummary] = useState({ total: 0, available: 0, reserved: 0, sold: 0, over60Days: 0, over90Days: 0 });
+  const [historyVehicle, setHistoryVehicle] = useState<VehicleSummary | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Modal de Edição
@@ -64,6 +67,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
       ]);
       setVehicleTypes(typesRes);
       setVehicles(vehiclesRes.items);
+      const summary = await vehicleService.getInventorySummary().catch(() => null);
+      if (summary) setInventorySummary(summary);
       const contacts = await tenantSettingsService.getWhatsAppContacts().catch(() => []);
       setWhatsappContacts(contacts.filter(x => x.isActive));
     } catch (err) {
@@ -107,6 +112,22 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         </button>
       </div>
 
+      <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+        {[
+          { label: 'Veículos no estoque', value: inventorySummary.total, icon: CarFront, tone: 'text-slate-200', border: 'border-slate-700' },
+          { label: 'Disponíveis', value: inventorySummary.available, icon: CheckCircle2, tone: 'text-emerald-400', border: 'border-emerald-500/30' },
+          { label: 'Reservados', value: inventorySummary.reserved, icon: Clock3, tone: 'text-violet-300', border: 'border-violet-500/30' },
+          { label: 'Vendidos', value: inventorySummary.sold, icon: CheckCircle2, tone: 'text-blue-300', border: 'border-blue-500/30' },
+          { label: 'Mais de 60 dias', value: inventorySummary.over60Days, icon: AlertTriangle, tone: 'text-amber-300', border: 'border-amber-500/30' },
+          { label: 'Mais de 90 dias', value: inventorySummary.over90Days, icon: AlertTriangle, tone: 'text-rose-300', border: 'border-rose-500/30' },
+        ].map(item => (
+          <div key={item.label} className={`rounded-xl border ${item.border} bg-nexus-card p-3 flex items-center gap-3`}>
+            <item.icon size={19} className={item.tone} />
+            <div className="min-w-0"><div className="text-xl font-bold text-white">{item.value}</div><div className="text-[11px] text-slate-400">{item.label}</div></div>
+          </div>
+        ))}
+      </div>
+
       <VehicleFilters
         vehicleTypes={vehicleTypes}
         selectedType={selectedType}
@@ -140,6 +161,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
             <VehicleCard
               vehicle={v}
               onEditVehicle={handleOpenEdit}
+              onViewHistory={(veh) => setHistoryVehicle(veh)}
               onManagePhotos={(veh) => { setSelectedVehicleForPhotos(veh); setIsPhotosModalOpen(true); }}
               onManageCosts={(veh) => { setSelectedVehicleForCosts(veh); setIsCostsModalOpen(true); }}
               onManageFipe={(veh) => { setSelectedVehicleForFipe(veh); setIsFipeModalOpen(true); }}
@@ -218,6 +240,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         onClose={() => setIsSaleModalOpen(false)}
         onSaleCompleted={loadData}
       />
+
+      <VehicleHistoryModal vehicle={historyVehicle} onClose={() => setHistoryVehicle(null)} />
 
       <TradeNegotiationModal
         isOpen={isTradeModalOpen}
