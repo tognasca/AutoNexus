@@ -3,6 +3,7 @@ export const VehicleStatus = {
   AVenda: 1,
   EmTroca: 2,
   Vendido: 3,
+  Reservado: 4,
 } as const;
 export type VehicleStatus = (typeof VehicleStatus)[keyof typeof VehicleStatus];
 
@@ -46,6 +47,7 @@ export interface VehicleSummary {
   mainPhotoUrl?: string;
   whatsappContactId?: string | null;
   createdAt: string;
+  daysInStock?: number;
 }
 
 export interface PagedResult<T> {
