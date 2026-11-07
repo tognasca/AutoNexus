@@ -7,20 +7,20 @@ type HistoryItem = { id: string; operation: string; details?: string; userId?: s
 
 export function VehicleHistoryModal({ vehicle, onClose }: { vehicle: VehicleSummary | null; onClose: () => void }) {
   const [items, setItems] = useState<HistoryItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
+  const vehicleId = vehicle?.id;
+
   useEffect(() => {
-    if (!vehicle) return;
+    if (!vehicleId) return;
     let active = true;
-    setLoading(true);
-    setError('');
-    vehicleService.getHistory(vehicle.id)
+    vehicleService.getHistory(vehicleId)
       .then(data => { if (active) setItems(data); })
       .catch(() => { if (active) setError('Não foi possível carregar o histórico deste veículo.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [vehicle?.id]);
+  }, [vehicleId]);
 
   if (!vehicle) return null;
   return (
