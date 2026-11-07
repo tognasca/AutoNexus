@@ -40,27 +40,17 @@ const getHeaders = (): HeadersInit => {
  * Normaliza a resposta da API.
  */
 const normalizePhotosResponse = (
-  response: any
+  response: unknown
 ): VehiclePhoto[] => {
 
   if (Array.isArray(response)) {
     return response;
   }
 
-  if (
-    response &&
-    Array.isArray(response.photos)
-  ) {
-
-    return response.photos;
-  }
-
-  if (
-    response &&
-    Array.isArray(response.data)
-  ) {
-
-    return response.data;
+  if (response && typeof response === 'object') {
+    const payload = response as { photos?: unknown; data?: unknown };
+    if (Array.isArray(payload.photos)) return payload.photos as VehiclePhoto[];
+    if (Array.isArray(payload.data)) return payload.data as VehiclePhoto[];
   }
 
   return [];
