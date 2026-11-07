@@ -15,8 +15,7 @@ import {
   FileSignature,
   Trash2,
   Pencil,
-  History,
-  Clock3
+  History
 } from 'lucide-react';
 import { ContractFormModal } from '../Contract/ContractFormModal';
 
