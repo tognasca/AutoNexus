@@ -44,7 +44,7 @@ const normalizePhotosResponse = (
 ): VehiclePhoto[] => {
 
   if (Array.isArray(response)) {
-    return response;
+    return response as VehiclePhoto[];
   }
 
   if (response && typeof response === 'object') {
