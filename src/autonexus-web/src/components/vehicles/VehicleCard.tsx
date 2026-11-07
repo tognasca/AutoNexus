@@ -1,4 +1,4 @@
-﻿import { useState } from 'react';
+import { useState } from 'react';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { formatCurrency } from '../../utils/formatters';
 
@@ -78,7 +78,7 @@ export function VehicleCard({
     if (!createdAt || status === VehicleStatus.Vendido) return null;
     const parsed = new Date(createdAt);
     if (Number.isNaN(parsed.getTime())) return null;
-    const days = Math.max(0, Math.floor((Date.now() - parsed.getTime()) / 86400000));
+    const days = Math.max(0, Math.floor((new Date().getTime() - parsed.getTime()) / 86400000));
     const tone = days >= 90
       ? 'bg-rose-500/20 text-rose-300 border-rose-500/40'
       : days >= 60
@@ -106,13 +106,11 @@ export function VehicleCard({
             </div>
           )}
 
-          {/* Badges do Status e Envelhecimento */}
           <div className="absolute top-3 left-3 flex items-center gap-1.5 z-20">
             {getStatusBadge(vehicle.status)}
             {getAgingBadge(vehicle.createdAt, vehicle.status)}
           </div>
 
-          {/* Botões Superiores no topo direito: EDITAR (Amarelo) e EXCLUIR (Vermelho) */}
           <div className="absolute top-3 right-3 flex items-center gap-1.5 z-20">
             {onEditVehicle && (
               <button
@@ -142,7 +140,6 @@ export function VehicleCard({
             </button>
           )}
 
-          {/* Barra de Ações Rápidas no canto inferior direito da imagem */}
           <div className="absolute bottom-3 right-3 flex items-center gap-1.5 z-20">
             <button
               onClick={() => setShowContractModal(true)}
@@ -238,21 +235,19 @@ export function VehicleCard({
             <div>
               <span className="text-[10px] text-slate-500 uppercase font-medium block">Preço Anunciado</span>
               <span className="text-lg font-bold text-emerald-400">
-
                 {formatCurrency(listedVal > 0 ? listedVal : purchaseVal)}
               </span>
             </div>
             <div className="text-right">
               <span className="text-[10px] text-slate-500 uppercase font-medium block">Compra</span>
               <span className="text-xs font-medium text-slate-400">
-                   {formatCurrency(purchaseVal)}
+                {formatCurrency(purchaseVal)}
               </span>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Modal de Contrato e Proposta Comercial */}
       {showContractModal && (
         <ContractFormModal
           vehicle={{
