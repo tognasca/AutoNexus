@@ -13,7 +13,7 @@ interface PublicCatalogSaasPageProps {
   onNavigate?: (view: string) => void;
 }
 
-function getVehicleCategory(vehicle: any): 'CARS' | 'MOTOS' | 'TRUCKS' {
+function getVehicleCategory(vehicle: PublicVehicleDetail): 'CARS' | 'MOTOS' | 'TRUCKS' {
   const typeName = String(vehicle.vehicleTypeName || vehicle.VehicleTypeName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
   if (typeName.includes('moto')) return 'MOTOS';
   if (typeName.includes('caminh') || typeName.includes('truck')) return 'TRUCKS';
@@ -21,7 +21,7 @@ function getVehicleCategory(vehicle: any): 'CARS' | 'MOTOS' | 'TRUCKS' {
 }
 
 export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps) {
-  const [vehicles, setVehicles] = useState<any[]>([]);
+  const [vehicles, setVehicles] = useState<PublicVehicleDetail[]>([]);
   const [store, setStore] = useState<PublicStoreInfo | undefined>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
