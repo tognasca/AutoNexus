@@ -13,6 +13,13 @@ interface PublicCatalogSaasPageProps {
   onNavigate?: (view: string) => void;
 }
 
+function getVehicleCategory(vehicle: any): 'CARS' | 'MOTOS' | 'TRUCKS' {
+  const typeName = String(vehicle.vehicleTypeName || vehicle.VehicleTypeName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+  if (typeName.includes('moto')) return 'MOTOS';
+  if (typeName.includes('caminh') || typeName.includes('truck')) return 'TRUCKS';
+  return 'CARS';
+}
+
 export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps) {
   const [vehicles, setVehicles] = useState<any[]>([]);
   const [store, setStore] = useState<PublicStoreInfo | undefined>();
@@ -50,12 +57,6 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
     return () => { cancelled = true; };
   }, [storeSlug]);
 
-  const getVehicleCategory = (vehicle: any): 'CARS' | 'MOTOS' | 'TRUCKS' => {
-    const typeName = String(vehicle.vehicleTypeName || vehicle.VehicleTypeName || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-    if (typeName.includes('moto')) return 'MOTOS';
-    if (typeName.includes('caminh') || typeName.includes('truck')) return 'TRUCKS';
-    return 'CARS';
-  };
   const categoryVehicles = useMemo(() => vehicleCategory === 'ALL' ? vehicles : vehicles.filter(v => getVehicleCategory(v) === vehicleCategory), [vehicles, vehicleCategory]);
   const categoryCounts = useMemo(() => ({
     CARS: vehicles.filter(v => getVehicleCategory(v) === 'CARS').length,
