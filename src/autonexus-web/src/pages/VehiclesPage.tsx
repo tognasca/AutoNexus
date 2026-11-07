@@ -15,7 +15,7 @@ import { tenantSettingsService, type WhatsAppContact } from '../services/tenantS
 import { lookupService } from '../services/lookupService';
 import { VehicleStatus, type VehicleSummary, type CreateVehicleInput } from '../types/vehicle';
 import type { LookupItem } from '../types/lookup';
-import { Plus, Loader2, CarFront, CheckCircle2, Clock3, AlertTriangle, History } from 'lucide-react';
+import { Plus, Loader2, CarFront, CheckCircle2, Clock3, AlertTriangle } from 'lucide-react';
 import { VehicleHistoryModal } from '../components/vehicles/VehicleHistoryModal';
 
 export function VehiclesPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
