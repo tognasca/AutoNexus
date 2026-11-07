@@ -190,12 +190,21 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
 
               <section className="space-y-3 rounded-xl border border-slate-800 bg-slate-950/50 p-4">
                 <div><h3 className="text-sm font-bold text-white">Imagem principal do catálogo (Hero)</h3><p className="mt-1 text-[11px] text-slate-400">Escolha um modelo ou envie uma imagem própria. Sem personalização, o catálogo mantém o visual padrão.</p></div>
-                <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {[
-                    { key: 'showroom', label: 'Showroom', url: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1800&q=85' },
-                    { key: 'premium', label: 'Premium', url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1800&q=85' },
-                    { key: 'road', label: 'Estrada', url: 'https://images.unsplash.com/photo-1504215680853-026ed2a45def?auto=format&fit=crop&w=1800&q=85' },
-                  ].map(item => <button key={item.key} type="button" onClick={() => setForm(v => ({ ...v, heroImageUrl: item.url, heroTemplateKey: item.key }))} className={`overflow-hidden rounded-lg border text-left ${form.heroTemplateKey === item.key ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-slate-700'}`}><img src={item.url} alt={item.label} className="h-24 w-full object-cover" /><span className="block px-2 py-2 text-xs font-semibold text-white">{item.label}{form.heroTemplateKey === item.key ? ' • Selecionado' : ''}</span></button>)}
+                    { key: 'showroom', category: 'Carros', label: 'Showroom', url: 'https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'premium', category: 'Carros', label: 'Premium', url: 'https://images.unsplash.com/photo-1503376780353-7e6692767b70?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'road', category: 'Carros', label: 'Estrada', url: 'https://images.unsplash.com/photo-1504215680853-026ed2a45def?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'cars-showroom-lineup', category: 'Carros', label: 'Coleção de carros', url: 'https://images.unsplash.com/photo-1718903750004-763b5f074446?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'moto-sport', category: 'Motos', label: 'Moto esportiva', url: 'https://images.unsplash.com/photo-1558981806-ec527fa84c39?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'moto-touring', category: 'Motos', label: 'Moto touring', url: 'https://dxm.contentcenter.michelin.com/api/wedia/dam/transform/b98rpyxf61b4xgwt8zd9k7thte/mo-1111_tire_michelin_road-w-gt_de-de_features-and-benefits-1_nosignature_16-slash-9.webp?height=900&t=resize' },
+                    { key: 'truck-highway', category: 'Caminhões', label: 'Caminhões na estrada', url: 'https://cxf-prod.azureedge.net/b2b-experience-production/attachments/cm4l6sk08004t01lgymft8a18-header-intercompany-collaboration.0.80.2680.1403.full.jpg' },
+                    { key: 'truck-fleet', category: 'Caminhões', label: 'Frota de caminhões', url: 'https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?auto=format&fit=crop&w=1800&q=85' },
+                    { key: 'all-vehicles', category: 'Todos juntos', label: 'Carros + motos + caminhões', url: 'https://braziliantracker.com.br/assets/img/bannerVeiculos.webp' },
+                  ].map(item => <button key={item.key} type="button" onClick={() => setForm(v => ({ ...v, heroImageUrl: item.url, heroTemplateKey: item.key }))} aria-pressed={form.heroTemplateKey === item.key} className={`overflow-hidden rounded-lg border text-left transition ${form.heroTemplateKey === item.key ? 'border-blue-500 ring-2 ring-blue-500/30' : 'border-slate-700 hover:border-slate-500'}`}>
+                    <div className="relative"><img src={item.url} alt={item.label} loading="lazy" className="h-28 w-full object-cover" /><span className="absolute left-2 top-2 rounded bg-slate-950/80 px-2 py-1 text-[10px] font-bold text-white">{item.category}</span></div>
+                    <span className="block px-3 py-2 text-xs font-semibold text-white">{item.label}{form.heroTemplateKey === item.key ? ' • Selecionado' : ''}</span>
+                  </button>)}
                 </div>
                 <div className="flex flex-wrap items-center gap-3">
                   <label className="inline-flex cursor-pointer items-center gap-2 rounded-lg bg-slate-800 px-3 py-2 text-xs font-semibold text-white hover:bg-slate-700">Enviar minha imagem
