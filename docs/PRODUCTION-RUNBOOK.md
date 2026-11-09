@@ -5,7 +5,7 @@ Este documento fecha a preparação operacional sem colocar segredos no reposit�
 ## 1. Pré-requisitos
 
 - Docker Engine + Docker Compose.
-- Domínio HTTPS apontando para o servidor/reverse proxy ou Cloudflare Tunnel.
+- Domínio HTTPS apontando para o servidor/reverse proxy ou Cloudflare Tunnel (produção ATMotors: `https://atmotors.com.br`; API opcional em `https://api.atmotors.com.br`).
 - Conta Mercado Pago de produção com webhook configurado.
 - Conta Resend com domínio/remetente verificado.
 - PostgreSQL persistente.
