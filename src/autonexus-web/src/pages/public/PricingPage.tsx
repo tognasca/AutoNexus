@@ -55,7 +55,7 @@ export function PricingPage() {
     }
 
     return {
-      label: 'Plano Nova Marcha',
+      label: 'Plano AT MOTORS',
       description: 'Uma solução profissional para organizar a operação e acompanhar o negócio em um só lugar.',
       icon: Car,
       accent: 'border-slate-700',
@@ -86,64 +86,86 @@ export function PricingPage() {
   return (
     <div className="min-h-screen bg-nexus-dark text-slate-100">
       <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <a href="/" aria-label="Nova Marcha - início" className="flex shrink-0 items-center">
-          <span className="text-xl sm:text-2xl font-black tracking-tight text-white">Nova <span className="text-blue-400">Marcha</span></span>
+        <a href="/" aria-label="AT MOTORS - início" className="flex w-44 shrink-0 items-center sm:w-52">
+          <img src="/atmotors-logo.svg" alt="AT MOTORS — Tecnologia que movimenta negócios" className="w-full object-contain" />
         </a>
         <nav aria-label="Navegação principal" className="flex items-center gap-3 sm:gap-6 text-sm">
-          <a href="#como-funciona" className="hidden text-slate-300 transition-colors hover:text-white md:inline">Como funciona</a>
+          <a href="#como-funciona" className="hidden text-slate-300 transition-colors hover:text-white md:inline">Plataforma</a>
           <a href="#planos" className="hidden text-slate-300 transition-colors hover:text-white sm:inline">Planos</a>
           <a href="/entrar" className="text-slate-200 transition-colors hover:text-white">Entrar</a>
-          <a href="/cadastro" className="rounded-xl bg-blue-600 px-3 py-2.5 text-xs font-bold text-white shadow-lg shadow-blue-600/20 transition-colors hover:bg-blue-500 sm:px-5 sm:text-sm">Teste grátis</a>
+          <a href="/cadastro" className="rounded-lg bg-cyan-400 px-4 py-2.5 text-xs font-extrabold text-slate-950 shadow-lg shadow-cyan-500/20 transition-all hover:-translate-y-0.5 hover:bg-cyan-300 sm:px-5 sm:text-sm">Começar agora</a>
         </nav>
       </header>
 
-      <section className="relative isolate overflow-hidden border-b border-cyan-400/15 bg-[#020b19]">
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_75%_40%,rgba(0,194,255,0.22),transparent_50%),linear-gradient(110deg,#020a16_20%,#061a30_65%,#020b19_100%)]" />
-        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(120deg,transparent_40%,rgba(34,211,238,0.16)_40.2%,transparent_40.6%),linear-gradient(120deg,transparent_65%,rgba(59,130,246,0.13)_65.2%,transparent_65.6%)] [background-size:200px_100%]" />
-        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 pb-14 pt-14 sm:px-6 sm:pt-20 lg:min-h-[690px] lg:grid-cols-[0.95fr_1.05fr] lg:gap-2 lg:pb-20 lg:pt-20">
+      <section className="relative isolate overflow-hidden border-y border-white/10 bg-[#030914]">
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_78%_46%,rgba(0,153,255,0.19),transparent_48%),radial-gradient(ellipse_at_10%_15%,rgba(0,225,255,0.08),transparent_42%)]" />
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 opacity-[0.08] [background-image:linear-gradient(rgba(255,255,255,.25)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.25)_1px,transparent_1px)] [background-size:56px_56px]" />
+        <div className="relative mx-auto grid max-w-7xl items-center gap-10 px-4 py-12 sm:px-6 sm:py-16 lg:min-h-[650px] lg:grid-cols-[0.92fr_1.08fr] lg:gap-8 lg:py-20">
           <div className="relative z-10 max-w-2xl">
-            <p className="inline-flex items-center gap-3 rounded-lg border border-cyan-400/30 bg-cyan-400/5 px-4 py-2 text-[11px] font-black uppercase tracking-[0.14em] text-cyan-300"><Car className="h-4 w-4" /> Plataforma para lojas de veículos</p>
-            <h1 className="mt-7 text-[clamp(3.1rem,5.7vw,5.8rem)] font-black italic leading-[1.02] tracking-[-0.06em] text-white">
-              Sua loja não pode <span className="block bg-gradient-to-r from-cyan-300 via-cyan-400 to-blue-400 bg-clip-text text-transparent">ficar parada.</span>
-            </h1>
-            <p className="mt-7 max-w-lg text-base leading-8 text-slate-300 sm:text-lg">Estoque, vendas, negociações e gestão financeira conectados para levar seu negócio à próxima marcha.</p>
-            <div className="mt-9 flex flex-wrap items-center gap-3">
-              <a href="#planos" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-cyan-400 px-7 py-4 text-sm font-black text-slate-950 shadow-[0_14px_45px_rgba(6,182,212,0.25)] transition-all hover:-translate-y-1 hover:bg-cyan-300">Conhecer os planos <ArrowRight className="h-5 w-5" /></a>
-              <a href="#como-funciona" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-xl border border-cyan-400/60 bg-slate-950/30 px-6 py-4 text-sm font-bold text-white transition-colors hover:bg-cyan-400/10">Ver como funciona</a>
+            <div className="inline-flex items-center gap-2 rounded-full border border-cyan-300/25 bg-cyan-300/[0.07] px-4 py-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-cyan-200 sm:text-xs">
+              <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(34,211,238,.9)]" />
+              Tecnologia para o mercado automotivo
             </div>
-            <div className="mt-10 grid max-w-xl grid-cols-2 gap-4 border-t border-white/10 pt-7 text-xs font-semibold text-slate-200 sm:grid-cols-4">
-              <span className="flex flex-col items-start gap-2"><Car className="h-6 w-6 text-cyan-400" /> Controle de estoque</span>
-              <span className="flex flex-col items-start gap-2"><Users className="h-6 w-6 text-cyan-400" /> Negociações e propostas</span>
-              <span className="flex flex-col items-start gap-2"><BarChart3 className="h-6 w-6 text-cyan-400" /> Gestão financeira</span>
-              <span className="flex flex-col items-start gap-2"><FileText className="h-6 w-6 text-cyan-400" /> Vitrine digital</span>
+            <h1 className="mt-7 max-w-2xl text-[clamp(2.8rem,5.2vw,5.4rem)] font-black leading-[0.98] tracking-[-0.055em] text-white">
+              Sua loja no controle.
+              <span className="mt-2 block bg-gradient-to-r from-cyan-200 via-cyan-400 to-blue-500 bg-clip-text pb-2 text-transparent">Seu negócio em movimento.</span>
+            </h1>
+            <p className="mt-6 max-w-xl text-base leading-7 text-slate-300 sm:text-lg sm:leading-8">
+              Estoque, vendas, negociações, financeiro e catálogo digital conectados em uma única plataforma, feita para simplificar a rotina da sua loja.
+            </p>
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              <a href="#planos" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-lg bg-gradient-to-r from-cyan-300 to-cyan-400 px-7 py-4 text-sm font-black text-[#03101e] shadow-[0_12px_38px_rgba(6,182,212,.22)] transition-all hover:-translate-y-1 hover:from-cyan-200 hover:to-cyan-300">
+                Conhecer planos <ArrowRight className="h-5 w-5" />
+              </a>
+              <a href="#como-funciona" className="inline-flex min-h-14 items-center justify-center gap-2 rounded-lg border border-white/15 bg-white/[0.04] px-6 py-4 text-sm font-bold text-white transition-colors hover:border-cyan-300/50 hover:bg-cyan-300/[0.07]">
+                Conhecer a plataforma
+              </a>
+            </div>
+            <p className="mt-7 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">Tecnologia que movimenta negócios.</p>
+            <div className="mt-8 grid max-w-xl grid-cols-2 gap-x-5 gap-y-4 border-t border-white/10 pt-6 text-xs font-semibold text-slate-300 sm:grid-cols-4">
+              <span className="flex items-center gap-2"><Car className="h-5 w-5 shrink-0 text-cyan-300" /> Estoque</span>
+              <span className="flex items-center gap-2"><Users className="h-5 w-5 shrink-0 text-cyan-300" /> Negociações</span>
+              <span className="flex items-center gap-2"><BarChart3 className="h-5 w-5 shrink-0 text-cyan-300" /> Financeiro</span>
+              <span className="flex items-center gap-2"><FileText className="h-5 w-5 shrink-0 text-cyan-300" /> Catálogo</span>
             </div>
           </div>
-          <div className="relative mx-auto min-h-[440px] w-full max-w-[690px] sm:min-h-[530px] lg:min-h-[610px]" aria-label="Fotografia automotiva com painel ilustrativo da plataforma">
-            <div aria-hidden="true" className="absolute inset-x-0 top-0 h-[82%] overflow-hidden rounded-[32px] border border-cyan-400/15 shadow-[0_25px_80px_rgba(0,0,0,0.5)]">
-              <img src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1400&q=85" alt="Automóvel premium em ambiente escuro" className="h-full w-full object-cover object-center" loading="eager" fetchPriority="high" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#020b19] via-[#020b19]/15 to-[#020b19]/10" />
-              <div className="absolute inset-0 bg-gradient-to-r from-[#020b19]/35 to-transparent" />
+
+          <div className="relative mx-auto w-full max-w-[760px]">
+            <div aria-hidden="true" className="absolute -inset-5 rounded-[2rem] bg-cyan-400/10 blur-3xl" />
+            <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-[#081525] shadow-[0_35px_100px_rgba(0,0,0,.6)] sm:rounded-[2rem]">
+              <div className="absolute inset-0 z-10 bg-gradient-to-t from-[#030914] via-transparent to-[#030914]/10" />
+              <img
+                src="https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?auto=format&fit=crop&w=1600&q=90"
+                alt="Carro esportivo em destaque, representando o mercado automotivo"
+                className="aspect-[5/4] w-full object-cover object-center sm:aspect-[6/5] lg:aspect-[5/4]"
+                loading="eager"
+                fetchPriority="high"
+              />
+              <div className="absolute bottom-0 left-0 right-0 z-20 p-5 sm:p-7">
+                <div className="flex flex-wrap items-end justify-between gap-4">
+                  <div>
+                    <p className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-cyan-300">AT MOTORS</p>
+                    <p className="mt-2 max-w-sm text-xl font-black leading-tight text-white sm:text-2xl">Toda a operação da sua loja. Em um só lugar.</p>
+                  </div>
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-cyan-300/30 bg-[#061426]/80 text-cyan-300 backdrop-blur">
+                    <Car className="h-6 w-6" />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="absolute bottom-0 right-0 w-[96%] max-w-[540px] -rotate-1 overflow-hidden rounded-2xl border border-cyan-300/30 bg-[#061529]/95 shadow-[0_30px_70px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:w-[86%]">
-              <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-black text-white">NM</span><div><p className="text-xs font-bold text-white">Nova Marcha</p><p className="text-[10px] text-slate-400">Visão geral da loja</p></div></div>
-                <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[9px] text-cyan-300">Demonstração visual</span>
-              </div>
-              <div className="grid grid-cols-3 gap-2 p-3 sm:gap-3 sm:p-5">
-                <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/5 p-3"><Car className="h-4 w-4 text-cyan-300" /><p className="mt-3 text-xs font-bold text-white">Estoque</p><p className="mt-1 text-[10px] text-slate-400">Veículos e custos</p></div>
-                <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/5 p-3"><Users className="h-4 w-4 text-cyan-300" /><p className="mt-3 text-xs font-bold text-white">Negócios</p><p className="mt-1 text-[10px] text-slate-400">Vendas e trocas</p></div>
-                <div className="rounded-xl border border-cyan-400/10 bg-cyan-400/5 p-3"><BarChart3 className="h-4 w-4 text-cyan-300" /><p className="mt-3 text-xs font-bold text-white">Resultados</p><p className="mt-1 text-[10px] text-slate-400">Indicadores</p></div>
-              </div>
-              <div className="flex items-center gap-2 border-t border-white/10 px-4 py-3 text-[10px] text-slate-400 sm:px-5"><ShieldCheck className="h-4 w-4 text-cyan-400" /> Interface ilustrativa. Sem métricas fictícias.</div>
+            <div className="relative z-20 -mt-4 ml-auto mr-3 grid max-w-[94%] grid-cols-3 overflow-hidden rounded-xl border border-cyan-200/20 bg-[#08182a]/95 shadow-[0_18px_50px_rgba(0,0,0,.45)] backdrop-blur-xl sm:-mt-6 sm:max-w-[88%]">
+              <div className="border-r border-white/10 px-3 py-4 sm:px-5"><Car className="h-5 w-5 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white sm:text-sm">Estoque</p><p className="mt-1 hidden text-[10px] text-slate-400 sm:block">Veículos e fotos</p></div>
+              <div className="border-r border-white/10 px-3 py-4 sm:px-5"><Users className="h-5 w-5 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white sm:text-sm">Comercial</p><p className="mt-1 hidden text-[10px] text-slate-400 sm:block">Leads e negócios</p></div>
+              <div className="px-3 py-4 sm:px-5"><BarChart3 className="h-5 w-5 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white sm:text-sm">Gestão</p><p className="mt-1 hidden text-[10px] text-slate-400 sm:block">Indicadores e caixa</p></div>
             </div>
           </div>
         </div>
-        <div className="relative border-t border-cyan-400/15 bg-[#061528]/70">
-          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-x-8 gap-y-5 px-5 py-7 text-xs font-semibold text-slate-300 sm:grid-cols-2 sm:px-8 lg:grid-cols-4 lg:gap-x-10 lg:py-8">
-            <span className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-400" /> Dados separados por empresa</span>
-            <span className="flex items-center gap-3"><Sparkles className="h-5 w-5 text-cyan-400" /> Gestão integrada</span>
-            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-cyan-400" /> Acesso por perfil</span>
-            <span className="flex items-center gap-3"><Car className="h-5 w-5 text-cyan-400" /> Feito para o setor automotivo</span>
+        <div className="relative border-t border-white/10 bg-[#071426]/80">
+          <div className="mx-auto grid max-w-7xl grid-cols-1 gap-4 px-5 py-6 text-xs font-semibold text-slate-300 sm:grid-cols-2 sm:px-8 lg:grid-cols-4 lg:gap-8">
+            <span className="flex items-center gap-3"><ShieldCheck className="h-5 w-5 text-cyan-300" /> Dados separados por empresa</span>
+            <span className="flex items-center gap-3"><Sparkles className="h-5 w-5 text-cyan-300" /> Gestão integrada</span>
+            <span className="flex items-center gap-3"><Users className="h-5 w-5 text-cyan-300" /> Acesso por perfil</span>
+            <span className="flex items-center gap-3"><Car className="h-5 w-5 text-cyan-300" /> Feito para o setor automotivo</span>
           </div>
         </div>
       </section>
@@ -151,7 +173,7 @@ export function PricingPage() {
       <section id="como-funciona" className="max-w-6xl mx-auto px-4 pt-14 pb-14 sm:pt-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-3xl border border-nexus-border bg-nexus-card p-6 sm:p-8 shadow-xl shadow-black/10">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o Nova Marcha</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o AT MOTORS</p>
             <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Sua loja organizada em um só lugar</h2>
             <p className="mt-4 text-sm leading-6 text-slate-400">Veja como centralizar estoque, compras, vendas, trocas, documentos e resultados financeiros em uma plataforma feita para lojas de veículos.</p>
             <a href="#planos" className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors">Ver planos e começar <ArrowRight className="h-4 w-4" /></a>
@@ -196,7 +218,7 @@ export function PricingPage() {
         <div className="text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Planos e preços</p>
           <h2 className="mt-2 text-2xl sm:text-3xl font-black text-white">Escolha como sua loja quer crescer</h2>
-          <p className="mt-3 text-sm text-slate-400">Todos os valores são carregados do painel do Nova Marcha. Sem preço escondido.</p>
+          <p className="mt-3 text-sm text-slate-400">Todos os valores são carregados do painel do AT MOTORS. Sem preço escondido.</p>
         </div>
 
         <div className="flex justify-center mt-6">

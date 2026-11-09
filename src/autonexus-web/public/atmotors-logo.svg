@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 420" role="img" aria-labelledby="title desc">
+<title id="title">AT MOTORS</title><desc id="desc">Tecnologia que movimenta negócios</desc>
+<defs>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00eaff"/><stop offset=".55" stop-color="#087cff"/><stop offset="1" stop-color="#003fc4"/></linearGradient>
+ <linearGradient id="silver" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".48" stop-color="#aab6c8"/><stop offset="1" stop-color="#f8fbff"/></linearGradient>
+ <filter id="glow" x="-40%" y="-40%" width="180%" height="180%"><feGaussianBlur stdDeviation="7" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<rect width="1200" height="420" rx="28" fill="#030914"/>
+<g transform="translate(70 30)" filter="url(#glow)">
+ <path d="M180 18 340 58 340 205Q340 300 180 354Q20 300 20 205V58Z" fill="#07162b" stroke="url(#silver)" stroke-width="13"/>
+ <path d="M180 44 315 76V203Q315 280 180 329Q45 280 45 203V76Z" fill="none" stroke="url(#blue)" stroke-width="8"/>
+ <path d="M78 197Q104 155 147 142L171 111Q183 97 204 97H253Q272 97 286 112L315 146Q334 153 346 181L339 221H76Z" transform="translate(-12 0) scale(.94 1)" fill="#07101f" stroke="url(#blue)" stroke-width="7" stroke-linejoin="round"/>
+ <path d="M155 142 179 113Q186 105 202 105H250Q265 105 276 117L298 145Z" fill="#061a33" stroke="#62dfff" stroke-width="5"/>
+ <path d="M91 184 149 169 164 191 108 198Z M291 169 349 184 333 198 278 191Z" fill="#00eaff" filter="url(#glow)"/>
+ <path d="M170 214H277M160 230H287" stroke="#087cff" stroke-width="5" stroke-linecap="round"/>
+</g>
+<text x="445" y="245" font-family="Arial,Helvetica,sans-serif" font-size="148" font-style="italic" font-weight="900" letter-spacing="-8" fill="url(#silver)">AT</text>
+<text x="600" y="245" font-family="Arial,Helvetica,sans-serif" font-size="148" font-style="italic" font-weight="900" letter-spacing="-8" fill="url(#blue)">MOTORS</text>
+<path d="M440 292H1080" stroke="url(#blue)" stroke-width="4" filter="url(#glow)"/>
+<text x="760" y="345" text-anchor="middle" font-family="Arial,Helvetica,sans-serif" font-size="31" font-style="italic" letter-spacing="8" fill="#eaf2ff">TECNOLOGIA QUE MOVIMENTA NEGÓCIOS.</text>
+</svg>
