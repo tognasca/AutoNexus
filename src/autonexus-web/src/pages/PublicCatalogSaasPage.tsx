@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import { catalogService, getPhotoUrl, type PublicStoreInfo, type PublicVehicleDetail } from '../services/catalogService';
 import { formatCurrency } from '../utils/formatters';
+import atMotorsHero from '../public/hero/atmotors-hero/hero-atmotor.png';
+import atMotorsLogo from '../public/ATlogo.png';
 
 interface PublicCatalogSaasPageProps {
   currentView?: string;
@@ -71,6 +73,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
         : new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }, [vehicles, search, brand, model, year, price, sort]);
 
+  const isAtMotors = /at\\s?motors/i.test(store?.name || '') || /at\\s?motors/i.test(store?.slug || '') || storeSlug.toLowerCase().includes('atmotors');
   const accent = store?.primaryColor || '#0878ed';
   const whatsapp = (store?.whatsappNumber || '').replace(/\D/g, '');
   const initials = (store?.name || 'LO').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
@@ -123,10 +126,9 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#031326] text-white shadow-lg">
         <div className="mx-auto flex min-h-[60px] max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-8">
           <a href="#inicio" aria-label={store?.name || 'AT MOTORS'} className="flex min-w-0 items-center gap-3">
-            {(/at\s?motors/i.test(store?.name || '') || /at\s?motors/i.test(store?.slug || '')) ? (
+            {isAtMotors ? (
               <img
-                src={store?.logoUrl ? getPhotoUrl(store.logoUrl) : '/atmotors-logo.svg'}
-                onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = '/atmotors-logo.svg'; }}
+                src={atMotorsLogo}
                 alt="AT MOTORS"
                 className="h-11 w-[142px] shrink-0 object-contain sm:h-12 sm:w-[164px]"
               />
@@ -154,14 +156,14 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
 
       <main id="inicio">
         <section className="relative isolate min-h-[390px] overflow-hidden bg-[#04101f] text-white sm:min-h-[440px] lg:min-h-[510px]">
-          {(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl) && (
+          {(isAtMotors || store?.heroImageUrl || vehicles[0]?.mainPhotoUrl) && (
             <img
-              src={getPhotoUrl(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl)}
+              src={isAtMotors ? atMotorsHero : getPhotoUrl(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl)}
               alt="Veículo em destaque no catálogo"
-              className="absolute inset-0 h-full w-full object-cover object-[62%_center] sm:object-center"
+              className="absolute inset-0 h-full w-full object-cover object-[68%_center] sm:object-center lg:object-[72%_center]"
             />
           )}
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,10,21,.98)_0%,rgba(2,10,21,.91)_34%,rgba(2,10,21,.60)_62%,rgba(2,10,21,.22)_100%)]" />
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,10,21,.96)_0%,rgba(2,10,21,.84)_27%,rgba(2,10,21,.38)_54%,rgba(2,10,21,.04)_100%)]" />
           <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_78%_45%,rgba(20,110,190,.18),transparent_48%)]" />
           <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
           <div className="relative mx-auto flex min-h-[390px] max-w-[1600px] items-center px-5 py-12 sm:min-h-[440px] sm:px-8 lg:min-h-[510px] lg:px-12">
