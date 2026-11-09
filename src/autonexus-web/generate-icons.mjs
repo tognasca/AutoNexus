@@ -66,7 +66,7 @@ async function buildPngs() {
     return;
   }
 
-  const svgBuffer = Buffer.from(logoSvg);
+  const svgBuffer = fs.readFileSync('public/atmotors-logo.svg');
 
   // 192x192
   await sharp(svgBuffer)
@@ -96,7 +96,7 @@ async function buildPngs() {
     .toFile('public/favicon.ico');
   console.log('✅ public/favicon.ico criado');
 
-  console.log('\n🚀 Todos os ícones do Nova Marcha foram gerados com sucesso!');
+  console.log('\n🚀 Todos os ícones do AT MOTORS foram gerados com sucesso!');
 }
 
 buildPngs();
