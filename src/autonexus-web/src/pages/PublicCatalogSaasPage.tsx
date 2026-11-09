@@ -126,7 +126,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#031326] text-white shadow-lg">
         <div className="mx-auto flex min-h-[60px] max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-8">
           <a href="#inicio" aria-label={store?.name || 'AT MOTORS'} className="flex min-w-0 items-center gap-3">
-            {isAtMotors(
+            {isAtMotors ? (
               <img
                 src={atMotorsLogo}
                 alt="AT MOTORS"
