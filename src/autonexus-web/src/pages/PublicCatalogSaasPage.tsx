@@ -122,11 +122,22 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
       `}</style>
       <header className="sticky top-0 z-40 border-b border-white/10 bg-[#031326] text-white shadow-lg">
         <div className="mx-auto flex min-h-[60px] max-w-[1600px] items-center justify-between gap-4 px-4 sm:px-8">
-          <a href="#inicio" className="flex min-w-0 items-center gap-3">
-            <div className="flex h-10 w-12 shrink-0 items-center justify-center overflow-hidden">
-              {store?.logoUrl ? <img src={getPhotoUrl(store.logoUrl)} alt={store.name} className="h-full w-full object-contain" /> : <span className="text-xl font-black tracking-tight">{initials}</span>}
-            </div>
-            <div className="min-w-0"><div className="truncate text-base font-black uppercase tracking-wide">{store?.name || 'Sua Loja'}</div><div className="text-[9px] font-semibold uppercase tracking-[.28em] text-slate-400">Veículos</div></div>
+          <a href="#inicio" aria-label={store?.name || 'AT MOTORS'} className="flex min-w-0 items-center gap-3">
+            {(/at\s?motors/i.test(store?.name || '') || /at\s?motors/i.test(store?.slug || '')) ? (
+              <img
+                src={store?.logoUrl ? getPhotoUrl(store.logoUrl) : '/atmotors-logo.svg'}
+                onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = '/atmotors-logo.svg'; }}
+                alt="AT MOTORS"
+                className="h-11 w-[142px] shrink-0 object-contain sm:h-12 sm:w-[164px]"
+              />
+            ) : (
+              <>
+                <div className="flex h-11 w-14 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-white/5">
+                  {store?.logoUrl ? <img src={getPhotoUrl(store.logoUrl)} alt={store.name} className="h-full w-full object-contain" /> : <span className="text-xl font-black tracking-tight">{initials}</span>}
+                </div>
+                <div className="min-w-0"><div className="truncate text-base font-black uppercase tracking-wide">{store?.name || 'Sua Loja'}</div><div className="text-[9px] font-semibold uppercase tracking-[.28em] text-slate-400">Veículos</div></div>
+              </>
+            )}
           </a>
           <nav className="hidden items-center gap-7 text-xs font-semibold lg:flex">
             <a href="#inicio" className="flex items-center gap-2 border-b-2 border-transparent py-5 text-slate-200 hover:text-white"><Car size={17}/> Início</a>
@@ -142,21 +153,49 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
       </header>
 
       <main id="inicio">
-        <section className="relative isolate min-h-[300px] overflow-hidden bg-[#061a2d] text-white sm:min-h-[330px] lg:min-h-[300px]">
-          {(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl) && <img src={getPhotoUrl(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl)} alt="Imagem principal da loja" className="absolute inset-0 h-full w-full object-cover object-center"/>}
-          <div className="absolute inset-0 bg-gradient-to-r from-[#020d19]/95 via-[#020d19]/75 to-[#020d19]/10"/>
-          <div className="relative mx-auto flex min-h-[300px] max-w-[1600px] items-center px-5 py-9 sm:min-h-[330px] sm:px-8 lg:min-h-[300px]">
-            <div className="max-w-2xl">
-              <p className="mb-2 text-xs font-bold uppercase tracking-[.18em] text-white sm:text-sm">{store?.welcomeText?.trim() || `Bem-vindo à ${store?.name || 'sua loja'}`}</p>
-              <h1 className="max-w-2xl text-3xl font-black leading-[1.08] tracking-tight sm:text-4xl lg:text-[42px]">{store?.heroTitle?.trim() || 'Seu próximo carro pode estar aqui.'}</h1>
-              <p className="mt-3 max-w-xl text-xs leading-5 text-slate-200 sm:text-sm">Encontre o veículo ideal com praticidade, transparência e atendimento especializado.</p>
-              <div className="mt-7 flex flex-wrap gap-4 text-[10px] font-semibold sm:gap-6 sm:text-xs">
-                <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400 text-amber-300"><ShieldCheck size={17}/></span><span>Veículos<br/><b className="text-slate-300">selecionados</b></span></div>
-                <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400 text-amber-300"><CheckCircle2 size={17}/></span><span>Atendimento<br/><b className="text-slate-300">especializado</b></span></div>
-                <div className="flex items-center gap-2"><span className="flex h-8 w-8 items-center justify-center rounded-lg border border-amber-400 text-amber-300"><MessageCircle size={17}/></span><span>Contato<br/><b className="text-slate-300">direto</b></span></div>
+        <section className="relative isolate min-h-[390px] overflow-hidden bg-[#04101f] text-white sm:min-h-[440px] lg:min-h-[510px]">
+          {(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl) && (
+            <img
+              src={getPhotoUrl(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl)}
+              alt="Veículo em destaque no catálogo"
+              className="absolute inset-0 h-full w-full object-cover object-[62%_center] sm:object-center"
+            />
+          )}
+          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,10,21,.98)_0%,rgba(2,10,21,.91)_34%,rgba(2,10,21,.60)_62%,rgba(2,10,21,.22)_100%)]" />
+          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_78%_45%,rgba(20,110,190,.18),transparent_48%)]" />
+          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
+          <div className="relative mx-auto flex min-h-[390px] max-w-[1600px] items-center px-5 py-12 sm:min-h-[440px] sm:px-8 lg:min-h-[510px] lg:px-12">
+            <div className="max-w-3xl">
+              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-slate-950/45 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[.22em] text-amber-200 shadow-lg backdrop-blur-sm sm:text-xs">
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,.9)]" />
+                {store?.welcomeText?.trim() || `Bem-vindo à ${store?.name || 'sua loja'}`}
+              </div>
+              <h1 className="max-w-3xl text-[2.35rem] font-black leading-[1.02] tracking-[-.045em] text-white drop-shadow-2xl sm:text-5xl lg:text-[4.25rem]">
+                {store?.heroTitle?.trim() || <>Encontre seu próximo <span className="text-amber-300">grande carro.</span></>}
+              </h1>
+              <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
+                Encontre o veículo ideal com praticidade, transparência e atendimento especializado.
+              </p>
+              <div className="mt-8 flex flex-wrap gap-3 text-[11px] font-semibold sm:gap-4 sm:text-xs">
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2.5 backdrop-blur-sm">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/45 bg-amber-300/10 text-amber-200"><ShieldCheck size={18}/></span>
+                  <span className="leading-4 text-white">Veículos<br/><b className="text-slate-300">selecionados</b></span>
+                </div>
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2.5 backdrop-blur-sm">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/45 bg-amber-300/10 text-amber-200"><CheckCircle2 size={18}/></span>
+                  <span className="leading-4 text-white">Atendimento<br/><b className="text-slate-300">especializado</b></span>
+                </div>
+                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2.5 backdrop-blur-sm">
+                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/45 bg-amber-300/10 text-amber-200"><MessageCircle size={18}/></span>
+                  <span className="leading-4 text-white">Contato<br/><b className="text-slate-300">direto</b></span>
+                </div>
               </div>
             </div>
-            <div className="absolute bottom-5 right-6 hidden items-center gap-3 rounded-xl border border-white/10 bg-[#06182b]/90 px-5 py-3 shadow-xl xl:flex"><Car className="text-amber-400" size={27}/><span className="text-xs font-semibold">{vehicles.length} veículos<br/><span className="text-slate-400">no estoque</span></span><ArrowRight className="text-amber-400" size={18}/></div>
+            <div className="absolute bottom-5 right-5 hidden min-w-[220px] items-center gap-4 rounded-2xl border border-white/15 bg-[#06182b]/75 px-5 py-4 shadow-2xl backdrop-blur-md xl:flex">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-300/30 bg-amber-300/10 text-amber-200"><Car size={25}/></div>
+              <div><strong className="block text-2xl font-black leading-none text-white">{vehicles.length}</strong><span className="mt-1 block text-[10px] font-semibold uppercase tracking-[.16em] text-slate-300">veículos no estoque</span></div>
+              <ArrowRight className="ml-2 text-amber-300" size={20}/>
+            </div>
           </div>
         </section>
 
