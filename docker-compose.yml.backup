@@ -1,0 +1,99 @@
+
+# ============================================================
+# NOVA MARCHA - DOCKER COMPOSE
+# Site: https://novamarcha.ademartognasca.com.br
+# API: https://api-novamarcha.ademartognasca.com.br
+#
+# IMPORTANTE:
+# Manter identificadores internos existentes para preservar
+# banco, volumes, arquivos, usuarios e autenticacao.
+# ============================================================
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: autonexus-db
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_DB: autonexus
+      POSTGRES_USER: autonexus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Defina POSTGRES_PASSWORD no arquivo .env}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U autonexus -d autonexus"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: autonexus-api
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      Security__TrustedProxyIps: ${TRUSTED_PROXY_IPS:-}
+      ASPNETCORE_URLS: http://+:5000
+
+      ConnectionStrings__DefaultConnection: "Host=postgres;Port=5432;Database=autonexus;Username=autonexus;Password=${POSTGRES_PASSWORD}"
+
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Defina JWT_SECRET_KEY no arquivo .env}
+      Security__CredentialEncryptionKey: ${CREDENTIAL_ENCRYPTION_KEY:?Defina CREDENTIAL_ENCRYPTION_KEY no arquivo .env}
+      Jwt__Issuer: AutoNexusApi
+      Jwt__Audience: AutoNexusApp
+      Jwt__ExpirationInHours: "8"
+
+      MERCADOPAGO_ACCESS_TOKEN: ${MERCADOPAGO_ACCESS_TOKEN:-}
+      MERCADOPAGO_WEBHOOK_SECRET: ${MERCADOPAGO_WEBHOOK_SECRET:-}
+
+      RESEND_API_KEY: ${RESEND_API_KEY:-}
+      RESEND_FROM_EMAIL: ${RESEND_FROM_EMAIL:-}
+      RESEND_FROM_NAME: ${RESEND_FROM_NAME:-Nova Marcha}
+
+      APPLICATION_URL: ${APPLICATION_URL:-https://novamarcha.ademartognasca.com.br}
+
+      BV_OPEN_ACCESS_TOKEN: ${BV_OPEN_ACCESS_TOKEN:-}
+      BV_OPEN_COMMERCIAL_PARTNER_CODE: ${BV_OPEN_COMMERCIAL_PARTNER_CODE:-}
+      BV_OPEN_FINANCING_CONDITIONS_ENDPOINT: ${BV_OPEN_FINANCING_CONDITIONS_ENDPOINT:-}
+
+      AUTONEXUS_ENABLE_EXTERNAL_CREDIT_SUBMISSION: ${AUTONEXUS_ENABLE_EXTERNAL_CREDIT_SUBMISSION:-false}
+      AUTONEXUS_INITIAL_ADMIN_EMAIL: ${AUTONEXUS_INITIAL_ADMIN_EMAIL:-}
+      AUTONEXUS_INITIAL_ADMIN_PASSWORD: ${AUTONEXUS_INITIAL_ADMIN_PASSWORD:-}
+      AUTONEXUS_SUPERADMIN_EMAIL: ${AUTONEXUS_SUPERADMIN_EMAIL:-}
+      AUTONEXUS_SUPERADMIN_PASSWORD: ${AUTONEXUS_SUPERADMIN_PASSWORD:-}
+
+    ports:
+      - "127.0.0.1:5000:5000"
+    volumes:
+      - autonexus_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: ./src/autonexus-web
+      dockerfile: Dockerfile
+      args:
+        VITE_DEMO_VIDEO_URL: ${VITE_DEMO_VIDEO_URL:-}
+        VITE_PUBLIC_WHATSAPP_NUMBER: ${VITE_PUBLIC_WHATSAPP_NUMBER:-}
+    container_name: autonexus-frontend
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    ports:
+      - "127.0.0.1:3000:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  autonexus_uploads:

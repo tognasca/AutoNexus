@@ -1,0 +1,16 @@
+﻿{
+    "CreatedAtUtc":  "2026-11-06T14:27:02.8597807Z",
+    "ApiImageId":  "sha256:7303aa8d35433c5c3454777d28f4b2ec8dca411ba6dc7cfcb20ad8bb7d2b7de8",
+    "FrontendImageId":  "sha256:a49d301b91c4c2604c4c4c0f58666f6b985cac1e2e43c67e5ef23e9144372698",
+    "PostgresImageId":  "sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+    "ApiRollbackTag":  "autonexus-api:rollback-20261106-112701",
+    "FrontendRollbackTag":  "autonexus-frontend:rollback-20261106-112701",
+    "PostgresRollbackTag":  "autonexus-postgres:rollback-20261106-112701",
+    "PostgresDigest":  {
+                           "value":  [
+                                         "autonexus-postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685",
+                                         "postgres@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685"
+                                     ],
+                           "Count":  2
+                       }
+}

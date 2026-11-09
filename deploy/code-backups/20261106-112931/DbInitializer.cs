@@ -1,0 +1,173 @@
+using AutoNexus.Domain.Entities;
+using AutoNexus.Domain.Enums;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+
+namespace AutoNexus.Infrastructure.Data.Seeds;
+
+public static class DbInitializer
+{
+    public static async Task SeedAsync(AutoNexusDbContext context, IConfiguration configuration, bool isDevelopment)
+    {
+        if (isDevelopment)
+        {
+            await context.Database.MigrateAsync();
+        }
+
+
+        if (!await context.VehicleBrands.AnyAsync())
+        {
+            var brandData = new Dictionary<string, string[]>
+            {
+                ["Chevrolet"] = new[] { "Onix", "Tracker", "S10", "Cruze", "Spin", "Montana", "Equinox", "Celta", "Corsa", "Astra", "Vectra", "Prisma", "Cobalt", "Trailblazer" },
+                ["Fiat"] = new[] { "Strada", "Toro", "Mobi", "Argo", "Cronos", "Pulse", "Fastback", "Uno", "Palio", "Siena", "Fiorino", "Ducato", "Idea", "Punto", "Doblò" },
+                ["Volkswagen"] = new[] { "Gol", "Polo", "Nivus", "T-Cross", "Taos", "Amarok", "Saveiro", "Virtus", "Fox", "Voyage", "Jetta", "Golf", "Tiguan", "Up!" },
+                ["Toyota"] = new[] { "Corolla", "Corolla Cross", "Hilux", "SW4", "Yaris", "Etios", "RAV4", "Camry" },
+                ["Hyundai"] = new[] { "HB20", "HB20S", "Creta", "Tucson", "Santa Fe", "IX35", "Azera", "HR" },
+                ["Ford"] = new[] { "Ka", "EcoSport", "Ranger", "Fiesta", "Focus", "Fusion", "Territory", "Maverick", "Bronco", "Mustang" },
+                ["Honda"] = new[] { "Civic", "Fit", "HR-V", "City", "WR-V", "CR-V", "ZR-V" },
+                ["Jeep"] = new[] { "Renegade", "Compass", "Commander", "Grand Cherokee", "Wrangler" },
+                ["Renault"] = new[] { "Kwid", "Sandero", "Duster", "Logan", "Captur", "Oroch", "Master", "Kardian", "Clio" },
+                ["Nissan"] = new[] { "Kicks", "Versa", "March", "Frontier", "Sentra" },
+                ["BYD"] = new[] { "Dolphin", "Dolphin Mini", "Song Plus", "Yuan Plus", "Seal", "King", "Tan", "Han" },
+                ["GWM"] = new[] { "Haval H6", "Ora 03", "Tank 300" },
+                ["BMW"] = new[] { "Série 3 (320i)", "Série 1", "X1", "X3", "X5", "X6", "M3", "M5" },
+                ["Mercedes-Benz"] = new[] { "Classe A", "Classe C", "Classe E", "GLA", "GLC", "Sprinter" },
+                ["Audi"] = new[] { "A3", "A4", "A5", "Q3", "Q5", "e-tron" },
+                ["Peugeot"] = new[] { "208", "2008", "3008", "Partner", "Expert" },
+                ["Citroën"] = new[] { "C3", "C4 Cactus", "Aircross", "Jumpy" },
+                ["Caoa Chery"] = new[] { "Tiggo 2", "Tiggo 3x", "Tiggo 5x", "Tiggo 7", "Tiggo 8", "iCar", "Arrizo 6" },
+                ["Mitsubishi"] = new[] { "L200 Triton", "ASX", "Eclipse Cross", "Pajero Full", "Outlander" },
+                ["RAM"] = new[] { "Rampage", "1500", "2500", "3500" },
+                ["Volvo"] = new[] { "XC40", "XC60", "XC90", "C40", "EX30" },
+                ["Porsche"] = new[] { "911", "Macan", "Cayenne", "Panamera", "Taycan" }
+            };
+
+            int order = 1;
+            foreach (var (brandName, models) in brandData)
+            {
+                var brand = new VehicleBrand(brandName, order++);
+                context.VehicleBrands.Add(brand);
+
+                foreach (var modelName in models)
+                {
+                    var model = new VehicleModel(brand.Id, modelName);
+                    context.VehicleModels.Add(model);
+                }
+            }
+
+            await context.SaveChangesAsync();
+        }
+
+
+        // 1. Tipos de Veículos Iniciais (Seção 5)
+        if (!await context.VehicleTypes.AnyAsync())
+        {
+            var vehicleTypes = new List<VehicleType>
+            {
+                new("Carro", "Automóveis de passeio"),
+                new("Moto", "Motocicletas e ciclomotores"),
+                new("Caminhão", "Veículos pesados e de carga"),
+                new("Jetski", "Motos aquáticas"),
+                new("Outros", "Demais categorias de veículos")
+            };
+            await context.VehicleTypes.AddRangeAsync(vehicleTypes);
+        }
+
+        // 2. Categorias de Custos Iniciais (Seção 8)
+        if (!await context.CostCategories.AnyAsync())
+        {
+            var costCategories = new List<CostCategory>
+            {
+                new("Compra", "Valor de aquisição inicial"),
+                new("Manutenção", "Revisão e manutenção preventiva"),
+                new("Reparo", "Consertos mecânicos e elétricos"),
+                new("Peças", "Substituição de componentes"),
+                new("Pintura", "Serviços de pintura"),
+                new("Funilaria", "Lanternagem e martelinho de ouro"),
+                new("Documentação", "Emplacamento, IPVA, taxas e transferência"),
+                new("Taxas", "Taxas operacionais e administrativas"),
+                new("Transporte", "Frete e guincho"),
+                new("Outro", "Outros custos operacionais")
+            };
+            // Fora de uma requisição HTTP não há tenant autenticado, então o
+            // AutoNexusDbContext não preenche TenantId sozinho (ver StampTenantId) —
+            // atribuímos explicitamente ao tenant padrão. O setter é internal e
+            // só acessível dentro de AutoNexus.Infrastructure (mesmo assembly).
+            costCategories.ForEach(c => c.TenantId = Tenant.DefaultTenantId);
+            await context.CostCategories.AddRangeAsync(costCategories);
+        }
+
+        // 3. Categorias de Documentos Iniciais (Seção 7)
+        if (!await context.DocumentCategories.AnyAsync())
+        {
+            var docCategories = new List<DocumentCategory>
+            {
+                new("Laudo", "Laudo cautelar e pericial"),
+                new("Documento do Veículo", "CRLV e documentação oficial"),
+                new("Transferência", "Comprovante de transferência/ATPV-e"),
+                new("Documento de Leilão", "Termos e notas de leilão"),
+                new("Recibos", "Recibos de pagamento"),
+                new("Comprovantes", "Comprovantes diversos"),
+                new("Outros", "Demais documentos anexos")
+            };
+            docCategories.ForEach(d => d.TenantId = Tenant.DefaultTenantId);
+            await context.DocumentCategories.AddRangeAsync(docCategories);
+        }
+
+        // 4. Contas iniciais. Credenciais padrão existem somente no ambiente Development.
+        // Em produção, as contas de bootstrap só são criadas quando e-mail e senha
+        // fortes são fornecidos por configuração/secret manager.
+        var adminEmail = configuration["Seed:AdminEmail"];
+        var adminPassword = configuration["Seed:AdminPassword"];
+        if (isDevelopment)
+        {
+            adminEmail = string.IsNullOrWhiteSpace(adminEmail) ? "admin@autonexus.com" : adminEmail;
+            adminPassword = string.IsNullOrWhiteSpace(adminPassword) ? "Admin@123456" : adminPassword;
+        }
+
+        if (!string.IsNullOrWhiteSpace(adminEmail) && !string.IsNullOrWhiteSpace(adminPassword)
+            && !await context.Users.AnyAsync(u => u.Email == adminEmail))
+        {
+            var adminPasswordHash = BCrypt.Net.BCrypt.HashPassword(adminPassword, workFactor: 12);
+            var adminUser = new User("Administrador", adminEmail, adminPasswordHash, UserProfile.Admin);
+            adminUser.TenantId = Tenant.DefaultTenantId;
+            await context.Users.AddAsync(adminUser);
+        }
+
+        // 5. SuperAdmin não pertence a nenhum tenant. Nunca criar credenciais
+        // conhecidas em produção: usar Seed__SuperAdminEmail/Password como secrets.
+        var superAdminEmail = configuration["Seed:SuperAdminEmail"];
+        var superAdminPassword = configuration["Seed:SuperAdminPassword"];
+        if (isDevelopment)
+        {
+            superAdminEmail = string.IsNullOrWhiteSpace(superAdminEmail) ? "superadmin@autonexus.com" : superAdminEmail;
+            superAdminPassword = string.IsNullOrWhiteSpace(superAdminPassword) ? "SuperAdmin@123456" : superAdminPassword;
+        }
+
+        if (!string.IsNullOrWhiteSpace(superAdminEmail) && !string.IsNullOrWhiteSpace(superAdminPassword)
+            && !await context.Users.AnyAsync(u => u.Email == superAdminEmail))
+        {
+            var superAdminPasswordHash = BCrypt.Net.BCrypt.HashPassword(superAdminPassword, workFactor: 12);
+            var superAdminUser = new User("Super Admin", superAdminEmail, superAdminPasswordHash, UserProfile.SuperAdmin);
+            await context.Users.AddAsync(superAdminUser);
+        }
+
+
+        if (!await context.Set<BankConfig>().AnyAsync())
+        {
+            var defaultBanks = new List<BankConfig>
+    {
+        new("santander", "Santander Financiamentos", 1.49m, "https://api.santander.com.br/sandbox", "SANDBOX_KEY_SANTANDER", "SANDBOX_SECRET", "STORE_123", true),
+        new("itau", "Itaú Veículos", 1.55m, "https://api.itau.com.br/sandbox", "SANDBOX_KEY_ITAU", "SANDBOX_SECRET", "STORE_123", true),
+        new("bv", "Banco BV", 1.79m, "https://api.bv.com.br/sandbox", "SANDBOX_KEY_BV", "SANDBOX_SECRET", "STORE_123", true),
+        new("bradesco", "Bradesco Financiamentos", 1.62m, "https://api.bradesco.com.br/sandbox", "SANDBOX_KEY_BRADESCO", "SANDBOX_SECRET", "STORE_123", true)
+    };
+            defaultBanks.ForEach(b => b.TenantId = Tenant.DefaultTenantId);
+
+            await context.Set<BankConfig>().AddRangeAsync(defaultBanks);
+            await context.SaveChangesAsync();
+        }
+        await context.SaveChangesAsync();
+    }
+}

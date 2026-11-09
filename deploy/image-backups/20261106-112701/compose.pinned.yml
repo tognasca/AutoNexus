@@ -1,0 +1,9 @@
+services:
+  postgres:
+    image: "autonexus-postgres:rollback-20261106-112701"
+
+  api:
+    image: "autonexus-api:rollback-20261106-112701"
+
+  frontend:
+    image: "autonexus-frontend:rollback-20261106-112701"
