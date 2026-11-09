@@ -55,7 +55,7 @@ export function PricingPage() {
     }
 
     return {
-      label: 'Plano Nova Marcha',
+      label: 'Plano AT MOTORS',
       description: 'Uma solução profissional para organizar a operação e acompanhar o negócio em um só lugar.',
       icon: Car,
       accent: 'border-slate-700',
@@ -86,7 +86,7 @@ export function PricingPage() {
   return (
     <div className="min-h-screen bg-nexus-dark text-slate-100">
       <header className="relative z-20 mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
-        <a href="/" aria-label="Nova Marcha - início" className="flex shrink-0 items-center">
+        <a href="/" aria-label="AT MOTORS - início" className="flex shrink-0 items-center">
           <span className="text-xl sm:text-2xl font-black tracking-tight text-white">Nova <span className="text-blue-400">Marcha</span></span>
         </a>
         <nav aria-label="Navegação principal" className="flex items-center gap-3 sm:gap-6 text-sm">
@@ -126,7 +126,7 @@ export function PricingPage() {
             </div>
             <div className="absolute bottom-0 right-0 w-[96%] max-w-[540px] -rotate-1 overflow-hidden rounded-2xl border border-cyan-300/30 bg-[#061529]/95 shadow-[0_30px_70px_rgba(0,0,0,0.6)] backdrop-blur-xl sm:w-[86%]">
               <div className="flex items-center justify-between gap-3 border-b border-white/10 px-4 py-3 sm:px-5">
-                <div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-black text-white">NM</span><div><p className="text-xs font-bold text-white">Nova Marcha</p><p className="text-[10px] text-slate-400">Visão geral da loja</p></div></div>
+                <div className="flex items-center gap-3"><span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 text-xs font-black text-white">NM</span><div><p className="text-xs font-bold text-white">AT MOTORS</p><p className="text-[10px] text-slate-400">Visão geral da loja</p></div></div>
                 <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-2 py-1 text-[9px] text-cyan-300">Demonstração visual</span>
               </div>
               <div className="grid grid-cols-3 gap-2 p-3 sm:gap-3 sm:p-5">
@@ -151,7 +151,7 @@ export function PricingPage() {
       <section id="como-funciona" className="max-w-6xl mx-auto px-4 pt-14 pb-14 sm:pt-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-3xl border border-nexus-border bg-nexus-card p-6 sm:p-8 shadow-xl shadow-black/10">
           <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o Nova Marcha</p>
+            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o AT MOTORS</p>
             <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Sua loja organizada em um só lugar</h2>
             <p className="mt-4 text-sm leading-6 text-slate-400">Veja como centralizar estoque, compras, vendas, trocas, documentos e resultados financeiros em uma plataforma feita para lojas de veículos.</p>
             <a href="#planos" className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors">Ver planos e começar <ArrowRight className="h-4 w-4" /></a>
@@ -196,7 +196,7 @@ export function PricingPage() {
         <div className="text-center">
           <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Planos e preços</p>
           <h2 className="mt-2 text-2xl sm:text-3xl font-black text-white">Escolha como sua loja quer crescer</h2>
-          <p className="mt-3 text-sm text-slate-400">Todos os valores são carregados do painel do Nova Marcha. Sem preço escondido.</p>
+          <p className="mt-3 text-sm text-slate-400">Todos os valores são carregados do painel do AT MOTORS. Sem preço escondido.</p>
         </div>
 
         <div className="flex justify-center mt-6">
