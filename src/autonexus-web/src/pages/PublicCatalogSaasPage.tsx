@@ -73,7 +73,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
         : new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }, [vehicles, search, brand, model, year, price, sort]);
 
-  const isAtMotors = /at\\s?motors/i.test(store?.name || '') || /at\\s?motors/i.test(store?.slug || '') || storeSlug.toLowerCase().includes('atmotors');
+  const isAtMotors = /at[\\s-]*motors/i.test(store?.name || '') || /at[\\s-]*motors/i.test(store?.slug || '') || storeSlug.toLowerCase().includes('atmotors') || window.location.hostname.toLowerCase().includes('atmotors');
   const accent = store?.primaryColor || '#0878ed';
   const whatsapp = (store?.whatsappNumber || '').replace(/\D/g, '');
   const initials = (store?.name || 'LO').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
