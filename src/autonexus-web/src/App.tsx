@@ -9,14 +9,74 @@ function AtMotorsLoadingScreen(){
   return (
     <main
       className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#06111f] px-5 py-10 text-slate-100"
+      style={{ position: 'relative', isolation: 'isolate', minHeight: '100vh', backgroundColor: '#06111f' }}
       aria-busy="true"
       aria-label="Carregando AT MOTORS"
     >
-      <img src={atMotorsHero} alt="" aria-hidden="true" className="absolute inset-0 h-full w-full object-cover object-center" />
-      <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,10,20,0.88)_0%,rgba(3,10,20,0.68)_48%,rgba(3,10,20,0.38)_100%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(0deg,rgba(3,10,20,0.58)_0%,transparent_55%,rgba(3,10,20,0.22)_100%)]" />
-      <section className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center rounded-3xl border border-white/10 bg-[#06111f]/55 px-6 py-9 text-center shadow-2xl shadow-black/30 backdrop-blur-sm sm:px-12 sm:py-12">
-        <img src={atMotorsLogo} alt="AT MOTORS" className="mb-8 block h-auto max-h-28 w-auto max-w-full object-contain object-center sm:max-h-36" />
+      <img
+        src={atMotorsHero}
+        alt=""
+        aria-hidden="true"
+        loading="eager"
+        fetchPriority="high"
+        decoding="async"
+        className="absolute inset-0 h-full w-full object-cover object-center"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 0,
+          display: 'block',
+          visibility: 'visible',
+          opacity: 1,
+          width: '100%',
+          height: '100%',
+          minWidth: '100%',
+          minHeight: '100%',
+          objectFit: 'cover',
+          objectPosition: 'center'
+        }}
+      />
+      <div
+        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,10,20,0.88)_0%,rgba(3,10,20,0.68)_48%,rgba(3,10,20,0.38)_100%)]"
+        style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
+      />
+      <div
+        className="absolute inset-0 bg-[linear-gradient(0deg,rgba(3,10,20,0.58)_0%,transparent_55%,rgba(3,10,20,0.22)_100%)]"
+        style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
+      />
+      <section
+        className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center rounded-3xl border border-white/10 bg-[#06111f]/55 px-6 py-9 text-center shadow-2xl shadow-black/30 backdrop-blur-sm sm:px-12 sm:py-12"
+        style={{
+          position: 'relative',
+          zIndex: 2,
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          width: '100%',
+          maxWidth: '42rem',
+          backgroundColor: 'rgba(6,17,31,0.72)'
+        }}
+      >
+        <img
+          src={atMotorsLogo}
+          alt="AT MOTORS"
+          loading="eager"
+          fetchPriority="high"
+          decoding="async"
+          className="mb-8 block h-auto max-h-28 w-auto max-w-full object-contain object-center sm:max-h-36"
+          style={{
+            display: 'block',
+            visibility: 'visible',
+            opacity: 1,
+            width: 'auto',
+            height: 'auto',
+            maxWidth: '100%',
+            maxHeight: '144px',
+            objectFit: 'contain',
+            objectPosition: 'center',
+            flexShrink: 0
+          }}
+        />
         <div className="mb-5 flex items-center justify-center gap-3 text-sm font-semibold tracking-wide text-slate-200">
           <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
           <span>Preparando seu ambiente...</span>
