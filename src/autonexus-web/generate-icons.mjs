@@ -5,55 +5,15 @@ import path from 'path';
 // Garante que a pasta public/icons existe
 fs.mkdirSync('public/icons', { recursive: true });
 
-// 1. Criação do SVG Base do Nova Marcha
-const logoSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="100%" height="100%">
-  <defs>
-    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#0A0E1A" />
-      <stop offset="50%" stop-color="#11192E" />
-      <stop offset="100%" stop-color="#060911" />
-    </linearGradient>
-    <linearGradient id="brandGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#00F0FF" />
-      <stop offset="50%" stop-color="#3B82F6" />
-      <stop offset="100%" stop-color="#8B5CF6" />
-    </linearGradient>
-    <linearGradient id="accentGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-      <stop offset="0%" stop-color="#00F0FF" stop-opacity="0.8" />
-      <stop offset="100%" stop-color="#FFFFFF" stop-opacity="0.9" />
-    </linearGradient>
-    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur stdDeviation="12" result="blur" />
-      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-    </filter>
-  </defs>
-
-  <!-- Fundo com cantos arredondados -->
-  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
-  <rect width="504" height="504" x="4" y="4" rx="108" fill="none" stroke="url(#brandGrad)" stroke-width="3" stroke-opacity="0.3" />
-
-  <!-- Logo Nova Marcha (Monograma Aerodinâmico A + N + Velocidade/Conexão) -->
-  <g filter="url(#glow)" transform="translate(0, 0)">
-    <!-- Asa / Aerofólio Superior -->
-    <path d="M 120 320 L 256 120 L 392 320 L 328 320 L 256 210 L 184 320 Z" fill="url(#brandGrad)" />
-    <!-- Vértice Central / Nexus Core -->
-    <polygon points="256,238 296,300 216,300" fill="url(#accentGrad)" />
-    <!-- Linhas de Velocidade / Conexão Inferiores -->
-    <path d="M 148 350 L 364 350 L 344 374 L 168 374 Z" fill="url(#brandGrad)" opacity="0.9" />
-    <path d="M 190 392 L 322 392 L 308 408 L 204 408 Z" fill="url(#brandGrad)" opacity="0.6" />
-  </g>
-</svg>`;
-
-// 2. Salva o masked-icon.svg (Monocromático/vetorial para Safari)
+// Os ícones quadrados usam a identidade AT MOTORS (monograma em escudo).
+const appIconSvg = fs.readFileSync('public/atmotors-app-icon.svg');
 const maskedIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <path d="M 120 320 L 256 120 L 392 320 L 328 320 L 256 210 L 184 320 Z" fill="#000000" />
-  <polygon points="256,238 296,300 216,300" fill="#000000" />
-  <path d="M 148 350 L 364 350 L 344 374 L 168 374 Z" fill="#000000" />
-  <path d="M 190 392 L 322 392 L 308 408 L 204 408 Z" fill="#000000" />
+  <path d="M256 34 438 82V238Q438 369 256 466Q74 369 74 238V82Z" fill="#000000"/>
+  <path d="M155 324 249 151H291L385 324H325L270 218 215 324Z" fill="#ffffff"/>
+  <path d="M218 333H353L328 375H194Z" fill="#ffffff"/>
 </svg>`;
-
 fs.writeFileSync('public/masked-icon.svg', maskedIconSvg);
-console.log('✅ public/masked-icon.svg criado');
+console.log('AT MOTORS masked icon criado');
 
 // 3. Renderiza os PNGs e Favicon usando Sharp
 async function buildPngs() {
@@ -66,7 +26,7 @@ async function buildPngs() {
     return;
   }
 
-  const svgBuffer = fs.readFileSync('public/atmotors-logo.svg');
+  const svgBuffer = appIconSvg;
 
   // 192x192
   await sharp(svgBuffer)
