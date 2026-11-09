@@ -7,11 +7,11 @@ fs.mkdirSync('public/icons', { recursive: true });
 
 // Os ícones quadrados usam a identidade AT MOTORS (monograma em escudo).
 const appIconSvg = fs.readFileSync('public/atmotors-app-icon.svg');
-const maskedIconSvg = appIconSvg.toString('utf8')
-  .replace(/<svg[^>]*>/, '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">')
-  .replace(/<defs>[\\s\\S]*?<\\/defs>/, '')
-  .replace(/url\\(#(?:bg|blue|silver)\\)/g, '#000000')
-  .replace(/<rect[^>]*fill="url\\(#bg\\)"[^>]*\\/>/, '<rect width="512" height="512" fill="#000000"/>');
+const maskedIconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <path d="M256 34 438 82V238Q438 369 256 466Q74 369 74 238V82Z" fill="#000000"/>
+  <path d="M155 324 249 151H291L385 324H325L270 218 215 324Z" fill="#ffffff"/>
+  <path d="M218 333H353L328 375H194Z" fill="#ffffff"/>
+</svg>`;
 fs.writeFileSync('public/masked-icon.svg', maskedIconSvg);
 console.log('AT MOTORS masked icon criado');
 
