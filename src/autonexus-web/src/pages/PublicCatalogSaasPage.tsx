@@ -73,7 +73,8 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
         : new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime());
   }, [vehicles, search, brand, model, year, price, sort]);
 
-  const isAtMotors = /at\\s?motors/i.test(store?.name || '') || /at\\s?motors/i.test(store?.slug || '') || storeSlug.toLowerCase().includes('atmotors');
+  const isAtMotors = [store?.name, store?.slug, storeSlug, window.location.hostname]
+    .some(value => String(value || '').toLowerCase().replace(/[^a-z0-9]/g, '').includes('atmotors'));
   const accent = store?.primaryColor || '#0878ed';
   const whatsapp = (store?.whatsappNumber || '').replace(/\D/g, '');
   const initials = (store?.name || 'LO').trim().split(/\s+/).slice(0, 2).map(x => x[0]).join('').toUpperCase();
@@ -130,7 +131,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
               <img
                 src={atMotorsLogo}
                 alt="AT MOTORS"
-                className="h-11 w-[142px] shrink-0 object-contain sm:h-12 sm:w-[164px]"
+                className="h-auto max-h-14 w-auto max-w-[220px] shrink-0 object-contain object-center sm:max-h-16 sm:max-w-[250px]"
               />
             ) : (
               <>
@@ -160,7 +161,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
             <img
               src={isAtMotors ? atMotorsHero : getPhotoUrl(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl)}
               alt="Veículo em destaque no catálogo"
-              className="absolute inset-0 h-full w-full object-cover object-[68%_center] sm:object-center lg:object-[72%_center]"
+              className="absolute inset-0 h-full w-full object-cover object-center"
             />
           )}
           <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,10,21,.96)_0%,rgba(2,10,21,.84)_27%,rgba(2,10,21,.38)_54%,rgba(2,10,21,.04)_100%)]" />
