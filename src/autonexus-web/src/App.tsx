@@ -8,8 +8,8 @@ import { OnboardingPage } from './pages/OnboardingPage'; import { CommercialHubP
 function AtMotorsLoadingScreen(){
   return (
     <main
-      className="relative flex min-h-screen items-center justify-center overflow-hidden bg-[#06111f] px-5 py-10 text-slate-100"
-      style={{ position: 'relative', isolation: 'isolate', minHeight: '100vh', backgroundColor: '#06111f' }}
+      className="relative flex min-h-screen w-full flex-col items-center justify-between overflow-hidden bg-[#06111f] px-5 py-10 text-slate-100"
+      style={{ minHeight: '100vh', isolation: 'isolate', backgroundColor: '#06111f' }}
       aria-busy="true"
       aria-label="Carregando AT MOTORS"
     >
@@ -20,42 +20,30 @@ function AtMotorsLoadingScreen(){
         loading="eager"
         fetchPriority="high"
         decoding="async"
-        className="absolute inset-0 h-full w-full object-cover object-center"
         style={{
           position: 'absolute',
           inset: 0,
           zIndex: 0,
           display: 'block',
-          visibility: 'visible',
-          opacity: 1,
           width: '100%',
           height: '100%',
-          minWidth: '100%',
-          minHeight: '100%',
           objectFit: 'cover',
           objectPosition: 'center'
         }}
       />
       <div
-        className="absolute inset-0 bg-[linear-gradient(90deg,rgba(3,10,20,0.88)_0%,rgba(3,10,20,0.68)_48%,rgba(3,10,20,0.38)_100%)]"
-        style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          inset: 0,
+          zIndex: 1,
+          pointerEvents: 'none',
+          background: 'linear-gradient(180deg, rgba(3,10,20,0.30) 0%, rgba(3,10,20,0.08) 48%, rgba(3,10,20,0.48) 100%)'
+        }}
       />
       <div
-        className="absolute inset-0 bg-[linear-gradient(0deg,rgba(3,10,20,0.58)_0%,transparent_55%,rgba(3,10,20,0.22)_100%)]"
-        style={{ position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' }}
-      />
-      <section
-        className="relative z-10 mx-auto flex w-full max-w-2xl flex-col items-center rounded-3xl border border-white/10 bg-[#06111f]/55 px-6 py-9 text-center shadow-2xl shadow-black/30 backdrop-blur-sm sm:px-12 sm:py-12"
-        style={{
-          position: 'relative',
-          zIndex: 2,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          width: '100%',
-          maxWidth: '42rem',
-          backgroundColor: 'rgba(6,17,31,0.72)'
-        }}
+        className="relative z-10 flex w-full justify-center"
+        style={{ position: 'relative', zIndex: 2, width: '100%' }}
       >
         <img
           src={atMotorsLogo}
@@ -63,32 +51,33 @@ function AtMotorsLoadingScreen(){
           loading="eager"
           fetchPriority="high"
           decoding="async"
-          className="mb-8 block h-auto max-h-28 w-auto max-w-full object-contain object-center sm:max-h-36"
           style={{
             display: 'block',
-            visibility: 'visible',
-            opacity: 1,
-            width: 'auto',
+            width: 'min(82vw, 360px)',
             height: 'auto',
-            maxWidth: '100%',
-            maxHeight: '144px',
+            maxHeight: '170px',
             objectFit: 'contain',
             objectPosition: 'center',
-            flexShrink: 0
+            filter: 'drop-shadow(0 3px 18px rgba(0,0,0,0.75))'
           }}
         />
-        <div className="mb-5 flex items-center justify-center gap-3 text-sm font-semibold tracking-wide text-slate-200">
+      </div>
+      <div
+        className="relative z-10 flex flex-col items-center text-center"
+        style={{ position: 'relative', zIndex: 2 }}
+      >
+        <div className="mb-5 flex items-center justify-center gap-3 text-sm font-semibold tracking-wide text-white drop-shadow-lg">
           <Loader2 className="h-5 w-5 animate-spin text-cyan-400" />
           <span>Preparando seu ambiente...</span>
         </div>
-        <div className="h-1.5 w-full max-w-sm overflow-hidden rounded-full bg-white/15">
+        <div className="h-1.5 w-64 max-w-[80vw] overflow-hidden rounded-full bg-white/25">
           <div className="h-full w-2/3 rounded-full bg-gradient-to-r from-blue-600 via-cyan-400 to-blue-500 animate-pulse" />
         </div>
-        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-slate-300">
+        <div className="mt-6 flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-xs text-white drop-shadow-lg">
           <span className="inline-flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-emerald-400" />Sessão segura</span>
           <span className="inline-flex items-center gap-2"><Sparkles className="h-4 w-4 text-cyan-400" />Carregando módulos</span>
         </div>
-      </section>
+      </div>
     </main>
   );
 }
