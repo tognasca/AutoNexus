@@ -2,15 +2,15 @@
 
 ## Vídeo demonstrativo
 
-A página de planos aceita um vídeo MP4 público pela variável de build `VITE_DEMO_VIDEO_URL`.
+A página de planos já exibe o vídeo local `src/public/FinalAtMotorVideo.mp4`. Opcionalmente, `VITE_DEMO_VIDEO_URL` pode sobrescrevê-lo com outro MP4 público.
 
 1. Grave a tela do AutoNexus com dados fictícios ou devidamente autorizados.
 2. Mostre, nesta ordem: cadastro/estoque de veículos e fotos; fluxo de compra, venda e troca; documentos; indicadores e relatórios; catálogo público de uma loja.
 3. Não mostre placas, chassi, Renavam, dados pessoais, credenciais, tokens, e-mails reais ou informações financeiras privadas.
 4. Exporte em MP4 (H.264/AAC) e hospede em um endereço HTTPS público que permita reprodução direta do arquivo.
-5. Configure `VITE_DEMO_VIDEO_URL` no ambiente de build do frontend e reconstrua/republique o frontend. A variável Vite é incorporada durante o build; alterar apenas o ambiente do container depois de compilado não muda o bundle.
+5. Se desejar substituir o vídeo local por outra gravação, configure `VITE_DEMO_VIDEO_URL` no ambiente de build e reconstrua/republique o frontend. A variável Vite é incorporada durante o build; alterar apenas o ambiente do container depois de compilado não muda o bundle.
 
-Sem a URL, a página apresenta um guia provisório de funcionalidades e informa explicitamente que ele não é uma gravação de tela.
+Com `VITE_DEMO_VIDEO_URL` vazio, a página usa o vídeo incluído no frontend.
 
 ## WhatsApp público
 

@@ -3,6 +3,7 @@ using AutoNexus.Infrastructure.Data;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Text.RegularExpressions;
 
 namespace AutoNexus.Api.Controllers;
 
@@ -57,24 +58,52 @@ public sealed class ProductionReadinessController : ControllerBase
             !string.IsNullOrWhiteSpace(_configuration["Resend:FromEmail"]), true,
             "Configure RESEND_API_KEY e RESEND_FROM_EMAIL."));
 
-        var legalReady = false;
+        var legalIssues = new List<string>();
         if (databaseOk)
         {
             var legalDocuments = await _db.Set<AutoNexus.Domain.Entities.LegalDocument>()
-                .AsNoTracking().Where(x => x.IsActive).ToListAsync(cancellationToken);
-            var legalTypes = new[] { LegalDocumentType.TermsOfUse, LegalDocumentType.PrivacyPolicy, LegalDocumentType.CookiePolicy };
-            legalReady = legalTypes.All(type => legalDocuments.Any(x => x.Type == type &&
-                !x.Content.Contains("[RASCUNHO ESTRUTURAL", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[CNPJ]", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[Razão social]", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[e-mail", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[a definir", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[data de publicação", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[nome/e-mail", StringComparison.OrdinalIgnoreCase) &&
-                !x.Content.Contains("[endereço", StringComparison.OrdinalIgnoreCase)));
+                .AsNoTracking().ToListAsync(cancellationToken);
+            var legalTypes = new[]
+            {
+                (Type: LegalDocumentType.TermsOfUse, Name: "Termos de Uso"),
+                (Type: LegalDocumentType.PrivacyPolicy, Name: "Política de Privacidade"),
+                (Type: LegalDocumentType.CookiePolicy, Name: "Política de Cookies")
+            };
+
+            foreach (var (type, name) in legalTypes)
+            {
+                var activeDocument = legalDocuments
+                    .Where(x => x.Type == type && x.IsActive)
+                    .OrderByDescending(x => x.Version)
+                    .FirstOrDefault();
+
+                if (activeDocument is null)
+                {
+                    legalIssues.Add($"{name}: não há versão publicada. Salvar como rascunho não libera o bloqueio; publique a versão final.");
+                    continue;
+                }
+
+                if (activeDocument.PublishedAt == DateTime.MinValue)
+                {
+                    legalIssues.Add($"{name}: a versão ativa não tem data de publicação válida; publique novamente uma versão final.");
+                    continue;
+                }
+
+                var placeholder = FindLegalPlaceholder(activeDocument.Content);
+                if (placeholder is not null)
+                    legalIssues.Add($"{name} v{activeDocument.Version}: ainda contém o marcador '{placeholder}'. Substitua-o e publique uma nova versão.");
+            }
         }
+        else
+        {
+            legalIssues.Add("Não foi possível verificar os documentos porque o banco de dados está inacessível.");
+        }
+
+        var legalReady = legalIssues.Count == 0;
         checks.Add(Check("Documentos legais finais publicados", legalReady, true,
-            "Termos, Privacidade e Cookies ainda contêm placeholders ou precisam de revisão jurídica."));
+            legalReady
+                ? "Os três documentos têm versões ativas sem marcadores de rascunho detectáveis. A revisão jurídica deve ser confirmada fora do sistema."
+                : string.Join(" ", legalIssues)));
 
         var bvConfigured = !string.IsNullOrWhiteSpace(_configuration["BvOpen:AccessToken"]) &&
             !string.IsNullOrWhiteSpace(_configuration["BvOpen:CommercialPartnerCode"]) &&
@@ -98,6 +127,19 @@ public sealed class ProductionReadinessController : ControllerBase
 
     private static ReadinessCheck Check(string name, bool ok, bool blocking, string guidance) =>
         new(name, ok, blocking, guidance);
+
+    private static string? FindLegalPlaceholder(string content)
+    {
+        var explicitDraftMarker = Regex.Match(content,
+            @"RASCUNHO ESTRUTURAL|PENDENTE DE REVISÃO JURÍDICA|NÃO USAR COMO",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        if (explicitDraftMarker.Success) return explicitDraftMarker.Value;
+
+        var bracketedPlaceholder = Regex.Match(content,
+            @"\[(?:CNPJ|RAZÃO SOCIAL|ENDEREÇO|CIDADE(?:/UF)?|E-?MAIL|NOME(?:/E-?MAIL)?|A DEFINIR|A SER DEFINIDO|DATA DE PUBLICAÇÃO|GATEWAY(?: DE PAGAMENTO)?|RASCUNHO|PENDENTE)[^\]]*\]",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        return bracketedPlaceholder.Success ? bracketedPlaceholder.Value : null;
+    }
 
     private sealed record ReadinessCheck(string Name, bool Ok, bool Blocking, string Guidance);
 }

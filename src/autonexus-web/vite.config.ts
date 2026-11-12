@@ -2,10 +2,19 @@
 import react from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
 
+const assetBuildVersion = Date.now().toString(36)
+
 export default defineConfig({
   plugins: [
     tailwindcss(),
-    react()
+    react(),
+    {
+      name: 'asset-build-cache-buster',
+      apply: 'build',
+      transformIndexHtml(html) {
+        return html.replace(/((?:src|href)="\/assets\/[^\"]+)"/g, `$1?v=${assetBuildVersion}"`)
+      }
+    }
   ],
   server: {
     port: 3000,

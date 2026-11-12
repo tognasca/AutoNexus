@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import atMotorsLogo from '../public/ATlogo.png';
 import { useAuth } from '../contexts/AuthContext';
 import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
 
@@ -31,7 +32,7 @@ export function LoginPage() {
 
       <div className="bg-nexus-card border border-nexus-border rounded-2xl w-full max-w-md p-8 relative shadow-2xl z-10">
         <div className="flex flex-col items-center mb-8 text-center">
-          <img src="/atmotors-logo.svg" alt="AT MOTORS — Tecnologia que movimenta negócios" className="mb-2 w-full max-w-[320px] object-contain" />
+          <img src={atMotorsLogo} alt="AT MOTORS — Tecnologia que movimenta negócios" className="mb-2 w-full max-w-[320px] object-contain" />
           <p className="text-xs text-slate-400 mt-1 uppercase tracking-widest font-semibold">Sistema de Gestão de Veículos</p>
         </div>
 

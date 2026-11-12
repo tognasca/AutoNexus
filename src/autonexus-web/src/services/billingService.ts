@@ -65,7 +65,7 @@ export const billingService = {
   cancel: (reason?: string) =>
     request<void>('/billing/cancel', { method: 'POST', body: JSON.stringify({ reason }) }),
 
-  publicPlans: () => request<Plan[]>('/signup/plans'),
+  publicPlans: () => request<Plan[]>('/signup/plans', { cache: 'no-store' }),
 
   signup: (data: SignupInput) =>
     request<{ login: { token: string; userId: string; name: string; email: string; profile: number; tenantId: string }; trialDays: number }>(

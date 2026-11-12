@@ -63,7 +63,7 @@ export const InstallAppButton: React.FC = () => {
         <button
           onClick={handleInstallClick}
           className="inline-flex items-center gap-2 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white font-medium text-xs sm:text-sm rounded-lg shadow-sm transition-all"
-          title="Instalar AutoNexus no smartphone"
+          title="Instalar AT MOTORS no smartphone"
         >
           <Smartphone className="w-4 h-4" />
           <span>Instalar App</span>
@@ -79,7 +79,7 @@ export const InstallAppButton: React.FC = () => {
               <Share className="w-5 h-5" />
             </div>
             <div>
-              <p className="font-semibold text-white">Instalar o AutoNexus no iPhone</p>
+              <p className="font-semibold text-white">Instalar o AT MOTORS no iPhone</p>
               <p className="text-slate-300 mt-1">
                 Toque no ícone de <strong className="text-white">Compartilhar</strong> na barra do Safari e selecione <strong className="text-white">"Adicionar à Tela de Início"</strong>.
               </p>

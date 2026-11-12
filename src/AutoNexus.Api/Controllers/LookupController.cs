@@ -56,8 +56,34 @@ public class LookupsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> GetCostCategories(CancellationToken cancellationToken)
     {
-        var categories = await _lookupRepository.GetCostCategoriesAsync(true, cancellationToken);
-        return Ok(categories);
+        if (!_tenantContext.HasTenant)
+            return Forbid();
+
+        var categories = (await _lookupRepository.GetCostCategoriesAsync(true, cancellationToken)).ToList();
+
+        if (categories.Count == 0)
+        {
+            var defaults = new[]
+            {
+                new CostCategory("Compra", "Valor de aquisição inicial"),
+                new CostCategory("Manutenção", "Revisão e manutenção preventiva"),
+                new CostCategory("Reparo", "Consertos mecânicos e elétricos"),
+                new CostCategory("Peças", "Substituição de componentes"),
+                new CostCategory("Pintura", "Serviços de pintura"),
+                new CostCategory("Funilaria", "Lanternagem e martelinho de ouro"),
+                new CostCategory("Documentação", "Emplacamento, IPVA, taxas e transferência"),
+                new CostCategory("Taxas", "Taxas operacionais e administrativas"),
+                new CostCategory("Transporte", "Frete e guincho"),
+                new CostCategory("Outro", "Outros custos operacionais")
+            };
+
+            // O tenant vem do JWT validado e é aplicado pelo AutoNexusDbContext ao salvar.
+            await _context.CostCategories.AddRangeAsync(defaults, cancellationToken);
+            await _context.SaveChangesAsync(cancellationToken);
+            categories = (await _lookupRepository.GetCostCategoriesAsync(true, cancellationToken)).ToList();
+        }
+
+        return Ok(categories.Select(x => new LookupItemDto(x.Id, x.Name, x.Description)).ToList());
     }
 
     [HttpGet("document-categories")]

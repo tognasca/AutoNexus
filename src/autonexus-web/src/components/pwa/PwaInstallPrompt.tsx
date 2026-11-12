@@ -35,7 +35,7 @@ export function PwaInstallPrompt() {
     <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white px-4 py-3 shadow-lg flex items-center justify-between gap-3 text-xs md:text-sm font-medium z-50">
       <div className="flex items-center gap-2">
         <Smartphone size={20} className="shrink-0" />
-        <span>Instale o **AutoNexus** no seu dispositivo para acesso rápido!</span>
+        <span>Instale o AT MOTORS no seu dispositivo para acesso rápido!</span>
       </div>
 
       <div className="flex items-center gap-2 shrink-0">

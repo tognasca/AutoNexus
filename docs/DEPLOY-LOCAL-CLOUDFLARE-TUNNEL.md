@@ -90,7 +90,7 @@ O `docker-compose.yml` atual publica as portas locais `5000` (API) e `5433` (Pos
 
 O número de WhatsApp fornecido por `VITE_PUBLIC_WHATSAPP_NUMBER` é incorporado ao bundle do frontend. A interface pode ocultá-lo como texto, mas o destino pode ser descoberto inspecionando o link ou o bundle. Essa variável não é um segredo.
 
-Sem um MP4 real, não há vídeo demonstrativo para publicar. Quando existir, hospede o arquivo em URL HTTPS pública com acesso direto ao MP4, configure `VITE_DEMO_VIDEO_URL` no `.env` e reconstrua o frontend:
+O frontend já inclui um vídeo demonstrativo local na seção “Conheça o AT MOTORS”. Para substituí-lo por outro MP4, hospede o arquivo em URL HTTPS pública com acesso direto, configure `VITE_DEMO_VIDEO_URL` no `.env` e reconstrua o frontend:
 
 ```powershell
 docker compose up -d --build frontend
@@ -105,4 +105,4 @@ docker compose up -d --build frontend
 - [ ] O endereço HTTPS público foi testado fora da rede local.
 - [ ] API, banco, login, isolamento por tenant e botão WhatsApp foram validados.
 - [ ] Segredos não foram commitados.
-- [ ] O vídeo permanece como guia provisório até existir um MP4 real.
+- [ ] O vídeo demonstrativo da seção “Conheça o AT MOTORS” foi reproduzido e conferido.
