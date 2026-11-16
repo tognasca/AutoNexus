@@ -59,6 +59,7 @@ export interface PagedResult<T> {
 }
 
 export interface VehicleFilter {
+  openTransfers?: boolean;
   page?: number;
   pageSize?: number;
   vehicleTypeId?: string;

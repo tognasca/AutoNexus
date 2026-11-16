@@ -43,11 +43,48 @@ public class VehiclesController : ControllerBase
         [FromQuery] decimal? maxPrice = null,
         [FromQuery] int? minYear = null,
         [FromQuery] int? maxYear = null,
+        [FromQuery] bool openTransfers = false,
         CancellationToken cancellationToken = default)
     {
-        var filter = new VehicleFilterDto(page, pageSize, vehicleTypeId, status, search, minPrice, maxPrice, minYear, maxYear);
+        var filter = new VehicleFilterDto(page, pageSize, vehicleTypeId, status, search, minPrice, maxPrice, minYear, maxYear, openTransfers);
         var result = await _vehicleService.GetAllPagedAsync(filter, cancellationToken);
         return Ok(result);
+    }
+
+    public sealed record TransferRequest(bool Started, bool Signed, bool Inspected,
+        string? Protocol, DateOnly? CompletedOn);
+
+    [HttpGet("{id:guid}/transfer")]
+    public async Task<IActionResult> GetTransfer(Guid id, CancellationToken cancellationToken)
+    {
+        var transfer = await _dbContext.Vehicles.AsNoTracking()
+            .Where(v => v.Id == id && v.Status == VehicleStatus.Vendido)
+            .Select(v => new TransferRequest(v.TransferStarted, v.TransferSigned,
+                v.TransferInspected, v.TransferProtocol, v.TransferCompletedOn))
+            .SingleOrDefaultAsync(cancellationToken);
+
+        return transfer is null ? NotFound() : Ok(transfer);
+    }
+
+    [HttpPut("{id:guid}/transfer")]
+    public async Task<IActionResult> UpdateTransfer(Guid id, TransferRequest request,
+        CancellationToken cancellationToken)
+    {
+        var vehicle = await _dbContext.Vehicles.SingleOrDefaultAsync(
+            v => v.Id == id && v.Status == VehicleStatus.Vendido, cancellationToken);
+        if (vehicle is null) return NotFound();
+
+        var protocol = string.IsNullOrWhiteSpace(request.Protocol) ? null : request.Protocol.Trim();
+        if (protocol?.Length > 120)
+            return BadRequest(new { message = "O protocolo deve ter até 120 caracteres." });
+
+        if (request.CompletedOn.HasValue && protocol is null)
+            return BadRequest(new { message = "Informe o protocolo para confirmar a transferência." });
+
+        vehicle.UpdateTransfer(request.Started, request.Signed, request.Inspected,
+            protocol, request.CompletedOn);
+        await _dbContext.SaveChangesAsync(cancellationToken);
+        return NoContent();
     }
 
     [HttpGet("inventory-summary")]

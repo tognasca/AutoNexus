@@ -121,5 +121,6 @@ public record VehicleFilterDto(
     decimal? MinPrice = null,
     decimal? MaxPrice = null,
     int? MinYear = null,
-    int? MaxYear = null
+    int? MaxYear = null,
+    bool OpenTransfers = false
 );

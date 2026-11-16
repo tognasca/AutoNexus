@@ -1692,6 +1692,27 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("numeric(18,2)")
                         .HasColumnName("saleValue");
 
+                    b.Property<DateOnly?>("TransferCompletedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("transferCompletedOn");
+
+                    b.Property<bool>("TransferInspected")
+                        .HasColumnType("boolean")
+                        .HasColumnName("transferInspected");
+
+                    b.Property<string>("TransferProtocol")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("transferProtocol");
+
+                    b.Property<bool>("TransferSigned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("transferSigned");
+
+                    b.Property<bool>("TransferStarted")
+                        .HasColumnType("boolean")
+                        .HasColumnName("transferStarted");
+
                     b.Property<DateTime?>("SoldAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("soldAt");

@@ -28,6 +28,12 @@ public class Vehicle : TenantOwnedEntityBase
     // Propriedades da Venda
     public Guid? SoldByUserId { get; private set; }
     public User? SoldByUser { get; private set; }
+    public bool TransferStarted { get; private set; }
+    public bool TransferSigned { get; private set; }
+    public bool TransferInspected { get; private set; }
+    public string? TransferProtocol { get; private set; }
+    public DateOnly? TransferCompletedOn { get; private set; }
+
     public DateTime? SoldAt { get; private set; }
 
     // Propriedades de Navegação
@@ -131,6 +137,16 @@ public class Vehicle : TenantOwnedEntityBase
         Notes = notes?.Trim();
         UpdatedAt = DateTime.UtcNow;
     }
+    public void UpdateTransfer(bool started, bool signed, bool inspected,
+        string? protocol, DateOnly? completedOn)
+    {
+        TransferStarted = started || signed || inspected || completedOn.HasValue;
+        TransferSigned = signed;
+        TransferInspected = inspected;
+        TransferProtocol = protocol;
+        TransferCompletedOn = completedOn;
+    }
+
     public void CompleteSale(decimal saleValue)
     {
         if (Status == VehicleStatus.Vendido)

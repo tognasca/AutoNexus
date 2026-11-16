@@ -32,6 +32,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(v => v.ListedValue)
             .HasColumnName("listed_value")
             .HasColumnType("numeric(18,2)");
+        builder.Property(x => x.TransferProtocol).HasMaxLength(120);
         builder.Property(x => x.SaleValue).HasPrecision(18, 2);
         builder.Property(x => x.Notes).HasMaxLength(2000);
         builder.Property(x => x.CreatedAt).IsRequired();

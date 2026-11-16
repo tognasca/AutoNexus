@@ -19,7 +19,8 @@ public interface IVehicleRepository
         decimal? maxPrice = null,
         int? minYear = null,
         int? maxYear = null,
-        CancellationToken cancellationToken = default);
+        CancellationToken cancellationToken = default,
+        bool openTransfers = false);
     /// <summary>Quantidade de veículos do tenant atual (respeita o filtro global) — usado para limites de plano.</summary>
     Task<int> CountAsync(CancellationToken cancellationToken = default);
 

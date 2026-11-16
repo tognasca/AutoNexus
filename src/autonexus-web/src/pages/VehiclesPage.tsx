@@ -18,6 +18,8 @@ import type { LookupItem } from '../types/lookup';
 import { Plus, Loader2, CarFront, CheckCircle2, Clock3, AlertTriangle } from 'lucide-react';
 import { VehicleHistoryModal } from '../components/vehicles/VehicleHistoryModal';
 
+import { VehicleTransferModal } from '../components/vehicles/VehicleTransferModal';
+
 export function VehiclesPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<LookupItem[]>([]);
@@ -50,6 +52,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
   const [selectedVehicleForTrade, setSelectedVehicleForTrade] = useState<VehicleSummary | null>(null);
   const [isTradeModalOpen, setIsTradeModalOpen] = useState(false);
 
+  const [transferVehicle, setTransferVehicle] = useState<VehicleSummary | null>(null);
+  const [openTransfers, setOpenTransfers] = useState(false);
   const [search, setSearch] = useState('');
   const [selectedType, setSelectedType] = useState<string | undefined>();
   const [selectedStatus, setSelectedStatus] = useState<VehicleStatus | undefined>();
@@ -62,7 +66,8 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         vehicleService.getAll({
           search,
           vehicleTypeId: selectedType,
-          status: selectedStatus,
+          status: openTransfers ? VehicleStatus.Vendido : selectedStatus,
+          openTransfers,
         }),
       ]);
       setVehicleTypes(typesRes);
@@ -80,7 +85,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
 
   useEffect(() => {
     loadData();
-  }, [search, selectedType, selectedStatus]);
+  }, [search, selectedType, selectedStatus, openTransfers]);
 
   const handleCreateVehicle = async (data: CreateVehicleInput) => {
     await vehicleService.create(data);
@@ -131,12 +136,26 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
       <VehicleFilters
         vehicleTypes={vehicleTypes}
         selectedType={selectedType}
-        selectedStatus={selectedStatus}
+        selectedStatus={openTransfers ? VehicleStatus.Vendido : selectedStatus}
         search={search}
         onTypeChange={setSelectedType}
-        onStatusChange={setSelectedStatus}
+        onStatusChange={status => {
+          setOpenTransfers(false);
+          setSelectedStatus(status);
+        }}
         onSearchChange={setSearch}
       />
+
+      <label className="mb-4 flex items-center gap-2 text-sm text-white">
+        <input type="checkbox" checked={openTransfers} onChange={event => setOpenTransfers(event.target.checked)} />
+        Transferências em aberto
+      </label>
+
+      {transferVehicle && (
+        <VehicleTransferModal key={transferVehicle.id} vehicle={transferVehicle}
+          onClose={() => setTransferVehicle(null)}
+          onSaved={() => { setTransferVehicle(null); void loadData(); }} />
+      )}
 
       {loading ? (
         <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
@@ -170,6 +189,12 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
               onTradeVehicle={(veh) => { setSelectedVehicleForTrade(veh); setIsTradeModalOpen(true); }}
               onDeleteVehicle={handleDeleteVehicle}
             />
+            {v.status === VehicleStatus.Vendido && (
+              <button type="button" onClick={() => setTransferVehicle(v)}
+                className="w-full rounded-lg border border-nexus-border bg-nexus-card p-2 text-sm text-white hover:border-nexus-accent">
+                Acompanhar transferência
+              </button>
+            )}
             <label className="block rounded-lg border border-nexus-border bg-nexus-card p-2 text-[11px] text-slate-400">
               WhatsApp responsável por este veículo
               <select value={v.whatsappContactId ?? ''} onChange={async e => { const contactId = e.target.value || null; try { await vehicleService.assignWhatsAppContact(v.id, contactId); setVehicles(items => items.map(item => item.id === v.id ? { ...item, whatsappContactId: contactId } : item)); } catch (err: any) { alert(err.message || 'Não foi possível atualizar o contato do veículo.'); } }} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-white">

@@ -140,7 +140,8 @@ public class VehicleService : IVehicleService
             filter.MaxPrice,
             filter.MinYear,
             filter.MaxYear,
-            cancellationToken);
+            cancellationToken,
+            filter.OpenTransfers);
 
         var dtos = items.Select(v => new VehicleSummaryDto
         {

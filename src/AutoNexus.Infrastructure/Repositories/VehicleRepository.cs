@@ -73,7 +73,8 @@ public class VehicleRepository : IVehicleRepository
         decimal? maxPrice = null,
         int? minYear = null,
         int? maxYear = null,
-        CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default,
+        bool openTransfers = false)
     {
         var query = _context.Vehicles
             .Include(v => v.VehicleType)
@@ -83,6 +84,9 @@ public class VehicleRepository : IVehicleRepository
 
         if (vehicleTypeId.HasValue)
             query = query.Where(v => v.VehicleTypeId == vehicleTypeId.Value);
+
+        if (openTransfers)
+            query = query.Where(v => v.Status == VehicleStatus.Vendido && v.TransferCompletedOn == null);
 
         if (status.HasValue)
             query = query.Where(v => v.Status == status.Value);
