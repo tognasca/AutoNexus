@@ -16,6 +16,23 @@ public class Lead : TenantOwnedEntityBase
     public User? AssignedToUser { get; private set; }
     public DateTime? LastContactAt { get; private set; }
 
+    public decimal? OfferValue { get; private set; }
+    public decimal? DownPayment { get; private set; }
+    public string? TradeDescription { get; private set; }
+    public DateTime? NextContactAt { get; private set; }
+    public DateOnly? OfferValidUntil { get; private set; }
+
+    public void UpdateAttendance(decimal? offerValue, decimal? downPayment,
+        string? tradeDescription, DateTime? nextContactAt, DateOnly? offerValidUntil)
+    {
+        OfferValue = offerValue;
+        DownPayment = downPayment;
+        TradeDescription = tradeDescription;
+        NextContactAt = nextContactAt;
+        OfferValidUntil = offerValidUntil;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     private Lead() { }
 
     public Lead(string name, string phone, string? email, string source, string? notes, Guid? vehicleId, Guid? assignedToUserId)

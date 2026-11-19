@@ -113,6 +113,27 @@ public sealed class LeadsController : ControllerBase
         return Ok(ToResponse(lead));
     }
 
+    public sealed record AttendanceRequest(decimal? OfferValue, decimal? DownPayment,
+        string? TradeDescription, DateTime? NextContactAt, DateOnly? OfferValidUntil);
+
+    [HttpPut("{id:guid}/attendance")]
+    public async Task<IActionResult> UpdateAttendance(Guid id, AttendanceRequest request, CancellationToken ct)
+    {
+        if (!_tenant.HasTenant) return Forbid();
+        if (request.OfferValue <= 0 || request.DownPayment < 0 ||
+            request.DownPayment > request.OfferValue || request.OfferValue > 9999999999999999.99m ||
+            request.DownPayment > 9999999999999999.99m ||
+            (request.TradeDescription?.Length ?? 0) > 500)
+            return BadRequest(new { message = "Confira o valor da proposta, a entrada e a descrição da troca (até 500 caracteres)." });
+        var lead = await _db.Leads.Include(x => x.Vehicle).Include(x => x.AssignedToUser)
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+        if (lead is null) return NotFound();
+        lead.UpdateAttendance(request.OfferValue, request.DownPayment,
+            request.TradeDescription?.Trim(), request.NextContactAt?.ToUniversalTime(), request.OfferValidUntil);
+        await _db.SaveChangesAsync(ct);
+        return Ok(ToResponse(lead));
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Delete(Guid id, CancellationToken ct)
     {
@@ -137,6 +158,7 @@ public sealed class LeadsController : ControllerBase
         Status = (int)lead.Status, StatusName = lead.Status.ToString(),
         lead.VehicleId, VehicleName = lead.Vehicle is null ? null : $"{lead.Vehicle.Brand} {lead.Vehicle.Model}",
         lead.AssignedToUserId, AssignedToName = lead.AssignedToUser?.Name,
+        lead.OfferValue, lead.DownPayment, lead.TradeDescription, lead.NextContactAt, lead.OfferValidUntil,
         lead.LastContactAt, lead.CreatedAt, lead.UpdatedAt
     };
 

@@ -628,6 +628,30 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Lead", b =>
                 {
+                    b.Property<decimal?>("OfferValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("offerValue");
+
+                    b.Property<decimal?>("DownPayment")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("downPayment");
+
+                    b.Property<string>("TradeDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("tradeDescription");
+
+                    b.Property<DateTime?>("NextContactAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("nextContactAt");
+
+                    b.Property<DateOnly?>("OfferValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("offerValidUntil");
+
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")

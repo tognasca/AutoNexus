@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { AttendancePanel } from '../components/leads/AttendancePanel';
 import { MainLayout } from '../components/layout/MainLayout';
 import { leadService, LeadStatus, type LeadItem, type LeadInput } from '../services/leadService';
 import { vehicleService } from '../services/vehicleService';
@@ -20,6 +21,8 @@ const stages = [
 
 export function LeadsPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const { user } = useAuth();
+  const [attendance, setAttendance] = useState<LeadItem | null>(null);
+  const [dueOnly, setDueOnly] = useState(false);
   const [items, setItems] = useState<LeadItem[]>([]);
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [users, setUsers] = useState<UserItem[]>([]);
@@ -53,7 +56,12 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
     e.preventDefault(); setSaving(true);
     try {
       const payload = { ...form, vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null };
-      if (editingId) await leadService.update(editingId, payload); else await leadService.create(payload);
+      if (editingId) {
+        await leadService.update(editingId, payload);
+      } else {
+        const created = await leadService.create(payload);
+        setAttendance(created);
+      }
       setModal(false); setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); await load();
     } catch (err: unknown) { alert(errorMessage(err, 'Erro ao salvar lead.')); }
     finally { setSaving(false); }
@@ -75,19 +83,33 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
   return <MainLayout currentView={currentView} onNavigate={onNavigate}>
     <div className="space-y-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div><h1 className="flex items-center gap-2 text-xl font-bold text-white"><Users className="text-blue-400"/> CRM de Leads</h1><p className="mt-1 text-sm text-slate-400">Acompanhe oportunidades em cada etapa do funil comercial.</p></div>
-        <button onClick={() => { setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); setModal(true); }} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Novo lead</button>
+        <div><h1 className="flex items-center gap-2 text-xl font-bold text-white"><Users className="text-blue-400"/> Mesa de atendimento</h1><p className="mt-1 text-sm text-slate-400">Cliente, veículo, proposta e próximo retorno no mesmo atendimento.</p></div>
+        <button onClick={() => { setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); setModal(true); }} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Novo atendimento</button>
       </div>
       <div className="relative max-w-md"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" size={17}/><input value={search} onChange={e => { setLoading(true); setSearch(e.target.value); }} placeholder="Buscar nome, telefone ou e-mail..." className="w-full rounded-lg border border-nexus-border bg-nexus-card py-2.5 pl-10 pr-3 text-sm text-white"/></div>
+      <div className="flex flex-wrap items-center gap-3 rounded-xl border border-nexus-border bg-nexus-card p-4">
+        <button type="button" aria-pressed={dueOnly} onClick={() => setDueOnly(!dueOnly)}
+          className={`rounded-lg px-4 py-2 text-sm ${dueOnly ? 'bg-amber-600 text-white' : 'bg-slate-800 text-slate-200'}`}>
+          Retornos até hoje · {items.filter(x => x.nextContactAt && new Date(x.nextContactAt) <= new Date(new Date().setHours(23, 59, 59, 999)) && x.status !== LeadStatus.Venda && x.status !== LeadStatus.Perdido).length}
+        </button>
+        <span className="text-sm text-slate-400">Abra um atendimento para preparar a proposta ou registrar a venda.</span>
+      </div>
+      {attendance && <AttendancePanel key={attendance.id} lead={attendance}
+        onClose={() => setAttendance(null)}
+        onUpdated={updated => setItems(previous => previous.map(item => item.id === updated.id ? updated : item))} />}
       {loading ? <div className="flex h-48 items-center justify-center gap-2 text-slate-400"><Loader2 className="animate-spin"/>Carregando...</div> :
         <div className="grid grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-6">
           {stages.map(stage => {
-            const leads = items.filter(x => x.status === stage.id);
+            const leads = items.filter(x => x.status === stage.id && (!dueOnly ||
+              (x.nextContactAt && new Date(x.nextContactAt) <= new Date(new Date().setHours(23, 59, 59, 999)) &&
+                x.status !== LeadStatus.Venda && x.status !== LeadStatus.Perdido)));
             return <section key={stage.id} className={`min-w-0 rounded-xl border-t-2 bg-slate-900/50 ${stage.color}`}>
               <header className="flex justify-between border-b border-nexus-border px-3 py-3"><b className="text-sm text-white">{stage.name}</b><span className="rounded-full bg-slate-800 px-2 text-xs text-slate-300">{leads.length}</span></header>
               <div className="min-h-24 space-y-2 p-2">
                 {leads.map(lead => <article key={lead.id} className="space-y-2 rounded-lg border border-nexus-border bg-nexus-card p-3">
                   <div className="flex justify-between gap-2"><b className="break-words text-sm text-white">{lead.name}</b><button onClick={() => { setEditingId(lead.id); setForm({ name: lead.name, phone: lead.phone, email: lead.email || '', source: lead.source, notes: lead.notes || '', vehicleId: lead.vehicleId || '', assignedToUserId: lead.assignedToUserId || '' }); setModal(true); }} title="Editar lead"><Pencil size={14} className="text-slate-500 hover:text-blue-400"/></button><button onClick={() => remove(lead)} title="Excluir"><Trash2 size={14} className="text-slate-500 hover:text-rose-400"/></button></div>
+                  {lead.nextContactAt && <p className="text-xs text-amber-300">Retorno: {new Date(lead.nextContactAt).toLocaleString('pt-BR')}</p>}
+                  <button type="button" onClick={() => setAttendance(lead)} className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">Abrir atendimento</button>
                   <a href={`tel:${lead.phone}`} className="block text-xs text-slate-400">{lead.phone}</a>
                   {lead.email && <p className="break-all text-xs text-slate-500">{lead.email}</p>}
                   {lead.vehicleName && <p className="text-xs text-blue-300">{lead.vehicleName}</p>}
@@ -107,7 +129,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
         </div>}
     </div>
     {modal && <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4">
-      <form onSubmit={save} className="w-full max-w-lg space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white">
+      <form onSubmit={save} className="w-full max-h-[90dvh] overflow-y-auto max-w-lg space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white">
         <div className="flex justify-between border-b border-slate-800 pb-3"><h2 className="font-bold">{editingId ? 'Editar lead' : 'Novo lead'}</h2><button type="button" onClick={() => setModal(false)}><X size={19}/></button></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
           <label className="sm:col-span-2 text-slate-400">Nome *<input required maxLength={160} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
