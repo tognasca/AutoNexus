@@ -10,6 +10,7 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
     {
         builder.ToTable("tenant_settings");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.OpenAiModel).HasMaxLength(100);
 
         builder.Property(x => x.CompanyName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.LogoUrl).HasMaxLength(500);

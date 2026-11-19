@@ -3,6 +3,7 @@ import { leadService, LeadStatus, type LeadItem, type AttendanceInput } from '..
 import { vehicleService } from '../../services/vehicleService';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { getFullPhotoUrl } from '../vehicles/VehiclePhotosModal';
+import { OpenAiAssistant } from './OpenAiAssistant';
 import { AttendanceTools } from './AttendanceTools';
 import { VehicleSaleModal } from '../vehicles/VehicleSaleModal';
 
@@ -151,6 +152,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
       </form>
     </div>
     <AttendanceTools lead={current} />
+    <OpenAiAssistant lead={current} onUpdated={updated => { setCurrent(updated); onUpdated(updated); }} />
     {selling && vehicle && <VehicleSaleModal isOpen vehicle={{ ...vehicle, saleValue: form.offerValue ?? vehicle.saleValue }}
       onClose={() => setSelling(false)} onSaleCompleted={() => {
         setVehicle({ ...vehicle, status: VehicleStatus.Vendido });

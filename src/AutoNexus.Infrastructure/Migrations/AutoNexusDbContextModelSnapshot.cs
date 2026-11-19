@@ -1184,6 +1184,34 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
                 {
+                    b.Property<string>("OpenAiEncryptedKey")
+                        .HasColumnType("text")
+                        .HasColumnName("openAiEncryptedKey");
+
+                    b.Property<string>("OpenAiModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("openAiModel");
+
+                    b.Property<bool>("AiEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("aiEnabled");
+
+                    b.Property<int>("AiMonthlyLimit")
+                        .HasColumnType("integer")
+                        .HasColumnName("aiMonthlyLimit");
+
+                    b.Property<int>("AiUsed")
+                        .HasColumnType("integer")
+                        .HasColumnName("aiUsed");
+
+                    b.Property<string>("AiUsageMonth")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("aiUsageMonth");
+
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")

@@ -20,6 +20,21 @@ public class TenantSetting : TenantOwnedEntityBase
     public string TimeZone { get; private set; } = "America/Sao_Paulo";
     public string Currency { get; private set; } = "BRL";
 
+    public string? OpenAiEncryptedKey { get; private set; }
+    public string OpenAiModel { get; private set; } = "gpt-4.1-mini";
+    public bool AiEnabled { get; private set; }
+    public int AiMonthlyLimit { get; private set; }
+    public int AiUsed { get; private set; }
+    public string AiUsageMonth { get; private set; } = "";
+
+    public void ConfigureAi(string? encryptedKey, string model, bool enabled, int monthlyLimit)
+    {
+        OpenAiEncryptedKey = encryptedKey;
+        OpenAiModel = model;
+        AiEnabled = enabled;
+        AiMonthlyLimit = monthlyLimit;
+    }
+
     protected TenantSetting() { }
 
     public TenantSetting(string companyName)
