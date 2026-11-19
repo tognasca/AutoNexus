@@ -6,7 +6,7 @@ import { VehicleCostsModal } from './VehicleCostsModal';
 import { AttendancePanel } from '../leads/AttendancePanel';
 
 interface Margin { values: { purchase: number; expenses: number; totalCost: number; revenue: number | null; profit: number | null; marginPercentage: number | null }; costs: { description: string; value: number; category: string }[]; realized: boolean; discount: number }
-interface DeliveryEntry { done: boolean; completedAt: string | null; userId: string | null }
+interface DeliveryEntry { done: boolean; completedAt: string | null; userId: string | null; userName: string | null }
 interface Interested { id: string; name: string; phone: string; budget: number | null; preferredModels: string | null }
 const steps = [{ id: 'payment', label: 'Pagamento conferido' }, { id: 'documents', label: 'Documentos conferidos' }, { id: 'accessories', label: 'Chaves e acessórios conferidos' }, { id: 'handover', label: 'Veículo entregue' }];
 const money = (value: number | null) => value == null ? 'A informar' : value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -70,7 +70,7 @@ export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummar
               finally { setBusy(false); }
             }} />{step.label}</label>
           {delivery[step.id]?.completedAt && <p className="mt-1 break-all text-xs text-slate-400">
-            {new Date(delivery[step.id].completedAt!).toLocaleString('pt-BR')} · Responsável {delivery[step.id].userId}
+            {new Date(delivery[step.id].completedAt!).toLocaleString('pt-BR')} · Responsável {delivery[step.id].userName || 'Equipe da loja'}
           </p>}
         </div>)}
         <h3 className="pt-3 font-semibold">Compradores compatíveis</h3>

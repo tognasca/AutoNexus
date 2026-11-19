@@ -107,7 +107,7 @@ def run():
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "handover", "done": True}, token, expected=409)
     for step in ["payment", "documents", "accessories", "handover"]:
         checklist = call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": step, "done": True}, token)
-        assert checklist[step]["completedAt"] and checklist[step]["userId"]
+        assert checklist[step]["completedAt"] and checklist[step]["userId"] and checklist[step]["userName"]
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "payment", "done": False}, token, expected=409)
     assert call("/launch/vehicles/" + vid + "/margin", token=token)["realized"]
     check("venda única, entrega em ordem e rastreabilidade de responsáveis")

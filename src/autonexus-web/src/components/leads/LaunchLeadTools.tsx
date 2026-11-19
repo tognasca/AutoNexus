@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 import { request } from '../../services/api';
-import { TransmissionType } from '../../types/vehicle';
+import { TransmissionType, VehicleStatus } from '../../types/vehicle';
 
 interface LeadLaunch {
   budget: number | null; preferredTransmission: number | null; preferredModels: string | null;
   buyerResponse: string | null; buyerRespondedAt: string | null; shareExpiresAt: string | null; shareActive: boolean;
   reservation: { reservedForLeadId: string | null; reservedByUserId: string | null; reservationExpiresAt: string | null; active: boolean } | null;
 }
-export function LaunchLeadTools({ leadId, vehicleId, onVehicleChanged }: {
-  leadId: string; vehicleId?: string | null; onVehicleChanged: () => void;
+export function LaunchLeadTools({ leadId, vehicleId, vehicleStatus, onVehicleChanged }: {
+  leadId: string; vehicleId?: string | null; vehicleStatus?: number; onVehicleChanged: () => void;
 }) {
   const [data, setData] = useState<LeadLaunch | null>(null);
   const [budget, setBudget] = useState('');
@@ -47,7 +47,7 @@ export function LaunchLeadTools({ leadId, vehicleId, onVehicleChanged }: {
     {notice && <p role="status" className="text-sm text-emerald-300">{notice}</p>}
     <fieldset disabled={busy} className="space-y-4">
       <div className="flex flex-wrap gap-2">
-        <button type="button" className="rounded-lg bg-blue-600 px-4 py-2" onClick={() => void run(async () => {
+        <button type="button" disabled={!vehicleId || vehicleStatus === VehicleStatus.Vendido} className="rounded-lg bg-blue-600 px-4 py-2 disabled:opacity-40" onClick={() => void run(async () => {
           const published = await request<{ path: string }>(`/launch/leads/${leadId}/proposal`, { method: 'POST' });
           setLink(window.location.origin + published.path); setNotice('Nova proposta publicada. O link anterior foi invalidado.');
         })}>Publicar proposta com link</button>
@@ -65,7 +65,7 @@ export function LaunchLeadTools({ leadId, vehicleId, onVehicleChanged }: {
       {data?.buyerResponse && <div className="rounded-lg bg-emerald-950 p-3 text-sm">
         <p>{data.buyerResponse}</p><p className="text-xs text-slate-400">{data.buyerRespondedAt && new Date(data.buyerRespondedAt).toLocaleString('pt-BR')}</p>
       </div>}
-      {vehicleId && <div className="space-y-3 border-t border-slate-700 pt-4">
+      {vehicleId && vehicleStatus != null && vehicleStatus !== VehicleStatus.Vendido && <div className="space-y-3 border-t border-slate-700 pt-4">
         <h4 className="font-semibold">Reserva do veículo</h4>
         {data?.reservation?.active ? <><p className="text-sm text-amber-300">Reservado até {new Date(data.reservation.reservationExpiresAt!).toLocaleString('pt-BR')}
           {data.reservation.reservedForLeadId !== leadId && ' para outro atendimento'}.</p>

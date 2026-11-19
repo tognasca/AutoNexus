@@ -154,7 +154,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
         }}>Registrar venda</button>}
       </form>
     </div>
-    <LaunchLeadTools leadId={current.id} vehicleId={current.vehicleId}
+    <LaunchLeadTools leadId={current.id} vehicleId={current.vehicleId} vehicleStatus={vehicle?.status}
       onVehicleChanged={() => {
         if (current.vehicleId) vehicleService.getById(current.vehicleId).then(data => setVehicle(previous => ({ ...data, mainPhotoUrl: previous?.mainPhotoUrl }))).catch(() => setError('Reabra o atendimento para atualizar o veículo.'));
       }} />

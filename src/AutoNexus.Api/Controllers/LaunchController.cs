@@ -20,6 +20,7 @@ public sealed class LaunchController(AutoNexusDbContext db, ITenantContext tenan
     public sealed record ReserveRequest(Guid LeadId, DateTime ExpiresAt);
     public sealed record DeliveryRequest(string Step, bool Done);
     public sealed record DeliveryEntry(bool Done, DateTime? CompletedAt, Guid? UserId);
+    public sealed record DeliveryView(bool Done, DateTime? CompletedAt, Guid? UserId, string? UserName);
     private static readonly string[] DeliverySteps = ["payment", "documents", "accessories", "handover"];
 
     private async Task LockVehicle(Guid id, CancellationToken ct) =>
@@ -137,7 +138,7 @@ public sealed class LaunchController(AutoNexusDbContext db, ITenantContext tenan
     {
         if (!tenant.HasTenant) return Forbid();
         var vehicle = await db.Vehicles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
-        return vehicle is null ? NotFound() : Ok(ReadChecklist(vehicle));
+        return vehicle is null ? NotFound() : Ok(await ChecklistView(vehicle, ct));
     }
 
     [HttpPut("vehicles/{id:guid}/delivery")]
@@ -162,7 +163,17 @@ public sealed class LaunchController(AutoNexusDbContext db, ITenantContext tenan
             await db.SaveChangesAsync(ct);
         }
         await tx.CommitAsync(ct);
-        return Ok(checklist);
+        return Ok(await ChecklistView(vehicle, ct));
+    }
+
+    private async Task<Dictionary<string, DeliveryView>> ChecklistView(Vehicle vehicle, CancellationToken ct)
+    {
+        var checklist = ReadChecklist(vehicle);
+        var ids = checklist.Values.Where(entry => entry.UserId.HasValue).Select(entry => entry.UserId!.Value).Distinct().ToArray();
+        var names = await db.Users.AsNoTracking().Where(user => ids.Contains(user.Id)).ToDictionaryAsync(user => user.Id, user => user.Name, ct);
+        return checklist.ToDictionary(item => item.Key, item => new DeliveryView(
+            item.Value.Done, item.Value.CompletedAt, item.Value.UserId,
+            item.Value.UserId.HasValue ? names.GetValueOrDefault(item.Value.UserId.Value) ?? "Usuário indisponível" : null));
     }
 
     private static Dictionary<string, DeliveryEntry> ReadChecklist(Vehicle vehicle)
