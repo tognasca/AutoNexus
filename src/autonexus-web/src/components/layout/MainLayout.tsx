@@ -16,18 +16,20 @@ interface MainLayoutProps {
 
 export function MainLayout({ children, currentView = 'dashboard', onNavigate }: MainLayoutProps) {
   const { user } = useAuth();
+  const tenantId = user?.tenantId;
+  const companyUser = Boolean(user && user.profile !== 0);
   const [appearance, setAppearance] = useState({ color: '#3b82f6', density: 'comfortable' });
   useEffect(() => {
     let active = true;
     const loadAppearance = () => {
-      if (user && user.profile !== 0) tenantSettingsService.get().then(settings => {
+      if (companyUser) tenantSettingsService.get().then(settings => {
         if (active) setAppearance({ color: settings.primaryColor, density: settings.panelDensity || 'comfortable' });
       }).catch(() => {});
     };
     loadAppearance();
     window.addEventListener('atmotors:appearance-updated', loadAppearance);
     return () => { active = false; window.removeEventListener('atmotors:appearance-updated', loadAppearance); };
-  }, [user?.tenantId, user?.profile, currentView]);
+  }, [tenantId, companyUser, currentView]);
   return (
     <div className="flex min-h-screen bg-nexus-dark pb-16 md:pb-0"
       style={{ '--color-nexus-accent': appearance.color, '--color-nexus-accent-hover': appearance.color } as CSSProperties}>

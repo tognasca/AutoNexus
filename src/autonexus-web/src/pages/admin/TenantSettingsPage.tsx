@@ -1,6 +1,7 @@
 import { createPortal } from 'react-dom';
 import previewHero from '../../public/hero/atmotors-hero/hero-atmotor.png';
-import { StoreHero, storeTemplates } from '../../components/catalog/StoreHero';
+import { StoreHero } from '../../components/catalog/StoreHero';
+import { storeTemplates } from '../../components/catalog/storeTemplates';
 import React, { useEffect, useState } from 'react';
 import { tenantSettingsService, TenantSettings, WhatsAppContact } from '../../services/tenantSettingsService';
 import { MainLayout } from '../../components/layout/MainLayout';
@@ -43,25 +44,17 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
   const previewDocument = `<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width, initial-scale=1"><base href="${window.location.origin}/">${previewStyles}</head><body style="margin:0"></body></html>`;
   const catalogUrl = catalogSlug ? `${window.location.origin}/loja/${encodeURIComponent(catalogSlug)}` : null;
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await tenantSettingsService.get();
-      setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
-      try {
-        const catalog = await catalogService.getPublicCatalog('current');
-        setCatalogSlug(catalog.store?.slug ?? null);
-      } catch {
-        setCatalogSlug(null);
-      }
-      const contacts = await tenantSettingsService.getWhatsAppContacts();
-      setWhatsappContacts(contacts);
-    } catch (err) {
-      console.error('Erro ao carregar configurações da empresa:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = () => Promise.all([
+    tenantSettingsService.get(),
+    catalogService.getPublicCatalog('current').catch(() => null),
+    tenantSettingsService.getWhatsAppContacts(),
+  ]).then(([data, catalog, contacts]) => {
+    setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
+    setCatalogSlug(catalog?.store?.slug ?? null);
+    setWhatsappContacts(contacts);
+  }).catch(err => {
+    console.error('Erro ao carregar configurações da empresa:', err);
+  }).finally(() => setLoading(false));
 
   useEffect(() => {
     load();

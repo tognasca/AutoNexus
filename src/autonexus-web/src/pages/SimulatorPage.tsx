@@ -1,3 +1,4 @@
+import { calculateInstallment } from '../utils/financingMath';
 import { useState, useEffect } from 'react';
 import { request } from '../services/api';
 import { formatCurrency } from '../utils/formatters';
@@ -106,20 +107,16 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
     if (bank) setInterestRate(String(bank.defaultRate));
   }, [selectedBank]);
 
-  // Cálculo Tabela Price (PMT)
-  const calculateInstallments = (financedAmount: number, months: number, rate: number) => {
-    if (financedAmount <= 0) return 0;
-    const i = rate / 100;
-    if (i === 0) return financedAmount / months;
-    const factor = Math.pow(1 + i, months);
-    return financedAmount * ((i * factor) / (factor - 1));
-  };
+  const parsedMonthlyRate = Number(interestRate.replace(',', '.'));
+  const validRate = interestRate.trim() !== '' && Number.isFinite(parsedMonthlyRate) && parsedMonthlyRate >= 0;
+  const validAmounts = Number.isFinite(vehiclePrice) && Number.isFinite(entryValue) && Number.isFinite(tradeValue) &&
+    vehiclePrice > 0 && entryValue >= 0 && tradeValue >= 0 && entryValue + tradeValue <= vehiclePrice;
 
   const financedAmount = Math.max(0, vehiclePrice - entryValue - tradeValue);
 
-  const plans = [12, 24, 36, 48, 60].map(months => ({
+  const plans = (validRate && validAmounts ? [12, 24, 36, 48, 60] : []).map(months => ({
     months,
-    value: calculateInstallments(financedAmount, months, Number(interestRate.replace(',', '.')) || 0)
+    value: calculateInstallment(financedAmount, months, parsedMonthlyRate)
   }));
 
   if (loading) {
@@ -254,7 +251,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
 
               <button
                 onClick={handleShareWhatsApp}
-                disabled={financedAmount <= 0}
+                disabled={financedAmount <= 0 || !validRate || !validAmounts}
                 className="w-full mt-2 py-3 px-4 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl transition-all flex items-center justify-center gap-2 shadow-md cursor-pointer"
               >
                 <MessageCircle className="w-4 h-4" />
@@ -262,6 +259,8 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
               </button>
             </div>
 
+            {(!validRate || !validAmounts) && <p role="alert" className="rounded-lg bg-rose-950 p-3 text-sm text-rose-300">Confira taxa, preço, entrada e troca. A entrada e a troca juntas devem caber no preço do veículo.</p>}
+            {validRate && <p className="text-xs text-slate-400">Taxa informada de {parsedMonthlyRate.toLocaleString('pt-BR')}% ao mês. Equivalente efetivo anual de {((Math.pow(1 + parsedMonthlyRate / 100, 12) - 1) * 100).toLocaleString('pt-BR', { maximumFractionDigits: 2 })}%. O CET depende também de tributos, tarifas e demais encargos informados pela financeira.</p>}
             {/* Tabela de Parcelas */}
             <div className="bg-nexus-card border border-nexus-border rounded-xl p-5">
               <h3 className="text-sm font-semibold text-white mb-4 text-center">Opções de Parcelamento</h3>

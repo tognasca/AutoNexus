@@ -1,3 +1,5 @@
+import { VehicleOperations } from '../vehicles/VehicleOperations';
+import { LaunchLeadTools } from './LaunchLeadTools';
 import { useEffect, useRef, useState } from 'react';
 import { leadService, LeadStatus, type LeadItem, type AttendanceInput } from '../../services/leadService';
 import { vehicleService } from '../../services/vehicleService';
@@ -29,6 +31,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
+  const [operationsOpen, setOperationsOpen] = useState(false);
   const [selling, setSelling] = useState(false);
   useEffect(() => {
     dialog.current?.showModal();
@@ -151,8 +154,14 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
         }}>Registrar venda</button>}
       </form>
     </div>
+    <LaunchLeadTools leadId={current.id} vehicleId={current.vehicleId}
+      onVehicleChanged={() => {
+        if (current.vehicleId) vehicleService.getById(current.vehicleId).then(data => setVehicle(previous => ({ ...data, mainPhotoUrl: previous?.mainPhotoUrl }))).catch(() => setError('Reabra o atendimento para atualizar o veículo.'));
+      }} />
     <AttendanceTools lead={current} />
     <OpenAiAssistant lead={current} onUpdated={updated => { setCurrent(updated); onUpdated(updated); }} />
+    {vehicle && <button type="button" onClick={() => setOperationsOpen(true)} className="mt-4 rounded-lg border border-slate-700 px-4 py-3 text-sm">Conferir margem, despesas e entrega</button>}
+    {operationsOpen && vehicle && <VehicleOperations vehicle={vehicle} onClose={() => setOperationsOpen(false)} />}
     {selling && vehicle && <VehicleSaleModal isOpen vehicle={{ ...vehicle, saleValue: form.offerValue ?? vehicle.saleValue }}
       onClose={() => setSelling(false)} onSaleCompleted={() => {
         setVehicle({ ...vehicle, status: VehicleStatus.Vendido });

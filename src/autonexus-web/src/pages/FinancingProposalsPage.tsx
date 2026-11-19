@@ -27,6 +27,21 @@ const emptyForm: FinancingProposalCreate = {
 
 const money = (value: number) => (value || 0).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
+function FinancingStatus({ status, message }: { status: string; message: string }) {
+  const states: Record<string, { label: string; color: string }> = {
+    Draft: { label: 'Cadastro', color: 'text-amber-400' },
+    Received: { label: 'Registrada', color: 'text-amber-400' },
+    Pending: { label: 'Em análise', color: 'text-sky-300' },
+    Approved: { label: 'Aprovada pelo banco', color: 'text-emerald-400' },
+    Rejected: { label: 'Recusada pelo banco', color: 'text-rose-400' },
+    Unavailable: { label: 'Envio ou retorno não confirmado', color: 'text-slate-400' },
+  };
+  const state = states[status] ?? { label: 'Situação a confirmar', color: 'text-slate-400' };
+  return <span title={message} className={`inline-flex items-center gap-1 ${state.color}`}>
+    {status === 'Approved' ? <CheckCircle2 className="h-3 w-3" /> : <Clock3 className="h-3 w-3" />}{state.label}
+  </span>;
+}
+
 export function FinancingProposalsPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const [items, setItems] = useState<FinancingProposal[]>([]);
   const [vehicles, setVehicles] = useState<StockVehicle[]>([]);
@@ -122,7 +137,7 @@ export function FinancingProposalsPage({ currentView, onNavigate }: { currentVie
         </div>
         {error && <div className="p-3 rounded-lg border border-rose-500/30 bg-rose-500/10 text-rose-300 text-xs">{error}</div>}
         <div className="bg-nexus-card border border-nexus-border rounded-xl overflow-hidden">
-          {loading ? <div className="p-8 text-center text-slate-400">Carregando...</div> : items.length === 0 ? <div className="p-10 text-center text-slate-400 text-sm">Nenhuma proposta cadastrada.</div> : <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-nexus-border bg-slate-950/60 text-slate-400 uppercase"><th className="p-3">Proposta</th><th className="p-3">Cliente</th><th className="p-3">Veículo</th><th className="p-3">Financiado</th><th className="p-3">Status</th><th className="p-3 text-center">Exportar</th></tr></thead><tbody className="divide-y divide-nexus-border text-slate-200">{items.map(item => <tr key={item.id} className="hover:bg-slate-800/40"><td className="p-3 font-mono">{item.proposalNumber}</td><td className="p-3">{item.customerName}<span className="block text-[10px] text-slate-500">{item.customerCpf}</span></td><td className="p-3">{item.vehicleName}</td><td className="p-3 font-bold text-amber-400">{money(item.financedAmount)}</td><td className="p-3">{item.status === 'Draft' ? <span className="inline-flex gap-1 items-center text-amber-400"><Clock3 className="w-3 h-3" /> Cadastro</span> : <span className="inline-flex gap-1 items-center text-emerald-400"><CheckCircle2 className="w-3 h-3" /> {item.status}</span>}</td><td className="p-3"><div className="flex justify-center gap-1">{(['xml','txt','csv','json'] as const).map(format => <button key={format} onClick={() => financingProposalService.export(item.id, format)} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] uppercase">{format}</button>)}</div></td></tr>)}</tbody></table></div>}
+          {loading ? <div className="p-8 text-center text-slate-400">Carregando...</div> : items.length === 0 ? <div className="p-10 text-center text-slate-400 text-sm">Nenhuma proposta cadastrada.</div> : <div className="overflow-x-auto"><table className="w-full text-left text-xs"><thead><tr className="border-b border-nexus-border bg-slate-950/60 text-slate-400 uppercase"><th className="p-3">Proposta</th><th className="p-3">Cliente</th><th className="p-3">Veículo</th><th className="p-3">Financiado</th><th className="p-3">Status</th><th className="p-3 text-center">Exportar</th></tr></thead><tbody className="divide-y divide-nexus-border text-slate-200">{items.map(item => <tr key={item.id} className="hover:bg-slate-800/40"><td className="p-3 font-mono">{item.proposalNumber}</td><td className="p-3">{item.customerName}<span className="block text-[10px] text-slate-500">{item.customerCpf}</span></td><td className="p-3">{item.vehicleName}</td><td className="p-3 font-bold text-amber-400">{money(item.financedAmount)}</td><td className="p-3"><FinancingStatus status={item.status} message={item.message} /></td><td className="p-3"><div className="flex justify-center gap-1">{(['xml','txt','csv','json'] as const).map(format => <button key={format} onClick={() => financingProposalService.export(item.id, format)} className="px-2 py-1 rounded bg-slate-800 hover:bg-slate-700 text-[10px] uppercase">{format}</button>)}</div></td></tr>)}</tbody></table></div>}
         </div>
       </div>
 

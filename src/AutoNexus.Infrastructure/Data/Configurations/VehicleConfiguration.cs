@@ -35,7 +35,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(x => x.SaleValue).HasPrecision(18, 2);
         builder.Property(x => x.Notes).HasMaxLength(2000);
         builder.Property(x => x.CreatedAt).IsRequired();
-        builder.Property(x => x.UpdatedAt);
+        builder.Property(x => x.UpdatedAt).IsConcurrencyToken();
 
         // Relacionamento com VehicleType
         builder.HasOne(x => x.VehicleType)

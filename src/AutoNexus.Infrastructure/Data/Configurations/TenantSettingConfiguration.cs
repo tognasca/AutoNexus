@@ -33,6 +33,13 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
         {
             Id = Guid.Parse("00000000-0000-0000-0000-0000000000b1"),
             TenantId = Tenant.DefaultTenantId,
+            AiEnabled = false,
+            AiMonthlyLimit = 0,
+            AiUsed = 0,
+            AiUsageMonth = "",
+            OpenAiModel = "gpt-4.1-mini",
+            StoreTemplate = "premium",
+            PanelDensity = "comfortable",
             CompanyName = "Empresa Padrão",
             LogoUrl = (string?)null,
             WelcomeText = (string?)null,

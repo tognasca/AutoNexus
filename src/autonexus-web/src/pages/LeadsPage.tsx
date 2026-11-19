@@ -22,11 +22,10 @@ const stages = [
 export function LeadsPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
   const { user } = useAuth();
   const preferenceKey = `atmotors:lead-view:${user?.tenantId}:${user?.userId}`;
-  const [leadView, setLeadView] = useState('board');
-  useEffect(() => {
-    try { setLeadView(localStorage.getItem(preferenceKey) === 'list' ? 'list' : 'board'); }
-    catch { setLeadView('board'); }
-  }, [preferenceKey]);
+  const [leadView, setLeadView] = useState(() => {
+    try { return localStorage.getItem(preferenceKey) === 'list' ? 'list' : 'board'; }
+    catch { return 'board'; }
+  });
   const [attendance, setAttendance] = useState<LeadItem | null>(null);
   const [dueOnly, setDueOnly] = useState(false);
   const [items, setItems] = useState<LeadItem[]>([]);

@@ -20,7 +20,7 @@ public static class DependencyInjection
         services.AddScoped<IDashboardService, DashboardService>();
         services.AddScoped<IReportService, ReportService>();
         services.AddScoped<IContractService, ContractService>();
-        services.AddHttpClient("BankCreditClient");
+        services.AddHttpClient("BankCreditClient", client => client.Timeout = TimeSpan.FromSeconds(45));
         services.AddScoped<IBankCreditService, CreditService>();
         services.AddScoped<IBankConfigService, BankConfigService>();
         services.AddScoped<ICompanyDocumentService, CompanyDocumentService>();

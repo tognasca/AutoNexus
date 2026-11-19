@@ -1,3 +1,5 @@
+import { StockImport } from '../components/onboarding/StockImport';
+import { request } from '../services/api';
 import { useEffect, useState } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { dashboardService, type DashboardSummary } from '../services/dashboardService';
@@ -7,14 +9,17 @@ import { Building2, CheckCircle2, Circle, ExternalLink, Palette, Car, MessageCir
 interface OnboardingPageProps { currentView?: string; onNavigate?: (view: string) => void; }
 
 export function OnboardingPage({ currentView, onNavigate }: OnboardingPageProps) {
+  const [setup, setSetup] = useState<{ teamCount: number; publishedCount: number; catalogPath: string } | null>(null);
+  const [error, setError] = useState('');
+  const refreshSetup = () => request<{ teamCount: number; publishedCount: number; catalogPath: string }>('/store-setup').then(setSetup);
   const [settings, setSettings] = useState<TenantSettings | null>(null);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([tenantSettingsService.get(), dashboardService.getSummary()])
+    Promise.all([tenantSettingsService.get(), dashboardService.getSummary(), refreshSetup()])
       .then(([tenant, dashboard]) => { setSettings(tenant); setSummary(dashboard); })
-      .catch(error => console.error('Erro ao carregar onboarding:', error))
+      .catch(() => setError('Não foi possível conferir todas as etapas. Recarregue a página para tentar novamente.'))
       .finally(() => setLoading(false));
   }, []);
 
@@ -22,6 +27,8 @@ export function OnboardingPage({ currentView, onNavigate }: OnboardingPageProps)
     { label: 'Nome da empresa configurado', done: Boolean(settings.companyName?.trim()), view: 'tenant-settings', icon: Building2 },
     { label: 'Logo e identidade visual configurados', done: Boolean(settings.logoUrl?.trim()) && Boolean(settings.primaryColor), view: 'tenant-settings', icon: Palette },
     { label: 'WhatsApp comercial configurado', done: Boolean(settings.whatsappNumber?.trim()), view: 'tenant-settings', icon: MessageCircle },
+    { label: 'Equipe ativa revisada', done: Boolean(setup && setup.teamCount > 0), view: 'users', icon: Building2 },
+    { label: 'Catálogo com veículos disponíveis', done: Boolean(setup && setup.publishedCount > 0), view: 'catalog', icon: Globe2 },
     { label: 'Primeiros veículos cadastrados', done: Boolean(summary && summary.kpis.vehiclesForSale > 0), view: 'vehicles', icon: Car },
   ] : [];
 
@@ -38,6 +45,7 @@ export function OnboardingPage({ currentView, onNavigate }: OnboardingPageProps)
         <div className="mt-6 h-2 rounded-full bg-slate-800 overflow-hidden"><div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${progress}%` }} /></div>
       </div>
 
+      {error && <p role="alert" className="text-rose-300">{error}</p>}
       {loading ? <div className="rounded-2xl border border-nexus-border bg-nexus-card p-10 text-center text-slate-400">Verificando sua configuração...</div> : <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         <section className="lg:col-span-2 rounded-2xl border border-nexus-border bg-nexus-card p-5 md:p-6"><h2 className="text-base font-bold text-white">Checklist da sua loja</h2><div className="mt-5 space-y-3">
           {steps.map(step => { const Icon = step.icon; return <button key={step.label} onClick={() => onNavigate?.(step.view)} className="w-full flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40 transition-colors">
@@ -51,6 +59,11 @@ export function OnboardingPage({ currentView, onNavigate }: OnboardingPageProps)
           <a href="/demo" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 text-sm font-bold text-white">Ver demonstração <ExternalLink className="w-4 h-4" /></a>
         </section>
       </div>}
+      {!loading && <StockImport onImported={() => {
+        void refreshSetup().catch(() => setError('Recarregue para atualizar a conferência.'));
+        void dashboardService.getSummary().then(setSummary).catch(() => {});
+      }} />}
+      {setup?.catalogPath && <a href={setup.catalogPath} target="_blank" rel="noreferrer" className="inline-flex rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white">Conferir catálogo publicado</a>}
     </div>
   </MainLayout>;
 }

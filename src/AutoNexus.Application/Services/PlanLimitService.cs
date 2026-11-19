@@ -30,10 +30,15 @@ public class PlanLimitService : IPlanLimitService
             throw new PlanLimitExceededException($"Seu plano {plan.Name} permite até {max} usuário(s). Faça upgrade do plano para adicionar mais.");
     }
 
-    public async Task EnsureCanAddVehicleAsync(CancellationToken cancellationToken = default)
+    public Task EnsureCanAddVehicleAsync(CancellationToken cancellationToken = default) =>
+        EnsureCanAddVehiclesAsync(1, cancellationToken);
+
+    public async Task EnsureCanAddVehiclesAsync(int count, CancellationToken cancellationToken = default)
     {
+        if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
+        if (count == 0) return;
         var plan = await GetCurrentPlanAsync(cancellationToken);
-        if (plan?.MaxVehicles is int max && await _vehicles.CountAsync(cancellationToken) >= max)
+        if (plan?.MaxVehicles is int max && await _vehicles.CountAsync(cancellationToken) > max - count)
             throw new PlanLimitExceededException($"Seu plano {plan.Name} permite até {max} veículo(s). Faça upgrade do plano para cadastrar mais.");
     }
 

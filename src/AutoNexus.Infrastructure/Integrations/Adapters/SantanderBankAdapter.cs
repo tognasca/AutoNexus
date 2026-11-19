@@ -12,10 +12,14 @@ public class SantanderBankAdapter : IBankAdapter
 
     public HttpRequestMessage BuildHttpRequest(BankConfig config, CreditProposalRequest proposal)
     {
-        // 1. Monta o Payload JSON exato que o Santander exige
+        if (string.IsNullOrWhiteSpace(config.MerchantId))
+            throw new InvalidOperationException("Configure o código de lojista fornecido pela instituição.");
+        if (!Uri.TryCreate(config.ApiUrl, UriKind.Absolute, out var endpoint) || endpoint.Scheme != Uri.UriSchemeHttps)
+            throw new InvalidOperationException("Configure um endpoint HTTPS válido para a instituição.");
+        // Contrato do adaptador deve ser homologado com a instituição antes de habilitar o envio.
         var santanderPayload = new
         {
-            codigoLojista = config.MerchantId ?? "AUTO_NEXUS_STORE",
+            codigoLojista = config.MerchantId,
             cliente = new
             {
                 nomeCompleto = proposal.CustomerName,
@@ -53,34 +57,33 @@ public class SantanderBankAdapter : IBankAdapter
 
     public CreditProposalResponse ParseHttpResponse(string rawResponseBody, int statusCode)
     {
+        static CreditProposalResponse Unconfirmed() => new("Unavailable", "",
+            "A resposta do banco não confirmou um protocolo e uma situação reconhecidos.", null, null, null);
+        if (statusCode < 200 || statusCode >= 300) return Unconfirmed();
         try
         {
             using var doc = JsonDocument.Parse(rawResponseBody);
             var root = doc.RootElement;
-
-            var statusStr = root.TryGetProperty("statusProposta", out var st) ? st.GetString() : "PENDING";
-            var proposalId = root.TryGetProperty("idProposta", out var id) ? id.GetString() : Guid.NewGuid().ToString();
-            var msg = root.TryGetProperty("mensagemMesa", out var m) ? m.GetString() : "Proposta processada.";
-
-            var mappedStatus = statusStr?.ToUpper() switch
+            if (!root.TryGetProperty("statusProposta", out var status) ||
+                !root.TryGetProperty("idProposta", out var id) ||
+                status.ValueKind != JsonValueKind.String)
+                return Unconfirmed();
+            var protocol = id.ValueKind == JsonValueKind.String ? id.GetString() :
+                id.ValueKind == JsonValueKind.Number ? id.GetRawText() : null;
+            if (string.IsNullOrWhiteSpace(protocol)) return Unconfirmed();
+            var mapped = status.GetString()?.Trim().ToUpperInvariant() switch
             {
                 "APROVADO" or "APPROVED" => "Approved",
                 "RECUSADO" or "REJECTED" => "Rejected",
-                _ => "Pending"
+                "PENDING" or "PENDENTE" or "EM_ANALISE" or "RECEBIDO" => "Pending",
+                _ => null
             };
-
-            return new CreditProposalResponse(
-                Status: mappedStatus,
-                ProposalNumber: proposalId ?? "PROP-SAN-001",
-                Message: msg ?? "Proposta enviada ao Santander.",
-                ApprovedLimit: null,
-                ApprovedMonths: null,
-                ApprovedRate: null
-            );
+            if (mapped is null) return Unconfirmed();
+            var text = root.TryGetProperty("mensagemMesa", out var message) && message.ValueKind == JsonValueKind.String
+                ? message.GetString() : null;
+            return new(mapped, protocol, text ?? "Situação confirmada pela instituição financeira.", null, null, null);
         }
-        catch
-        {
-            return new CreditProposalResponse("Pending", "PROP-SAN-001", "Proposta enviada para análise da mesa Santander.", null, null, null);
-        }
+        catch (JsonException) { return Unconfirmed(); }
+        catch (InvalidOperationException) { return Unconfirmed(); }
     }
 }
