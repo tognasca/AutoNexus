@@ -102,6 +102,25 @@ public sealed class LeadsController : ControllerBase
         return Ok(ToResponse(lead));
     }
 
+    [HttpGet("{id:guid}/vehicle-suggestions")]
+    public async Task<IActionResult> GetVehicleSuggestions(Guid id, [FromQuery] decimal budget,
+        [FromQuery] TransmissionType? transmission, CancellationToken ct)
+    {
+        if (!_tenant.HasTenant) return Forbid();
+        if (budget <= 0 || (transmission.HasValue && !Enum.IsDefined(transmission.Value)))
+            return BadRequest(new { message = "Informe um orçamento positivo e um câmbio válido." });
+        if (!await _db.Leads.AnyAsync(x => x.Id == id, ct)) return NotFound();
+        var vehicles = _db.Vehicles.AsNoTracking()
+            .Where(x => x.Status == VehicleStatus.AVenda && x.ListedValue > 0 && x.ListedValue <= budget);
+        if (transmission.HasValue) vehicles = vehicles.Where(x => x.Transmission == transmission);
+        var suggestions = await vehicles.OrderByDescending(x => x.ListedValue)
+            .ThenByDescending(x => x.ModelYear).ThenBy(x => x.Id)
+            .Take(3)
+            .Select(x => new { x.Id, x.Brand, x.Model, x.ModelYear, x.ListedValue, x.Transmission })
+            .ToListAsync(ct);
+        return Ok(suggestions);
+    }
+
     [HttpPost("{id:guid}/contact")]
     public async Task<IActionResult> RegisterContact(Guid id, CancellationToken ct)
     {

@@ -3,6 +3,7 @@ import { leadService, LeadStatus, type LeadItem, type AttendanceInput } from '..
 import { vehicleService } from '../../services/vehicleService';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { getFullPhotoUrl } from '../vehicles/VehiclePhotosModal';
+import { AttendanceTools } from './AttendanceTools';
 import { VehicleSaleModal } from '../vehicles/VehicleSaleModal';
 
 const money = (value: number) => value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -120,6 +121,15 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
           <label className="block text-sm">Próximo retorno, visita ou test-drive
             <input type="datetime-local" value={returnAt} onChange={e => setReturnAt(e.target.value)} className="mt-1 w-full rounded-lg bg-slate-950 p-3" />
           </label>
+          <div className="flex flex-wrap gap-2">
+            {[1, 3, 7].map(days => <button key={days} type="button"
+              className="rounded-lg bg-slate-800 px-3 py-2 text-sm" onClick={() => {
+                const next = new Date();
+                next.setDate(next.getDate() + days);
+                next.setHours(9, 0, 0, 0);
+                setReturnAt(localTime(next.toISOString()));
+              }}>Retornar em {days} {days === 1 ? 'dia' : 'dias'}</button>)}
+          </div>
           <button className="w-full rounded-lg bg-blue-600 px-4 py-3 font-semibold">{busy ? 'Salvando…' : 'Salvar atendimento'}</button>
         </fieldset>
         <details className="rounded-lg border border-slate-700 p-3">
@@ -140,6 +150,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
         }}>Registrar venda</button>}
       </form>
     </div>
+    <AttendanceTools lead={current} />
     {selling && vehicle && <VehicleSaleModal isOpen vehicle={{ ...vehicle, saleValue: form.offerValue ?? vehicle.saleValue }}
       onClose={() => setSelling(false)} onSaleCompleted={() => {
         setVehicle({ ...vehicle, status: VehicleStatus.Vendido });
