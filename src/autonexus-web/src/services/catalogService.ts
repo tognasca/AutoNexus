@@ -19,6 +19,7 @@ export interface PublicVehiclePhoto {
 }
 
 export interface PublicStoreInfo {
+  storeTemplate?: string;
   name: string;
   slug: string;
   logoUrl?: string;

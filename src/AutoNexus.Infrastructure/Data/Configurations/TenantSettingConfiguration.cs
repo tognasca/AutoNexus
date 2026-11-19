@@ -10,6 +10,8 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
     {
         builder.ToTable("tenant_settings");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.StoreTemplate).HasMaxLength(30);
+        builder.Property(x => x.PanelDensity).HasMaxLength(30);
         builder.Property(x => x.OpenAiModel).HasMaxLength(100);
 
         builder.Property(x => x.CompanyName).HasMaxLength(200).IsRequired();

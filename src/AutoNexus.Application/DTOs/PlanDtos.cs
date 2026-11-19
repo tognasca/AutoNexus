@@ -62,5 +62,7 @@ public record TenantSettingDto(
     string? HeroImageUrl = null,
     string? HeroTemplateKey = null,
     string? WelcomeText = null,
-    string? HeroTitle = null
+    string? HeroTitle = null,
+    string? StoreTemplate = null,
+    string? PanelDensity = null
 );

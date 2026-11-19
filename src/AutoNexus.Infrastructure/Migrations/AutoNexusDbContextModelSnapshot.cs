@@ -1184,6 +1184,9 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
                 {
+                    b.Property<string>("StoreTemplate").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)").HasColumnName("storeTemplate");
+                    b.Property<string>("PanelDensity").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)").HasColumnName("panelDensity");
+
                     b.Property<string>("OpenAiEncryptedKey")
                         .HasColumnType("text")
                         .HasColumnName("openAiEncryptedKey");

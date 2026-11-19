@@ -12,6 +12,19 @@ public class TenantSetting : TenantOwnedEntityBase
     public string CompanyName { get; private set; } = string.Empty;
     public string? LogoUrl { get; private set; }
     public string? HeroImageUrl { get; private set; }
+    public string StoreTemplate { get; private set; } = "premium";
+    public string PanelDensity { get; private set; } = "comfortable";
+
+    public void ConfigureAppearance(string? template, string? density)
+    {
+        if (template is not null && template is not ("essential" or "premium" or "commercial"))
+            throw new ArgumentException("Modelo de site inválido.");
+        if (density is not null && density is not ("comfortable" or "compact"))
+            throw new ArgumentException("Densidade do painel inválida.");
+        StoreTemplate = template ?? StoreTemplate;
+        PanelDensity = density ?? PanelDensity;
+    }
+
     public string? HeroTemplateKey { get; private set; }
     public string? WelcomeText { get; private set; }
     public string? HeroTitle { get; private set; }
