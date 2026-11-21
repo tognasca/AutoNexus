@@ -105,6 +105,7 @@ def run():
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, token)
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, token, expected=409)
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "handover", "done": True}, token, expected=409)
+    assert any(x["kind"] == "delivery" and x["vehicleId"] == vid for x in call("/daily-work", token=token)["items"])
     for step in ["payment", "documents", "accessories", "handover"]:
         checklist = call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": step, "done": True}, token)
         assert checklist[step]["completedAt"] and checklist[step]["userId"] and checklist[step]["userName"]
@@ -129,6 +130,31 @@ def run():
     assert historical["vehiclePrice"] == 100000 and historical["entryValue"] == 20000
     call("/financing/proposals/" + historical["id"] + "/export/csv", token=token)
     check("financiamento: saldo, vínculo, registro, exportações e estado sem envio bancário")
+    call("/daily-work", expected=401)
+    now = datetime.datetime.now(datetime.timezone.utc)
+    daily = []
+    for index in range(12):
+        item = call("/leads", "POST", {"name": "Fila " + SUFFIX + str(index),
+            "phone": "11999999999", "source": "Manual"}, token, expected=201)
+        daily.append(item["id"])
+    urgent = daily[0]
+    call("/leads/" + urgent + "/attendance", "PUT", {"nextContactAt": (now - datetime.timedelta(hours=1)).isoformat()}, token)
+    future = daily[1]
+    call("/leads/" + future + "/attendance", "PUT", {"nextContactAt": (now + datetime.timedelta(days=2)).isoformat()}, token)
+    closed = daily[2]
+    call("/leads/" + closed + "/status", "PATCH", {"status": 5}, token)
+    queue = call("/daily-work", token=token)
+    assert len(queue["items"]) == 10 and queue["items"][0]["leadId"] == urgent
+    assert not any(x["leadId"] in [future, closed] for x in queue["items"])
+    assert not any(x["kind"] == "delivery" and x["vehicleId"] == vid for x in queue["items"])
+    assert call("/daily-work?mine=false", token=seller)["total"] == 0
+    call("/leads/" + daily[3] + "/contact", "POST", token=token)
+    assert not any(x["leadId"] == daily[3] for x in call("/daily-work", token=token)["items"])
+    seller_lead = call("/leads", "POST", {"name": "Fila vendedor " + SUFFIX, "phone": "11999999999"}, seller, expected=201)
+    assert any(x["leadId"] == seller_lead["id"] for x in call("/daily-work?mine=false", token=seller)["items"])
+    assert not any(x["leadId"] == seller_lead["id"] for x in call("/daily-work", token=token)["items"])
+    assert any(x["leadId"] == seller_lead["id"] for x in call("/daily-work?mine=false", token=token)["items"])
+    check("fila diária: prioridade, limite 10, retornos futuros, encerrados, contato e filtro do vendedor")
     plans = call("/signup/plans")
     plan = next(item for item in plans if item.get("trialDays", 0) > 0)
     other = call("/signup", "POST", {"companyName": "Outra loja " + SUFFIX,
@@ -136,6 +162,7 @@ def run():
         "adminPassword": PASSWORD, "planId": plan["id"], "cycle": 1,
         "acceptTermsOfUse": True, "acceptPrivacyPolicy": True, "acceptCookiePolicy": True})
     other_token = other["login"]["token"]
+    assert call("/daily-work?mine=false", token=other_token)["total"] == 0
     for endpoint in ["/launch/leads/" + lid, "/launch/vehicles/" + vid + "/margin", "/launch/vehicles/" + vid + "/delivery"]:
         call(endpoint, token=other_token, expected=404)
     call("/launch/leads/" + lid + "/proposal", "POST", {}, other_token, expected=404)

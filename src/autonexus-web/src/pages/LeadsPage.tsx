@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { DailyWorkQueue } from '../components/leads/DailyWorkQueue';
 import { AttendancePanel } from '../components/leads/AttendancePanel';
 import { MainLayout } from '../components/layout/MainLayout';
 import { leadService, LeadStatus, type LeadItem, type LeadInput } from '../services/leadService';
@@ -91,6 +92,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
         <div><h1 className="flex items-center gap-2 text-xl font-bold text-white"><Users className="text-blue-400"/> Mesa de atendimento</h1><p className="mt-1 text-sm text-slate-400">Cliente, veículo, proposta e próximo retorno no mesmo atendimento.</p></div>
         <button onClick={() => { setEditingId(null); setForm({ name: '', phone: '', email: '', source: 'Manual', notes: '' }); setModal(true); }} className="flex items-center gap-2 rounded-lg bg-blue-600 px-4 py-2.5 text-sm font-semibold text-white"><Plus size={17}/> Novo atendimento</button>
       </div>
+      <DailyWorkQueue isAdmin={user?.profile === 1} onUpdated={() => { void load(); }} />
       <div className="flex gap-2">
         {(['board', 'list'] as const).map(view => <button key={view} type="button" aria-pressed={leadView === view}
           onClick={() => { setLeadView(view); try { localStorage.setItem(preferenceKey, view); } catch { /* Mantém a preferência nesta sessão. */ } }}
