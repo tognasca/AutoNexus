@@ -25,6 +25,7 @@ public class VehicleConfiguration : IEntityTypeConfiguration<Vehicle>
         builder.Property(x => x.Transmission).HasConversion<int>();
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         // Mapeamento explícito das colunas decimais para garantir compatibilidade no PostgreSQL
+        builder.Property(v => v.ConsignmentPayout).HasPrecision(18, 2);
         builder.Property(v => v.PurchaseValue)
             .HasColumnName("purchase_value")
             .HasColumnType("numeric(18,2)")

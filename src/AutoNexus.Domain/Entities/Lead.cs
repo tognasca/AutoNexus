@@ -8,6 +8,23 @@ public class Lead : TenantOwnedEntityBase
     public string Phone { get; private set; } = string.Empty;
     public string? Email { get; private set; }
     public string Source { get; private set; } = "Manual";
+    public string? ExternalId { get; private set; }
+    public bool IsMarketplace() => IsMarketplace(Source);
+    public static bool IsMarketplace(string? source) =>
+        source?.Trim().ToUpperInvariant() is "MARKETPLACE" or "MERCADO LIVRE" or "OLX" or "WEBMOTORS" or "ICARROS";
+
+    public string[] MissingContactFields()
+    {
+        var fields = new List<string>();
+        if (string.IsNullOrWhiteSpace(Name)) fields.Add("nome");
+        var digits = Phone.Count(char.IsAsciiDigit);
+        if (digits < 10 || digits > 15) fields.Add("telefone");
+        if (IsMarketplace() && string.IsNullOrWhiteSpace(ExternalId)) fields.Add("identificador do portal");
+        return fields.ToArray();
+    }
+
+    public void SetExternalId(string? value) => ExternalId = string.IsNullOrWhiteSpace(value) ? null : value.Trim();
+
     public string? Notes { get; private set; }
     public LeadStatus Status { get; private set; } = LeadStatus.Novo;
     public Guid? VehicleId { get; private set; }
@@ -78,8 +95,8 @@ public class Lead : TenantOwnedEntityBase
 
     public void UpdateDetails(string name, string phone, string? email, string? source, string? notes, Guid? vehicleId, Guid? assignedToUserId)
     {
-        if (string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Nome do lead é obrigatório.", nameof(name));
-        if (string.IsNullOrWhiteSpace(phone)) throw new ArgumentException("Telefone do lead é obrigatório.", nameof(phone));
+        if (!IsMarketplace(source) && string.IsNullOrWhiteSpace(name)) throw new ArgumentException("Nome do lead é obrigatório.", nameof(name));
+        if (!IsMarketplace(source) && string.IsNullOrWhiteSpace(phone)) throw new ArgumentException("Telefone do lead é obrigatório.", nameof(phone));
         Name = name.Trim();
         Phone = phone.Trim();
         Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim().ToLowerInvariant();

@@ -19,6 +19,25 @@ public class Vehicle : TenantOwnedEntityBase
     public TransmissionType? Transmission { get; private set; }
     public VehicleStatus Status { get; private set; }
     public decimal PurchaseValue { get; private set; }
+    public decimal? ConsignmentPayout { get; private set; }
+    public string? TransferTracking { get; private set; }
+    public decimal MarginBasis() => ConsignmentPayout ?? PurchaseValue;
+
+    public void SetConsignmentPayout(decimal? amount)
+    {
+        if (amount is <= 0 or > 9999999999999999.99m || (amount.HasValue && decimal.Round(amount.Value, 2) != amount))
+            throw new ArgumentException("Informe um repasse positivo com até duas casas decimais.");
+        ConsignmentPayout = amount;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public void SaveTransferTracking(string tracking)
+    {
+        if (Status != VehicleStatus.Vendido) throw new InvalidOperationException("Registre a venda antes da transferência.");
+        TransferTracking = tracking;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     public decimal? ListedValue { get; private set; }
     public decimal? SaleValue { get; private set; }
     public string? Notes { get; private set; }
@@ -115,6 +134,8 @@ public class Vehicle : TenantOwnedEntityBase
     {
         if (ReservationExpiresAt > DateTime.UtcNow && newStatus != VehicleStatus.Reservado)
             throw new InvalidOperationException("Cancele a reserva antes de alterar a situação.");
+        if (Status == VehicleStatus.Vendido && newStatus != VehicleStatus.Vendido)
+            TransferTracking = null;
         Status = newStatus;
         UpdatedAt = DateTime.UtcNow;
     }

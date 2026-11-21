@@ -27,6 +27,8 @@ export interface LeadItem extends Partial<AttendanceInput> {
   notes?: string | null;
   status: LeadStatus;
   statusName: string;
+  externalId?: string | null;
+  missingFields?: string[];
   vehicleId?: string | null;
   vehicleName?: string | null;
   assignedToUserId?: string | null;
@@ -41,6 +43,7 @@ export interface LeadInput {
   phone: string;
   email?: string | null;
   source?: string;
+  externalId?: string | null;
   notes?: string | null;
   vehicleId?: string | null;
   assignedToUserId?: string | null;

@@ -10,6 +10,7 @@ interface WorkItem {
   vehicleId: string | null; vehicleName: string | null; responsibleName: string | null;
   score: number; reasons: string[]; stockDays: number | null; marginPercentage: number | null;
   nextContactAt: string | null;
+  missingFields?: string[] | null;
 }
 interface WorkQueue { generatedAt: string; timeZone: string; total: number; items: WorkItem[] }
 export function DailyWorkQueue({ isAdmin, onUpdated }: { isAdmin: boolean; onUpdated: () => void }) {
@@ -78,8 +79,8 @@ export function DailyWorkQueue({ isAdmin, onUpdated }: { isAdmin: boolean; onUpd
           {item.nextContactAt && <p className="text-xs text-slate-300">Retorno: {new Date(item.nextContactAt).toLocaleString('pt-BR', { timeZone: 'America/Sao_Paulo' })}</p>}
           {item.marginPercentage !== null && <p className="text-xs text-slate-400">Margem estimada: {item.marginPercentage.toLocaleString('pt-BR')}%</p>}
           <div className="flex flex-wrap gap-2">
-            <button type="button" disabled={busy !== null} onClick={() => void open(item)} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50">{busy === item.id ? 'Aguarde...' : item.kind === 'lead' ? 'Atender cliente' : item.kind === 'delivery' ? 'Conferir entrega' : 'Revisar veículo'}</button>
-            {item.leadId && <button type="button" disabled={busy !== null} onClick={() => void contact(item)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50">Registrar contato realizado</button>}
+            <button type="button" disabled={busy !== null} onClick={() => void open(item)} className="rounded-lg bg-blue-600 px-3 py-2 text-sm text-white disabled:opacity-50">{busy === item.id ? 'Aguarde...' : item.kind === 'lead' ? (item.missingFields?.length ? 'Completar contato' : 'Atender cliente') : item.kind === 'delivery' ? 'Conferir entrega' : 'Revisar veículo'}</button>
+            {item.leadId && !item.missingFields?.includes("telefone") && <button type="button" disabled={busy !== null} onClick={() => void contact(item)} className="rounded-lg bg-slate-800 px-3 py-2 text-sm text-white disabled:opacity-50">Registrar contato realizado</button>}
           </div>
         </li>)}
       </ol>

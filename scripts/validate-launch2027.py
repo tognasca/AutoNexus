@@ -89,6 +89,14 @@ def run():
     assert margin["values"]["profit"] == 10000 and margin["values"]["totalCost"] == 85000
     check("margem com custos e desconto contabilizado uma única vez")
 
+    for payout, expected_profit in [(85000, 5000), (90000, 0), (92000, -2000)]:
+        call("/launch/vehicles/" + vid + "/consignment", "PUT", {"payout": payout}, token, expected=204)
+        simulated = call("/launch/vehicles/" + vid + "/margin?offer=95000", token=token)
+        assert simulated["consignmentPayout"] == payout and simulated["values"]["expenses"] == 5000
+        assert simulated["values"]["profit"] == expected_profit
+    call("/launch/vehicles/" + vid + "/consignment", "PUT", {"payout": None}, token, expected=204)
+    check("margem em três cenários de consignação e retorno a estoque próprio")
+
     expires = (datetime.datetime.now(datetime.timezone.utc) + datetime.timedelta(hours=2)).isoformat()
     def reserve(_):
         return call("/launch/vehicles/" + vid + "/reserve", "POST",
@@ -112,6 +120,29 @@ def run():
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "payment", "done": False}, token, expected=409)
     assert call("/launch/vehicles/" + vid + "/margin", token=token)["realized"]
     check("venda única, entrega em ordem e rastreabilidade de responsáveis")
+
+    transfer = "/launch/vehicles/" + vid + "/transfer"
+    complete = {"step": "confirmation", "status": "completed", "source": "external", "evidence": "PROTOCOLO-01"}
+    call(transfer, "PUT", complete, token, expected=409)
+    call(transfer, "PUT", dict(complete, step="signature", evidence=None), token, expected=400)
+    for step in ["signature", "inspection", "confirmation"]:
+        record = call(transfer, "PUT", dict(complete, step=step), token)[step]
+        assert record["verifiedAt"] and record["userName"] and record["source"] == "external"
+    assert call(transfer, token=token)["confirmation"]["evidence"] == "PROTOCOLO-01"
+    call(transfer, "PUT", dict(complete, step="inspection", status="pending"), token, expected=409)
+    check("transferência: evidência obrigatória, ordem, origem e responsável persistidos")
+
+    partial = call("/leads", "POST", {"source": "Mercado Livre"}, token, expected=201)
+    assert len(partial["missingFields"]) == 3
+    call("/leads/" + partial["id"] + "/contact", "POST", token=token, expected=400)
+    queue = call("/daily-work", token=token)
+    assert any(x["leadId"] == partial["id"] and len(x["missingFields"]) == 3 for x in queue["items"])
+    fixed = call("/leads/" + partial["id"] + "/contact-details", "PATCH",
+        {"name": "Cliente do portal", "phone": "11999999999", "externalId": "ML-" + SUFFIX}, token)
+    assert not fixed["missingFields"] and fixed["assignedToUserId"] == partial["assignedToUserId"]
+    call("/leads/" + partial["id"] + "/contact", "POST", token=token)
+    assert not any(x["leadId"] == partial["id"] for x in call("/daily-work", token=token)["items"])
+    check("lead incompleto aparece na fila e pode ser corrigido sem alterar o responsável")
 
     finance = {"customerName": "Cliente teste", "customerCpf": "00000000000", "monthlyIncome": 10000,
         "hasDriverLicense": True, "vehicleName": "Corolla", "vehicleId": vid,
@@ -163,6 +194,9 @@ def run():
         "acceptTermsOfUse": True, "acceptPrivacyPolicy": True, "acceptCookiePolicy": True})
     other_token = other["login"]["token"]
     assert call("/daily-work?mine=false", token=other_token)["total"] == 0
+    call(transfer, token=other_token, expected=404)
+    call(transfer, "PUT", complete, other_token, expected=404)
+    call("/launch/vehicles/" + vid + "/consignment", "PUT", {"payout": 80000}, other_token, expected=404)
     for endpoint in ["/launch/leads/" + lid, "/launch/vehicles/" + vid + "/margin", "/launch/vehicles/" + vid + "/delivery"]:
         call(endpoint, token=other_token, expected=404)
     call("/launch/leads/" + lid + "/proposal", "POST", {}, other_token, expected=404)

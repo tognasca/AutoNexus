@@ -1,3 +1,4 @@
+import { request } from '../../services/api';
 import { VehicleOperations } from '../vehicles/VehicleOperations';
 import { LaunchLeadTools } from './LaunchLeadTools';
 import { useEffect, useRef, useState } from 'react';
@@ -21,6 +22,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
   const [current, setCurrent] = useState(lead);
+  const [contact, setContact] = useState({ name: lead.name, phone: lead.phone, externalId: lead.externalId ?? '' });
   const [vehicle, setVehicle] = useState<VehicleSummary | null>(null);
   const [form, setForm] = useState<AttendanceInput>({
     offerValue: lead.offerValue ?? null, downPayment: lead.downPayment ?? null,
@@ -74,7 +76,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
     onCancel={event => { event.preventDefault(); if (!busy) onClose(); }}
     className="m-auto max-h-[94dvh] w-[96vw] max-w-5xl overflow-y-auto rounded-2xl border border-slate-700 bg-slate-900 p-4 text-white backdrop:bg-black/75 sm:p-6">
     <header className="mb-5 flex items-start justify-between gap-3">
-      <div><h2 id="attendance-title" className="text-xl font-bold">{current.name}</h2>
+      <div><h2 id="attendance-title" className="text-xl font-bold">{current.name || "Lead sem nome"}</h2>
         <a href={`tel:${current.phone}`} className="text-sm text-slate-400">{current.phone}</a>
         <p className="text-xs text-slate-400">{current.statusName} · {current.assignedToName ?? 'Sem responsável'}</p>
       </div>
@@ -94,11 +96,26 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
             {vehicle.status === VehicleStatus.Vendido ? 'Vendido' : vehicle.status === VehicleStatus.Reservado ? 'Reservado' : vehicle.status === VehicleStatus.AVenda ? 'À venda' : 'Em troca'}
           </p>
         </> : <p className="text-slate-400">{lead.vehicleId ? 'Carregando veículo…' : 'Vincule um veículo em Editar atendimento.'}</p>}
+        {!!current.missingFields?.length && <form className="space-y-2 rounded-lg border border-amber-500/40 p-3" onSubmit={async event => {
+          event.preventDefault(); setBusy(true); setError(''); setNotice('');
+          try {
+            const updated = await request<LeadItem>(`/leads/${lead.id}/contact-details`, { method: 'PATCH', body: JSON.stringify(contact) });
+            setCurrent(updated); onUpdated(updated); setNotice('Dados do contato atualizados.');
+          } catch (err) { setError(err instanceof Error ? err.message : 'Falha ao atualizar o contato.'); }
+          finally { setBusy(false); }
+        }}>
+          <h3 className="font-semibold">Completar contato</h3>
+          <p className="text-xs text-amber-200">Pendências: {current.missingFields.join(', ')}.</p>
+          <label className="block text-sm">Nome<input required maxLength={160} className="mt-1 w-full rounded bg-slate-950 p-2" value={contact.name} onChange={e => setContact({ ...contact, name: e.target.value })} /></label>
+          <label className="block text-sm">Telefone<input required type="tel" maxLength={30} className="mt-1 w-full rounded bg-slate-950 p-2" value={contact.phone} onChange={e => setContact({ ...contact, phone: e.target.value })} /></label>
+          {(current.externalId || current.missingFields.includes('identificador do portal')) && <label className="block text-sm">Identificador do portal<input maxLength={160} className="mt-1 w-full rounded bg-slate-950 p-2" value={contact.externalId} onChange={e => setContact({ ...contact, externalId: e.target.value })} /></label>}
+          <button disabled={busy} className="rounded bg-blue-600 px-3 py-2 text-sm">Salvar contato</button>
+        </form>}
         <h3 className="pt-3 font-semibold">Histórico do atendimento</h3>
         <p className="text-sm text-slate-400">Criado em {new Date(current.createdAt).toLocaleString('pt-BR')}</p>
         {current.lastContactAt && <p className="text-sm text-slate-400">Último contato em {new Date(current.lastContactAt).toLocaleString('pt-BR')}</p>}
         <p className="whitespace-pre-wrap text-sm">{current.notes || 'Sem observações.'}</p>
-        <button disabled={busy} className="rounded-lg bg-slate-800 px-3 py-2 disabled:opacity-50" onClick={async () => {
+        <button disabled={busy || current.missingFields?.includes("telefone")} className="rounded-lg bg-slate-800 px-3 py-2 disabled:opacity-50" onClick={async () => {
           setBusy(true); setError('');
           try { const updated = await leadService.registerContact(current.id); setCurrent(updated); onUpdated(updated); setNotice('Contato registrado.'); }
           catch (err) { setError(err instanceof Error ? err.message : 'Falha ao registrar contato.'); }
@@ -140,7 +157,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
           <summary className="cursor-pointer text-sm">Conferir proposta para compartilhar</summary>
           <p className="mt-3 whitespace-pre-wrap text-sm">{proposal}</p>
         </details>
-        <button type="button" disabled={busy || !form.offerValue || !vehicle || vehicle.status === VehicleStatus.Vendido}
+        <button type="button" disabled={busy || current.missingFields?.includes("telefone") || !form.offerValue || !vehicle || vehicle.status === VehicleStatus.Vendido}
           className="w-full rounded-lg bg-emerald-700 p-3 disabled:opacity-40" onClick={async () => {
             const popup = window.open('', '_blank');
             if (await save()) {

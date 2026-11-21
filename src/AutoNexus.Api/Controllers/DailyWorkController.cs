@@ -16,7 +16,7 @@ public sealed class DailyWorkController(AutoNexusDbContext db, ITenantContext te
 {
     public sealed record WorkItem(string Id, string Kind, string Title, Guid? LeadId, Guid? VehicleId,
         string? VehicleName, string? ResponsibleName, int Score, IReadOnlyList<string> Reasons,
-        int? StockDays, decimal? MarginPercentage, DateTime? NextContactAt);
+        int? StockDays, decimal? MarginPercentage, DateTime? NextContactAt, string[]? MissingFields = null);
 
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] bool mine = true, CancellationToken ct = default)
@@ -43,14 +43,16 @@ public sealed class DailyWorkController(AutoNexusDbContext db, ITenantContext te
         {
             var vehicle = lead.VehicleId.HasValue ? vehicles.GetValueOrDefault(lead.VehicleId.Value) : null;
             var days = vehicle == null ? 0 : Math.Max(0, (int)(now - vehicle.CreatedAt).TotalDays);
-            var margin = vehicle == null ? null : VehicleFinancials.Calculate(vehicle.PurchaseValue,
+            var margin = vehicle == null ? null : VehicleFinancials.Calculate(vehicle.MarginBasis(),
                 vehicle.Costs.Sum(x => x.Value), vehicle.ListedValue).MarginPercentage;
             var rank = DailyPriority.ForLead(now, end, lead.CreatedAt, lead.LastContactAt,
                 lead.NextContactAt, false, days, margin);
-            if (rank.Score == 0) continue;
-            result.Add(new("lead:" + lead.Id, "lead", lead.Name, lead.Id, lead.VehicleId,
+            var missing = lead.MissingContactFields();
+            if (rank.Score == 0 && (missing.Length == 0 || lead.NextContactAt > end)) continue;
+            var reasons = missing.Length == 0 ? rank.Reasons : rank.Reasons.Append("Completar " + string.Join(", ", missing)).ToArray();
+            result.Add(new("lead:" + lead.Id, "lead", string.IsNullOrWhiteSpace(lead.Name) ? "Lead sem nome" : lead.Name, lead.Id, lead.VehicleId,
                 vehicle == null ? null : $"{vehicle.Brand} {vehicle.Model}", lead.AssignedToUser?.Name,
-                rank.Score, rank.Reasons, vehicle == null ? null : days, margin, lead.NextContactAt));
+                Math.Max(rank.Score, missing.Length > 0 ? 84 : 0), reasons, vehicle == null ? null : days, margin, lead.NextContactAt, missing));
         }
         foreach (var vehicle in vehicles.Values)
         {
@@ -59,7 +61,7 @@ public sealed class DailyWorkController(AutoNexusDbContext db, ITenantContext te
             // One card per vehicle when a prioritized customer already points to it.
             if (!sold && result.Any(x => x.VehicleId == vehicle.Id)) continue;
             var days = Math.Max(0, (int)(now - vehicle.CreatedAt).TotalDays);
-            var margin = sold ? null : VehicleFinancials.Calculate(vehicle.PurchaseValue,
+            var margin = sold ? null : VehicleFinancials.Calculate(vehicle.MarginBasis(),
                 vehicle.Costs.Sum(x => x.Value), vehicle.ListedValue).MarginPercentage;
             var rank = DailyPriority.ForStock(days, margin, sold && !Delivered(vehicle.DeliveryChecklist));
             if (sold && Delivered(vehicle.DeliveryChecklist) || rank.Score == 0) continue;

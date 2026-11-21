@@ -1,17 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
+import { TransferTracking } from './TransferTracking';
 import { request } from '../../services/api';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import type { LeadItem } from '../../services/leadService';
 import { VehicleCostsModal } from './VehicleCostsModal';
 import { AttendancePanel } from '../leads/AttendancePanel';
 
-interface Margin { values: { purchase: number; expenses: number; totalCost: number; revenue: number | null; profit: number | null; marginPercentage: number | null }; costs: { description: string; value: number; category: string }[]; realized: boolean; discount: number }
+interface Margin { consignmentPayout: number | null; values: { purchase: number; expenses: number; totalCost: number; revenue: number | null; profit: number | null; marginPercentage: number | null }; costs: { description: string; value: number; category: string }[]; realized: boolean; discount: number }
 interface DeliveryEntry { done: boolean; completedAt: string | null; userId: string | null; userName: string | null }
 interface Interested { id: string; name: string; phone: string; budget: number | null; preferredModels: string | null }
 const steps = [{ id: 'payment', label: 'Pagamento conferido' }, { id: 'documents', label: 'Documentos conferidos' }, { id: 'accessories', label: 'Chaves e acessórios conferidos' }, { id: 'handover', label: 'Veículo entregue' }];
 const money = (value: number | null) => value == null ? 'A informar' : value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummary; onClose: () => void }) {
+  const { user } = useAuth();
+  const [payout, setPayout] = useState<string | null>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const [margin, setMargin] = useState<Margin | null>(null);
   const [delivery, setDelivery] = useState<Record<string, DeliveryEntry>>({});
@@ -44,7 +48,7 @@ export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummar
       <section className="space-y-3 rounded-xl border border-slate-700 p-4">
         <h3 className="font-semibold">{margin?.realized ? 'Resultado da venda' : 'Margem estimada'}</h3>
         {margin && <><dl className="space-y-2 text-sm">
-          {[['Compra', margin.values.purchase], ['Despesas cadastradas', margin.values.expenses], ['Custo total', margin.values.totalCost], ['Receita', margin.values.revenue], ['Resultado', margin.values.profit]].map(([label, value]) => <div key={String(label)} className="flex justify-between gap-3"><dt>{label}</dt><dd className="font-semibold">{money(value as number | null)}</dd></div>)}
+          {[[margin.consignmentPayout == null ? 'Compra' : 'Repasse ao proprietário', margin.values.purchase], ['Despesas cadastradas', margin.values.expenses], ['Custo total', margin.values.totalCost], ['Receita', margin.values.revenue], ['Resultado', margin.values.profit]].map(([label, value]) => <div key={String(label)} className="flex justify-between gap-3"><dt>{label}</dt><dd className="font-semibold">{money(value as number | null)}</dd></div>)}
           <div className="flex justify-between"><dt>Margem sobre receita</dt><dd>{margin.values.marginPercentage == null ? 'A informar' : margin.values.marginPercentage.toLocaleString('pt-BR') + '%'}</dd></div>
           <div className="flex justify-between"><dt>Desconto sobre anúncio</dt><dd>{money(margin.discount)}</dd></div>
         </dl><p className="text-xs text-slate-400">O desconto já está refletido na receita. Registre manutenção, preparação, documentação, comissão e outros gastos nas despesas para compor o resultado.</p></>}
@@ -53,6 +57,23 @@ export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummar
           try { await refreshMargin(offer); } catch (err) { setError(err instanceof Error ? err.message : 'Falha ao calcular.'); }
           finally { setBusy(false); }
         }} className="space-y-2"><label className="block text-sm">Simular preço negociado<input type="number" min="0.01" step="0.01" value={offer} onChange={e => setOffer(e.target.value)} className="mt-1 w-full rounded-lg bg-slate-950 p-3" /></label><button disabled={busy} className="rounded-lg bg-blue-600 px-4 py-2">Calcular margem</button></form>}
+        {margin && user?.profile === 1 && vehicle.status !== VehicleStatus.Vendido && <form className="space-y-2 border-t border-slate-700 pt-3" onSubmit={async event => {
+          event.preventDefault(); setBusy(true); setError('');
+          try {
+            const value = payout ?? String(margin.consignmentPayout ?? '');
+            await request(`/launch/vehicles/${vehicle.id}/consignment`, {
+              method: 'PUT', body: JSON.stringify({ payout: value === '' ? null : Number(value) }),
+            });
+            setPayout(null); await refreshMargin(offer);
+          } catch (err) { setError(err instanceof Error ? err.message : 'Falha ao salvar consignação.'); }
+          finally { setBusy(false); }
+        }}>
+          <label className="block text-sm">Repasse ao proprietário em consignação
+            <input type="number" min="0.01" step="0.01" value={payout ?? margin.consignmentPayout ?? ''} onChange={e => setPayout(e.target.value)} className="mt-1 w-full rounded-lg bg-slate-950 p-3" />
+          </label>
+          <p className="text-xs text-slate-400">Deixe em branco para usar o custo de compra do estoque próprio.</p>
+          <button disabled={busy} className="rounded-lg bg-slate-800 px-3 py-2 text-sm">Salvar modalidade de estoque</button>
+        </form>}
         <button type="button" onClick={() => setCostsOpen(true)} className="rounded-lg border border-slate-600 px-4 py-2">Gerenciar despesas</button>
         {margin?.costs.map((cost, index) => <div key={index} className="flex justify-between gap-3 border-t border-slate-800 pt-2 text-xs"><span>{cost.description} · {cost.category}</span><span>{money(cost.value)}</span></div>)}
       </section>
@@ -85,6 +106,7 @@ export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummar
         {!interested.length && <p className="text-sm text-slate-500">Nenhum interessado compatível encontrado.</p>}
       </section>
     </div>
+    {vehicle.status === VehicleStatus.Vendido && <div className="mt-5"><TransferTracking vehicleId={vehicle.id} /></div>}
     <VehicleCostsModal isOpen={costsOpen} vehicle={vehicle} onClose={() => setCostsOpen(false)} onCostsUpdated={() => void refreshMargin(offer).catch(() => setError('Reabra o resultado para atualizar despesas.'))} />
     {lead && <AttendancePanel key={lead.id} lead={lead} onClose={() => setLead(null)} onUpdated={setLead} />}
   </dialog>;

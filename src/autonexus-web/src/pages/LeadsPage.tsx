@@ -11,6 +11,8 @@ import { Users, Plus, Search, Loader2, MessageCircle, Trash2, X, Pencil } from '
 
 const errorMessage = (error: unknown, fallback: string) => error instanceof Error ? error.message : fallback;
 
+const marketplaceSources = ['Marketplace', 'Mercado Livre', 'OLX', 'Webmotors', 'iCarros'];
+
 const stages = [
   { id: LeadStatus.Novo, name: 'Novo', color: 'border-slate-500' },
   { id: LeadStatus.Contato, name: 'Contato', color: 'border-sky-500' },
@@ -61,7 +63,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
   const save = async (e: FormEvent) => {
     e.preventDefault(); setSaving(true);
     try {
-      const payload = { ...form, vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null };
+      const payload = { ...form, externalId: marketplaceSources.includes(form.source ?? '') ? form.externalId ?? '' : '', vehicleId: form.vehicleId || null, assignedToUserId: form.assignedToUserId || null };
       if (editingId) {
         await leadService.update(editingId, payload);
       } else {
@@ -121,7 +123,7 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
               <header className="flex justify-between border-b border-nexus-border px-3 py-3"><b className="text-sm text-white">{stage.name}</b><span className="rounded-full bg-slate-800 px-2 text-xs text-slate-300">{leads.length}</span></header>
               <div className={leadView === 'list' ? "space-y-2 p-2" : "min-h-24 space-y-2 p-2"}>
                 {leads.map(lead => <article key={lead.id} className={leadView === 'list' ? "grid items-center gap-3 rounded-lg border border-nexus-border bg-nexus-card p-3 md:grid-cols-3" : "space-y-2 rounded-lg border border-nexus-border bg-nexus-card p-3"}>
-                  <div className="flex justify-between gap-2"><b className="break-words text-sm text-white">{lead.name}</b><button onClick={() => { setEditingId(lead.id); setForm({ name: lead.name, phone: lead.phone, email: lead.email || '', source: lead.source, notes: lead.notes || '', vehicleId: lead.vehicleId || '', assignedToUserId: lead.assignedToUserId || '' }); setModal(true); }} title="Editar lead"><Pencil size={14} className="text-slate-500 hover:text-blue-400"/></button><button onClick={() => remove(lead)} title="Excluir"><Trash2 size={14} className="text-slate-500 hover:text-rose-400"/></button></div>
+                  <div className="flex justify-between gap-2"><b className="break-words text-sm text-white">{lead.name || "Lead sem nome"}</b><button onClick={() => { setEditingId(lead.id); setForm({ name: lead.name, phone: lead.phone, email: lead.email || '', source: lead.source, externalId: lead.externalId ?? '', notes: lead.notes || '', vehicleId: lead.vehicleId || '', assignedToUserId: lead.assignedToUserId || '' }); setModal(true); }} title="Editar lead"><Pencil size={14} className="text-slate-500 hover:text-blue-400"/></button><button onClick={() => remove(lead)} title="Excluir"><Trash2 size={14} className="text-slate-500 hover:text-rose-400"/></button></div>
                   {lead.nextContactAt && <p className="text-xs text-amber-300">Retorno: {new Date(lead.nextContactAt).toLocaleString('pt-BR')}</p>}
                   <button type="button" onClick={() => setAttendance(lead)} className="w-full rounded-lg bg-blue-600 px-3 py-2 text-sm font-semibold text-white">Abrir atendimento</button>
                   <a href={`tel:${lead.phone}`} className="block text-xs text-slate-400">{lead.phone}</a>
@@ -129,8 +131,8 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
                   {lead.vehicleName && <p className="text-xs text-blue-300">{lead.vehicleName}</p>}
                   {lead.assignedToName && <p className="text-xs text-slate-500">Responsável: {lead.assignedToName}</p>}
                   <div className="flex flex-wrap gap-1">
-                    <a target="_blank" rel="noreferrer" href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} className="flex items-center gap-1 rounded bg-emerald-600/15 px-2 py-1 text-[11px] text-emerald-400"><MessageCircle size={12}/> WhatsApp</a>
-                    <button onClick={() => contact(lead)} className="rounded bg-sky-600/15 px-2 py-1 text-[11px] text-sky-300">Registrar contato</button>
+                    {!lead.missingFields?.includes("telefone") && <a target="_blank" rel="noreferrer" href={`https://wa.me/${lead.phone.replace(/\D/g, '')}`} className="flex items-center gap-1 rounded bg-emerald-600/15 px-2 py-1 text-[11px] text-emerald-400"><MessageCircle size={12}/> WhatsApp</a>}
+                    <button disabled={lead.missingFields?.includes("telefone")} onClick={() => contact(lead)} className="rounded bg-sky-600/15 px-2 py-1 text-[11px] text-sky-300">Registrar contato</button>
                   </div>
                   <select value={lead.status} onChange={e => move(lead, Number(e.target.value) as LeadStatus)} className="w-full rounded border border-nexus-border bg-slate-950 px-2 py-1.5 text-xs text-slate-300">
                     {stages.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -146,10 +148,11 @@ export function LeadsPage({ currentView, onNavigate }: { currentView?: string; o
       <form onSubmit={save} className="w-full max-h-[90dvh] overflow-y-auto max-w-lg space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-5 text-white">
         <div className="flex justify-between border-b border-slate-800 pb-3"><h2 className="font-bold">{editingId ? 'Editar lead' : 'Novo lead'}</h2><button type="button" onClick={() => setModal(false)}><X size={19}/></button></div>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 text-xs">
-          <label className="sm:col-span-2 text-slate-400">Nome *<input required maxLength={160} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
-          <label className="text-slate-400">Telefone *<input required maxLength={30} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
+          <label className="sm:col-span-2 text-slate-400">Nome<input required={!marketplaceSources.includes(form.source ?? '')} maxLength={160} value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
+          <label className="text-slate-400">Telefone<input type="tel" required={!marketplaceSources.includes(form.source ?? '')} maxLength={30} value={form.phone} onChange={e => setForm({ ...form, phone: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
           <label className="text-slate-400">E-mail<input type="email" maxLength={254} value={form.email || ''} onChange={e => setForm({ ...form, email: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>
-          <label className="text-slate-400">Origem<select value={form.source || 'Manual'} onChange={e => setForm({ ...form, source: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">{['Manual','WhatsApp','Instagram','Facebook','Site','Indicação','Marketplace','Outro'].map(x => <option key={x}>{x}</option>)}</select></label>
+          <label className="text-slate-400">Origem<select value={form.source || 'Manual'} onChange={e => setForm({ ...form, source: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white">{['Manual','WhatsApp','Instagram','Facebook','Site','Indicação',...marketplaceSources,'Outro'].map(x => <option key={x}>{x}</option>)}</select></label>
+          {marketplaceSources.includes(form.source ?? '') && <label className="text-slate-400">Identificador do portal<input maxLength={160} value={form.externalId ?? ''} onChange={e => setForm({ ...form, externalId: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white" /></label>}
           <label className="text-slate-400">Veículo<select value={form.vehicleId || ''} onChange={e => setForm({ ...form, vehicleId: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option value="">Nenhum</option>{vehicles.map(v => <option key={v.id} value={v.id}>{v.brand} {v.model} ({v.modelYear})</option>)}</select></label>
           {user?.profile === 1 && <label className="text-slate-400">Responsável<select value={form.assignedToUserId || ''} onChange={e => setForm({ ...form, assignedToUserId: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"><option value="">Eu mesmo</option>{users.filter(x => x.isActive && x.profile !== 3).map(x => <option key={x.id} value={x.id}>{x.name}</option>)}</select></label>}
           <label className="sm:col-span-2 text-slate-400">Observações<textarea rows={3} maxLength={2000} value={form.notes || ''} onChange={e => setForm({ ...form, notes: e.target.value })} className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-950 p-2.5 text-sm text-white"/></label>

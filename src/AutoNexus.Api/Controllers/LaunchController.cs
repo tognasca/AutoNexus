@@ -89,12 +89,75 @@ public sealed class LaunchController(AutoNexusDbContext db, ITenantContext tenan
         var costs = await db.Costs.AsNoTracking().Where(x => x.VehicleId == id)
             .Select(x => new { x.Description, x.Value, category = x.CostCategory.Name }).ToListAsync(ct);
         var revenue = vehicle.Status == VehicleStatus.Vendido ? vehicle.SaleValue : offer ?? vehicle.ListedValue;
-        var values = VehicleFinancials.Calculate(vehicle.PurchaseValue, costs.Sum(x => x.Value), revenue);
+        var values = VehicleFinancials.Calculate(vehicle.MarginBasis(), costs.Sum(x => x.Value), revenue);
         return Ok(new {
-            values, costs, realized = vehicle.Status == VehicleStatus.Vendido && vehicle.SaleValue.HasValue,
+            vehicle.ConsignmentPayout, values, costs, realized = vehicle.Status == VehicleStatus.Vendido && vehicle.SaleValue.HasValue,
             discount = vehicle.ListedValue.HasValue && revenue.HasValue ? Math.Max(0, vehicle.ListedValue.Value - revenue.Value) : 0
         });
     }
+
+    public sealed record ConsignmentRequest(decimal? Payout);
+    public sealed record TransferRequest(string Step, string Status, string Source, string? Evidence);
+    public sealed record TransferEntry(string Status, string Source, string? Evidence, DateTime VerifiedAt, Guid UserId, string UserName);
+    private static readonly string[] TransferSteps = ["signature", "inspection", "confirmation"];
+
+    [HttpPut("vehicles/{id:guid}/consignment")]
+    [Authorize(Roles = "Admin")]
+    public async Task<IActionResult> SaveConsignment(Guid id, ConsignmentRequest input, CancellationToken ct)
+    {
+        if (!tenant.HasTenant || !tenant.UserId.HasValue) return Forbid();
+        var vehicle = await db.Vehicles.SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (vehicle is null) return NotFound();
+        if (vehicle.Status == VehicleStatus.Vendido)
+            return Conflict(new { message = "A modalidade de estoque fica bloqueada após a venda." });
+        try { vehicle.SetConsignmentPayout(input.Payout); }
+        catch (ArgumentException ex) { return BadRequest(new { message = ex.Message }); }
+        Audit(id, "Consignação", input.Payout.HasValue ? "Repasse ao proprietário atualizado." : "Veículo marcado como estoque próprio.");
+        await db.SaveChangesAsync(ct);
+        return NoContent();
+    }
+
+    [HttpGet("vehicles/{id:guid}/transfer")]
+    public async Task<IActionResult> Transfer(Guid id, CancellationToken ct)
+    {
+        if (!tenant.HasTenant) return Forbid();
+        var vehicle = await db.Vehicles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, ct);
+        return vehicle is null ? NotFound() : Ok(ReadTransfer(vehicle));
+    }
+
+    [HttpPut("vehicles/{id:guid}/transfer")]
+    public async Task<IActionResult> SaveTransfer(Guid id, TransferRequest input, CancellationToken ct)
+    {
+        if (!tenant.HasTenant || !tenant.UserId.HasValue) return Forbid();
+        var evidence = input.Evidence?.Trim();
+        if (!TransferSteps.Contains(input.Step) || input.Status is not ("pending" or "processing" or "completed") ||
+            input.Source is not ("manual" or "external") || evidence?.Length > 300 ||
+            ((input.Status == "completed" || input.Source == "external") && string.IsNullOrWhiteSpace(evidence)))
+            return BadRequest(new { message = "Confira a origem e informe protocolo ou referência do comprovante para confirmações e consultas externas." });
+        await using var tx = await db.Database.BeginTransactionAsync(ct);
+        await LockVehicle(id, ct);
+        var vehicle = await db.Vehicles.SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (vehicle is null) return NotFound();
+        if (vehicle.Status != VehicleStatus.Vendido)
+            return Conflict(new { message = "Registre a venda antes de acompanhar a transferência." });
+        var user = await db.Users.AsNoTracking().SingleOrDefaultAsync(x => x.Id == tenant.UserId && x.IsActive, ct);
+        if (user is null) return Forbid();
+        var entries = ReadTransfer(vehicle);
+        if (input.Step == "confirmation" && input.Status == "completed" &&
+            TransferSteps.Take(2).Any(step => entries.GetValueOrDefault(step)?.Status != "completed"))
+            return Conflict(new { message = "Confirme assinatura e vistoria antes de concluir a transferência." });
+        if (input.Step != "confirmation" && input.Status != "completed" && entries.GetValueOrDefault("confirmation")?.Status == "completed")
+            return Conflict(new { message = "Reabra a confirmação antes de alterar assinatura ou vistoria." });
+        entries[input.Step] = new TransferEntry(input.Status, input.Source, evidence, DateTime.UtcNow, user.Id, user.Name);
+        vehicle.SaveTransferTracking(JsonSerializer.Serialize(entries));
+        Audit(id, "Acompanhamento da transferência", $"Etapa {input.Step}: {input.Status}, origem {input.Source}.");
+        await db.SaveChangesAsync(ct);
+        await tx.CommitAsync(ct);
+        return Ok(entries);
+    }
+
+    private static Dictionary<string, TransferEntry> ReadTransfer(Vehicle vehicle) =>
+        vehicle.TransferTracking is { } json ? JsonSerializer.Deserialize<Dictionary<string, TransferEntry>>(json) ?? [] : [];
 
     [HttpPost("vehicles/{id:guid}/reserve")]
     public async Task<IActionResult> Reserve(Guid id, ReserveRequest input, CancellationToken ct)

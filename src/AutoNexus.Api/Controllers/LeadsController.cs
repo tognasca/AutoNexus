@@ -50,8 +50,8 @@ public sealed class LeadsController : ControllerBase
     {
         if (!_tenant.HasTenant) return Forbid();
         if (!ModelState.IsValid) return ValidationProblem(ModelState);
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone)) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
-        if (request.Name.Length > 160 || request.Phone.Length > 30 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
+        if (!Lead.IsMarketplace(request.Source) && (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone))) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
+        if ((request.Name?.Length ?? 0) > 160 || (request.Phone?.Length ?? 0) > 30 || (request.ExternalId?.Length ?? 0) > 160 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
         var userId = _tenant.UserId;
         if (!userId.HasValue) return Unauthorized();
         var currentUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == userId.Value, ct);
@@ -60,7 +60,8 @@ public sealed class LeadsController : ControllerBase
         if (!await ReferencesAreValid(request.VehicleId, assignedTo, ct))
             return BadRequest(new { message = "O veículo ou o responsável informado não pertence à empresa ou não existe." });
 
-        var lead = new Lead(request.Name, request.Phone, request.Email, request.Source, request.Notes, request.VehicleId, assignedTo);
+        var lead = new Lead(request.Name ?? "", request.Phone ?? "", request.Email, request.Source, request.Notes, request.VehicleId, assignedTo);
+        lead.SetExternalId(request.ExternalId);
         _db.Leads.Add(lead);
         await _db.SaveChangesAsync(ct);
         await _db.Entry(lead).Reference(x => x.Vehicle).LoadAsync(ct);
@@ -74,8 +75,8 @@ public sealed class LeadsController : ControllerBase
         if (!_tenant.HasTenant) return Forbid();
         var lead = await _db.Leads.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (lead is null) return NotFound();
-        if (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone)) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
-        if (request.Name.Length > 160 || request.Phone.Length > 30 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
+        if (!Lead.IsMarketplace(request.Source) && (string.IsNullOrWhiteSpace(request.Name) || string.IsNullOrWhiteSpace(request.Phone))) return BadRequest(new { message = "Nome e telefone são obrigatórios." });
+        if ((request.Name?.Length ?? 0) > 160 || (request.Phone?.Length ?? 0) > 30 || (request.ExternalId?.Length ?? 0) > 160 || (request.Email?.Length ?? 0) > 254 || (request.Source?.Length ?? 0) > 80 || (request.Notes?.Length ?? 0) > 2000) return BadRequest(new { message = "Um ou mais campos excedem o tamanho permitido." });
         var currentUserId = _tenant.UserId;
         if (!currentUserId.HasValue) return Unauthorized();
         var currentUser = await _db.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == currentUserId.Value, ct);
@@ -83,7 +84,8 @@ public sealed class LeadsController : ControllerBase
         var assignedTo = currentUser.Profile == UserProfile.Admin ? request.AssignedToUserId ?? currentUserId : currentUserId;
         if (!await ReferencesAreValid(request.VehicleId, assignedTo, ct))
             return BadRequest(new { message = "O veículo ou o responsável informado não pertence à empresa ou não existe." });
-        lead.UpdateDetails(request.Name, request.Phone, request.Email, request.Source, request.Notes, request.VehicleId, assignedTo);
+        lead.UpdateDetails(request.Name ?? "", request.Phone ?? "", request.Email, request.Source, request.Notes, request.VehicleId, assignedTo);
+        if (request.ExternalId != null) lead.SetExternalId(request.ExternalId);
         await _db.SaveChangesAsync(ct);
         await _db.Entry(lead).Reference(x => x.Vehicle).LoadAsync(ct);
         await _db.Entry(lead).Reference(x => x.AssignedToUser).LoadAsync(ct);
@@ -121,12 +123,34 @@ public sealed class LeadsController : ControllerBase
         return Ok(suggestions);
     }
 
+    public sealed record ContactDetailsRequest(string Name, string Phone, string? ExternalId);
+
+    [HttpPatch("{id:guid}/contact-details")]
+    public async Task<IActionResult> UpdateContactDetails(Guid id, ContactDetailsRequest input, CancellationToken ct)
+    {
+        if (!_tenant.HasTenant || !_tenant.UserId.HasValue) return Forbid();
+        if (string.IsNullOrWhiteSpace(input.Name) || input.Name.Length > 160 ||
+            input.Phone.Length > 30 || input.Phone.Count(char.IsAsciiDigit) is < 10 or > 15 ||
+            input.ExternalId?.Length > 160)
+            return BadRequest(new { message = "Informe o nome e um telefone válido." });
+        var lead = await _db.Leads.Include(x => x.Vehicle).Include(x => x.AssignedToUser)
+            .SingleOrDefaultAsync(x => x.Id == id, ct);
+        if (lead is null) return NotFound();
+        if (!User.IsInRole("Admin") && lead.AssignedToUserId != _tenant.UserId) return Forbid();
+        lead.UpdateDetails(input.Name, input.Phone, lead.Email, lead.Source, lead.Notes, lead.VehicleId, lead.AssignedToUserId);
+        if (input.ExternalId != null) lead.SetExternalId(input.ExternalId);
+        await _db.SaveChangesAsync(ct);
+        return Ok(ToResponse(lead));
+    }
+
     [HttpPost("{id:guid}/contact")]
     public async Task<IActionResult> RegisterContact(Guid id, CancellationToken ct)
     {
         if (!_tenant.HasTenant) return Forbid();
         var lead = await _db.Leads.FirstOrDefaultAsync(x => x.Id == id, ct);
         if (lead is null) return NotFound();
+        if (lead.IsMarketplace() && lead.MissingContactFields().Contains("telefone"))
+            return BadRequest(new { message = "Informe um telefone válido antes de registrar o contato." });
         lead.RegisterContact();
         await _db.SaveChangesAsync(ct);
         return Ok(ToResponse(lead));
@@ -178,9 +202,9 @@ public sealed class LeadsController : ControllerBase
         lead.VehicleId, VehicleName = lead.Vehicle is null ? null : $"{lead.Vehicle.Brand} {lead.Vehicle.Model}",
         lead.AssignedToUserId, AssignedToName = lead.AssignedToUser?.Name,
         lead.OfferValue, lead.DownPayment, lead.TradeDescription, lead.NextContactAt, lead.OfferValidUntil,
-        lead.LastContactAt, lead.CreatedAt, lead.UpdatedAt
+        lead.ExternalId, MissingFields = lead.MissingContactFields(), lead.LastContactAt, lead.CreatedAt, lead.UpdatedAt
     };
 
-    public sealed record LeadRequest(string Name, string Phone, string? Email, string? Source, string? Notes, Guid? VehicleId, Guid? AssignedToUserId);
+    public sealed record LeadRequest(string? Name, string? Phone, string? Email, string? Source, string? Notes, Guid? VehicleId, Guid? AssignedToUserId, string? ExternalId = null);
     public sealed record ChangeLeadStatusRequest(LeadStatus Status);
 }
