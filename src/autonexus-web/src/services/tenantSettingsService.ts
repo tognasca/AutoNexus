@@ -1,6 +1,7 @@
 import { request } from './api';
 
 export interface TenantSettings {
+  storeTemplate?: string; panelDensity?: string;
   companyName: string; logoUrl: string | null; primaryColor: string;
   whatsappNumber: string | null; timeZone: string; currency: string;
   heroImageUrl?: string | null; heroTemplateKey?: string | null;

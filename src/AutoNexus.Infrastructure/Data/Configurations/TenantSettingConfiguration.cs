@@ -10,6 +10,9 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
     {
         builder.ToTable("tenant_settings");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.StoreTemplate).HasMaxLength(30);
+        builder.Property(x => x.PanelDensity).HasMaxLength(30);
+        builder.Property(x => x.OpenAiModel).HasMaxLength(100);
 
         builder.Property(x => x.CompanyName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.LogoUrl).HasMaxLength(500);
@@ -30,6 +33,13 @@ public class TenantSettingConfiguration : IEntityTypeConfiguration<TenantSetting
         {
             Id = Guid.Parse("00000000-0000-0000-0000-0000000000b1"),
             TenantId = Tenant.DefaultTenantId,
+            AiEnabled = false,
+            AiMonthlyLimit = 0,
+            AiUsed = 0,
+            AiUsageMonth = "",
+            OpenAiModel = "gpt-4.1-mini",
+            StoreTemplate = "premium",
+            PanelDensity = "comfortable",
             CompanyName = "Empresa Padrão",
             LogoUrl = (string?)null,
             WelcomeText = (string?)null,

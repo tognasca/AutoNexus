@@ -1,9 +1,9 @@
+import { StoreHero } from '../components/catalog/StoreHero';
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import {
   Search, Gauge, Fuel, Cog, MessageCircle, X,
   ChevronLeft, ChevronRight, Car, FileText, ShieldCheck, Sparkles,
   ExternalLink, SlidersHorizontal, Heart, Menu, ArrowRight, Phone,
-  CheckCircle2
 } from 'lucide-react';
 import { catalogService, getPhotoUrl, type PublicStoreInfo, type PublicVehicleDetail } from '../services/catalogService';
 import { formatCurrency } from '../utils/formatters';
@@ -155,53 +155,19 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
       </header>
 
       <main id="inicio">
-        <section className="relative isolate min-h-[390px] overflow-hidden bg-[#04101f] text-white sm:min-h-[440px] lg:min-h-[510px]">
-          {(isAtMotors || store?.heroImageUrl || vehicles[0]?.mainPhotoUrl) && (
-            <img
-              src={isAtMotors ? atMotorsHero : getPhotoUrl(store?.heroImageUrl || vehicles[0]?.mainPhotoUrl)}
-              alt="Veículo em destaque no catálogo"
-              className="absolute inset-0 h-full w-full object-cover object-[68%_center] sm:object-center lg:object-[72%_center]"
-            />
-          )}
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,10,21,.96)_0%,rgba(2,10,21,.84)_27%,rgba(2,10,21,.38)_54%,rgba(2,10,21,.04)_100%)]" />
-          <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_78%_45%,rgba(20,110,190,.18),transparent_48%)]" />
-          <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-amber-400/70 to-transparent" />
-          <div className="relative mx-auto flex min-h-[390px] max-w-[1600px] items-center px-5 py-12 sm:min-h-[440px] sm:px-8 lg:min-h-[510px] lg:px-12">
-            <div className="max-w-3xl">
-              <div className="mb-5 inline-flex items-center gap-2 rounded-full border border-amber-300/35 bg-slate-950/45 px-3.5 py-2 text-[10px] font-bold uppercase tracking-[.22em] text-amber-200 shadow-lg backdrop-blur-sm sm:text-xs">
-                <span className="h-1.5 w-1.5 rounded-full bg-amber-300 shadow-[0_0_12px_rgba(252,211,77,.9)]" />
-                {store?.welcomeText?.trim() || `Bem-vindo à ${store?.name || 'sua loja'}`}
-              </div>
-              <h1 className="max-w-3xl text-[2.35rem] font-black leading-[1.02] tracking-[-.045em] text-white drop-shadow-2xl sm:text-5xl lg:text-[4.25rem]">
-                {store?.heroTitle?.trim() || <>Encontre seu próximo <span className="text-amber-300">grande carro.</span></>}
-              </h1>
-              <p className="mt-5 max-w-xl text-sm leading-6 text-slate-200 sm:text-base sm:leading-7">
-                Encontre o veículo ideal com praticidade, transparência e atendimento especializado.
-              </p>
-              <div className="mt-8 flex flex-wrap gap-3 text-[11px] font-semibold sm:gap-4 sm:text-xs">
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2.5 backdrop-blur-sm">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/45 bg-amber-300/10 text-amber-200"><ShieldCheck size={18}/></span>
-                  <span className="leading-4 text-white">Veículos<br/><b className="text-slate-300">selecionados</b></span>
-                </div>
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2.5 backdrop-blur-sm">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/45 bg-amber-300/10 text-amber-200"><CheckCircle2 size={18}/></span>
-                  <span className="leading-4 text-white">Atendimento<br/><b className="text-slate-300">especializado</b></span>
-                </div>
-                <div className="flex items-center gap-2.5 rounded-xl border border-white/10 bg-slate-950/45 px-3 py-2.5 backdrop-blur-sm">
-                  <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-300/45 bg-amber-300/10 text-amber-200"><MessageCircle size={18}/></span>
-                  <span className="leading-4 text-white">Contato<br/><b className="text-slate-300">direto</b></span>
-                </div>
-              </div>
-            </div>
-            <div className="absolute bottom-5 right-5 hidden min-w-[220px] items-center gap-4 rounded-2xl border border-white/15 bg-[#06182b]/75 px-5 py-4 shadow-2xl backdrop-blur-md xl:flex">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border border-amber-300/30 bg-amber-300/10 text-amber-200"><Car size={25}/></div>
-              <div><strong className="block text-2xl font-black leading-none text-white">{vehicles.length}</strong><span className="mt-1 block text-[10px] font-semibold uppercase tracking-[.16em] text-slate-300">veículos no estoque</span></div>
-              <ArrowRight className="ml-2 text-amber-300" size={20}/>
-            </div>
-          </div>
-        </section>
+        <StoreHero template={store?.storeTemplate || 'premium'} name={store?.name || 'Nossa loja'}
+          title={store?.heroTitle} welcome={store?.welcomeText}
+          color={store?.primaryColor || '#16324f'}
+          image={store?.heroImageUrl ? getPhotoUrl(store.heroImageUrl) : isAtMotors ? atMotorsHero : vehicles[0]?.mainPhotoUrl ? getPhotoUrl(vehicles[0].mainPhotoUrl) : undefined}
+          onStock={() => document.getElementById('store-stock')?.scrollIntoView({ behavior: 'smooth' })}
+          onContact={whatsapp ? () => window.open(`https://wa.me/${whatsapp}`, '_blank', 'noopener,noreferrer') : undefined}
+          featured={vehicles[0] ? { name: `${vehicles[0].brand} ${vehicles[0].model} ${vehicles[0].modelYear}`,
+            price: Number(vehicles[0].listedValue) > 0 ? formatCurrency(Number(vehicles[0].listedValue)) : 'Consulte o preço',
+            image: getPhotoUrl(vehicles[0].mainPhotoUrl) } : undefined}
+          onFeatured={() => vehicles[0] && openDetails(vehicles[0].id)}
+        />
 
-        <div className="mx-auto max-w-[1500px] space-y-4 px-4 py-4 sm:px-8 sm:py-5">
+        <div id="store-stock" className="scroll-mt-24 mx-auto max-w-[1500px] space-y-4 px-4 py-4 sm:px-8 sm:py-5">
           <section aria-label="Marcas disponíveis" className="flex items-center gap-3 overflow-x-auto rounded-xl border border-slate-200 bg-white p-3 shadow-sm">
             <button onClick={() => {setBrand('ALL');setModel('ALL');}} className={`min-w-[135px] rounded-lg border px-3 py-2 text-left text-xs font-semibold ${brand === 'ALL' ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600'}`}>Todas as marcas <span className="block pt-1 text-[10px] font-normal text-slate-400">{brands.length} marcas</span></button>
             {brands.map((b) => <button key={b} onClick={() => {setBrand(b);setModel('ALL');}} className={`flex min-w-[88px] flex-col items-center justify-center gap-1 rounded-lg border px-3 py-2 text-center ${brand === b ? 'border-blue-500 bg-blue-50 text-blue-700' : 'border-transparent text-slate-600 hover:border-slate-200 hover:bg-slate-50'}`}><span className="flex h-7 items-center text-sm font-black tracking-tight">{b.length > 12 ? b.slice(0,11) : b}</span><span className="text-[9px] text-slate-400">{vehicles.filter(v => v.brand === b).length} veículos</span></button>)}
@@ -231,7 +197,7 @@ export function PublicCatalogSaasPage({ onNavigate }: PublicCatalogSaasPageProps
               </label>
             </div>
             {loading ? <div className="flex min-h-48 items-center justify-center text-sm text-slate-500">Carregando estoque...</div> : error ? <div className="rounded-xl border border-rose-200 bg-rose-50 p-8 text-center text-sm text-rose-700">{error}</div> : filteredVehicles.length === 0 ? <div className="rounded-xl border border-slate-200 bg-white p-12 text-center"><Car size={42} className="mx-auto mb-3 text-blue-500"/><h3 className="font-bold">Nenhum veículo encontrado</h3><p className="mt-1 text-sm text-slate-500">Ajuste os filtros para ver outros veículos.</p><button onClick={resetFilters} className="mt-3 text-xs font-bold text-blue-600">Limpar filtros</button></div> : (
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
+              <div className={store?.storeTemplate === 'premium' ? "grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3" : "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"}>
                 {filteredVehicles.map((vehicle) => {
                   const photo=getPhotoUrl(vehicle.mainPhotoUrl||vehicle.MainPhotoUrl);
                   const amount=Number(vehicle.listedValue??vehicle.ListedValue??0);

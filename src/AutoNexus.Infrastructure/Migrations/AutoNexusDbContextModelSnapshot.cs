@@ -628,6 +628,51 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Lead", b =>
                 {
+                    b.Property<decimal?>("Budget")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)").HasColumnName("budget");
+                    b.Property<int?>("PreferredTransmission")
+                        .HasColumnType("integer").HasColumnName("preferredTransmission");
+                    b.Property<string>("PreferredModels")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)").HasColumnName("preferredModels");
+                    b.Property<string>("ShareTokenHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)").HasColumnName("shareTokenHash");
+                    b.Property<string>("ProposalSnapshot")
+                        .HasColumnType("text").HasColumnName("proposalSnapshot");
+                    b.Property<DateTime?>("ShareExpiresAt")
+                        .HasColumnType("timestamp with time zone").HasColumnName("shareExpiresAt");
+                    b.Property<string>("BuyerResponse")
+                        .HasMaxLength(600)
+                        .HasColumnType("character varying(600)").HasColumnName("buyerResponse");
+                    b.Property<DateTime?>("BuyerRespondedAt")
+                        .HasColumnType("timestamp with time zone").HasColumnName("buyerRespondedAt");
+
+                    b.Property<decimal?>("OfferValue")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("offerValue");
+
+                    b.Property<decimal?>("DownPayment")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("downPayment");
+
+                    b.Property<string>("TradeDescription")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("tradeDescription");
+
+                    b.Property<DateTime?>("NextContactAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("nextContactAt");
+
+                    b.Property<DateOnly?>("OfferValidUntil")
+                        .HasColumnType("date")
+                        .HasColumnName("offerValidUntil");
+
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
@@ -1160,6 +1205,37 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.TenantSetting", b =>
                 {
+                    b.Property<string>("StoreTemplate").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)").HasColumnName("storeTemplate");
+                    b.Property<string>("PanelDensity").IsRequired().HasMaxLength(30).HasColumnType("character varying(30)").HasColumnName("panelDensity");
+
+                    b.Property<string>("OpenAiEncryptedKey")
+                        .HasColumnType("text")
+                        .HasColumnName("openAiEncryptedKey");
+
+                    b.Property<string>("OpenAiModel")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("openAiModel");
+
+                    b.Property<bool>("AiEnabled")
+                        .HasColumnType("boolean")
+                        .HasColumnName("aiEnabled");
+
+                    b.Property<int>("AiMonthlyLimit")
+                        .HasColumnType("integer")
+                        .HasColumnName("aiMonthlyLimit");
+
+                    b.Property<int>("AiUsed")
+                        .HasColumnType("integer")
+                        .HasColumnName("aiUsed");
+
+                    b.Property<string>("AiUsageMonth")
+                        .IsRequired()
+                        .HasColumnType("text")
+                        .HasColumnName("aiUsageMonth");
+
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
@@ -1244,6 +1320,13 @@ namespace AutoNexus.Infrastructure.Migrations
                         new
                         {
                             Id = new Guid("00000000-0000-0000-0000-0000000000b1"),
+            AiEnabled = false,
+            AiMonthlyLimit = 0,
+            AiUsed = 0,
+            AiUsageMonth = "",
+            OpenAiModel = "gpt-4.1-mini",
+            StoreTemplate = "premium",
+            PanelDensity = "comfortable",
                             CompanyName = "Empresa Padrão",
                             CreatedAt = new DateTime(2026, 1, 1, 0, 0, 0, 0, DateTimeKind.Utc),
                             Currency = "BRL",
@@ -1617,6 +1700,15 @@ namespace AutoNexus.Infrastructure.Migrations
 
             modelBuilder.Entity("AutoNexus.Domain.Entities.Vehicle", b =>
                 {
+                    b.Property<Guid?>("ReservedForLeadId")
+                        .HasColumnType("uuid").HasColumnName("reservedForLeadId");
+                    b.Property<Guid?>("ReservedByUserId")
+                        .HasColumnType("uuid").HasColumnName("reservedByUserId");
+                    b.Property<DateTime?>("ReservationExpiresAt")
+                        .HasColumnType("timestamp with time zone").HasColumnName("reservationExpiresAt");
+                    b.Property<string>("DeliveryChecklist")
+                        .HasColumnType("text").HasColumnName("deliveryChecklist");
+
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
@@ -1715,6 +1807,7 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnName("transmission");
 
                     b.Property<DateTime?>("UpdatedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
 

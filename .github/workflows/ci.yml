@@ -52,6 +52,11 @@ jobs:
         env:
           ASPNETCORE_ENVIRONMENT: Testing
           ASPNETCORE_URLS: http://127.0.0.1:5080
+          Seed__AdminEmail: launch-admin@example.test
+          Seed__AdminPassword: ci-only-launch-validation-2027!
+          AUTONEXUS_TEST_URL: http://127.0.0.1:5080
+          AUTONEXUS_TEST_EMAIL: launch-admin@example.test
+          AUTONEXUS_TEST_PASSWORD: ci-only-launch-validation-2027!
           ConnectionStrings__DefaultConnection: Host=localhost;Port=5432;Database=autonexus_ci;Username=postgres
           Jwt__SecretKey: ${{ github.repository }}-${{ github.run_id }}-${{ github.sha }}-ci-only
         run: |
@@ -65,6 +70,7 @@ jobs:
           for attempt in $(seq 1 60); do
             if curl --fail --silent http://127.0.0.1:5080/health > /dev/null; then
               echo "API started successfully; PostgreSQL migrations and initialization completed."
+              python3 scripts/validate-launch2027.py
               exit 0
             fi
             if ! kill -0 "$api_pid" 2>/dev/null; then
@@ -99,6 +105,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Validate launch calculations and CSV import
+        run: npm run test:launch2027
 
       - name: Lint with explicit legacy baseline
         run: |

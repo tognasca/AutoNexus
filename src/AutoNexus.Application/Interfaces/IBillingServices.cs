@@ -27,6 +27,7 @@ public interface IPlanLimitService
 {
     Task EnsureCanAddUserAsync(CancellationToken cancellationToken = default);
     Task EnsureCanAddVehicleAsync(CancellationToken cancellationToken = default);
+    Task EnsureCanAddVehiclesAsync(int count, CancellationToken cancellationToken = default);
 }
 
 public interface IBillingMaintenanceService

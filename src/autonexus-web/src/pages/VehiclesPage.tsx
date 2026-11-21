@@ -1,3 +1,4 @@
+import { VehicleOperations } from '../components/vehicles/VehicleOperations';
 ﻿import { useState, useEffect } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { VehicleCard } from '../components/vehicles/VehicleCard';
@@ -19,6 +20,7 @@ import { Plus, Loader2, CarFront, CheckCircle2, Clock3, AlertTriangle } from 'lu
 import { VehicleHistoryModal } from '../components/vehicles/VehicleHistoryModal';
 
 export function VehiclesPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
+  const [operationsVehicle, setOperationsVehicle] = useState<VehicleSummary | null>(null);
   const [vehicles, setVehicles] = useState<VehicleSummary[]>([]);
   const [vehicleTypes, setVehicleTypes] = useState<LookupItem[]>([]);
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
@@ -128,6 +130,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
         ))}
       </div>
 
+      {operationsVehicle && <VehicleOperations key={operationsVehicle.id} vehicle={operationsVehicle} onClose={() => { setOperationsVehicle(null); void loadData(); }} />}
       <VehicleFilters
         vehicleTypes={vehicleTypes}
         selectedType={selectedType}
@@ -170,6 +173,7 @@ export function VehiclesPage({ currentView, onNavigate }: { currentView?: string
               onTradeVehicle={(veh) => { setSelectedVehicleForTrade(veh); setIsTradeModalOpen(true); }}
               onDeleteVehicle={handleDeleteVehicle}
             />
+            <button type="button" onClick={() => setOperationsVehicle(v)} className="w-full rounded-lg border border-nexus-border bg-nexus-card p-2 text-sm text-white">Resultado, interessados e entrega</button>
             <label className="block rounded-lg border border-nexus-border bg-nexus-card p-2 text-[11px] text-slate-400">
               WhatsApp responsável por este veículo
               <select value={v.whatsappContactId ?? ''} onChange={async e => { const contactId = e.target.value || null; try { await vehicleService.assignWhatsAppContact(v.id, contactId); setVehicles(items => items.map(item => item.id === v.id ? { ...item, whatsappContactId: contactId } : item)); } catch (err: any) { alert(err.message || 'Não foi possível atualizar o contato do veículo.'); } }} className="mt-1 w-full rounded border border-slate-700 bg-slate-950 px-2 py-2 text-xs text-white">

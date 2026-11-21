@@ -1,3 +1,5 @@
+using AutoNexus.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 
 using AutoNexus.Domain.Interfaces;
 using AutoNexus.Domain.Models;
@@ -35,13 +37,16 @@ public record SubmitCreditProposalRequest(
 
 [ApiController]
 [Route("api/credit")]
-[Authorize]
+[Authorize(Roles = "Admin,Vendedor")]
 public class CreditController : ControllerBase
 {
     private readonly IBankCreditService _creditService;
 
-    public CreditController(IBankCreditService creditService)
+    private readonly AutoNexusDbContext _db;
+
+    public CreditController(IBankCreditService creditService, AutoNexusDbContext db)
     {
+        _db = db;
         _creditService = creditService;
     }
 
@@ -69,6 +74,11 @@ public class CreditController : ControllerBase
         if (request.VehiclePrice > 0 &&
             Math.Abs(request.VehiclePrice - request.EntryValue - request.TradeValue - request.FinancedAmount) > 0.02m)
             return BadRequest(new { message = "Os valores da negociação não fecham com o saldo a financiar. Recalcule a simulação." });
+
+        if (!string.IsNullOrWhiteSpace(request.VehicleId) &&
+            (!Guid.TryParse(request.VehicleId, out var vehicleId) ||
+             !await _db.Vehicles.AnyAsync(x => x.Id == vehicleId)))
+            return BadRequest(new { message = "O veículo informado não pertence a esta empresa ou não existe." });
 
         var proposalRequest = new CreditProposalRequest(
             BankId: request.BankId,

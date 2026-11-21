@@ -10,6 +10,14 @@ public sealed class LeadConfiguration : IEntityTypeConfiguration<Lead>
     {
         builder.ToTable("leads");
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.Budget).HasPrecision(18, 2);
+        builder.Property(x => x.PreferredModels).HasMaxLength(500);
+        builder.Property(x => x.ShareTokenHash).HasMaxLength(64);
+        builder.Property(x => x.BuyerResponse).HasMaxLength(600);
+
+        builder.Property(x => x.OfferValue).HasPrecision(18, 2);
+        builder.Property(x => x.DownPayment).HasPrecision(18, 2);
+        builder.Property(x => x.TradeDescription).HasMaxLength(500);
         builder.Property(x => x.Name).HasMaxLength(160).IsRequired();
         builder.Property(x => x.Phone).HasMaxLength(30).IsRequired();
         builder.Property(x => x.Email).HasMaxLength(254);

@@ -30,6 +30,42 @@ public class Vehicle : TenantOwnedEntityBase
     public User? SoldByUser { get; private set; }
     public DateTime? SoldAt { get; private set; }
 
+    public Guid? ReservedForLeadId { get; private set; }
+    public Guid? ReservedByUserId { get; private set; }
+    public DateTime? ReservationExpiresAt { get; private set; }
+    public string? DeliveryChecklist { get; private set; }
+
+    public void Reserve(Guid leadId, Guid userId, DateTime expiresAt, DateTime now)
+    {
+        if (leadId == Guid.Empty || userId == Guid.Empty || expiresAt <= now ||
+            expiresAt > now.AddDays(7))
+            throw new ArgumentException("Reserva deve ter responsável e prazo de até sete dias.");
+        if (Status == VehicleStatus.Vendido || Status == VehicleStatus.EmTroca ||
+            (Status == VehicleStatus.Reservado && ReservationExpiresAt == null) ||
+            ReservationExpiresAt > now)
+            throw new InvalidOperationException("O veículo já está reservado ou indisponível.");
+        ReservedForLeadId = leadId;
+        ReservedByUserId = userId;
+        ReservationExpiresAt = expiresAt;
+        Status = VehicleStatus.Reservado;
+        UpdatedAt = now;
+    }
+    public void ReleaseReservation()
+    {
+        if (ReservationExpiresAt is null) return;
+        ReservedForLeadId = null;
+        ReservedByUserId = null;
+        ReservationExpiresAt = null;
+        if (Status == VehicleStatus.Reservado) Status = VehicleStatus.AVenda;
+        UpdatedAt = DateTime.UtcNow;
+    }
+    public void SaveDeliveryChecklist(string checklist)
+    {
+        if (Status != VehicleStatus.Vendido) throw new InvalidOperationException("Registre a venda antes da entrega.");
+        DeliveryChecklist = checklist;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     // Propriedades de Navegação
     public VehicleType VehicleType { get; private set; } = null!;
     public ICollection<VehiclePhoto> Photos { get; private set; } = new List<VehiclePhoto>();
@@ -77,6 +113,8 @@ public class Vehicle : TenantOwnedEntityBase
 
     public void ChangeStatus(VehicleStatus newStatus)
     {
+        if (ReservationExpiresAt > DateTime.UtcNow && newStatus != VehicleStatus.Reservado)
+            throw new InvalidOperationException("Cancele a reserva antes de alterar a situação.");
         Status = newStatus;
         UpdatedAt = DateTime.UtcNow;
     }
@@ -133,6 +171,8 @@ public class Vehicle : TenantOwnedEntityBase
     }
     public void CompleteSale(decimal saleValue)
     {
+        if (ReservationExpiresAt > DateTime.UtcNow)
+            throw new InvalidOperationException("Use o fechamento identificado para uma reserva ativa.");
         if (Status == VehicleStatus.Vendido)
             throw new InvalidOperationException("Veículo já foi vendido.");
 
@@ -147,6 +187,10 @@ public class Vehicle : TenantOwnedEntityBase
     // Método para registrar a venda com o Vendedor
     public void MarkAsSold(decimal saleValue, Guid? soldByUserId = null, DateTime? soldAt = null)
 {
+    if (Status == VehicleStatus.Vendido)
+        throw new InvalidOperationException("O veículo já foi vendido.");
+    if (ReservationExpiresAt > DateTime.UtcNow && ReservedByUserId != soldByUserId)
+        throw new InvalidOperationException("Este veículo está reservado por outro vendedor.");
     if (saleValue <= 0)
         throw new ArgumentException("O valor de venda deve ser maior que R$ 0,00.");
 

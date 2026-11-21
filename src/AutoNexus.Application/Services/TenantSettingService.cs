@@ -51,11 +51,13 @@ public class TenantSettingService : ITenantSettingService
                 throw new InvalidOperationException("Nenhum tenant identificado na requisição atual.");
 
             settings = new TenantSetting(dto.CompanyName);
+            settings.ConfigureAppearance(dto.StoreTemplate, dto.PanelDensity);
             settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey, dto.WelcomeText, dto.HeroTitle);
             await _settingRepository.AddForTenantAsync(settings, _tenantContext.TenantId, cancellationToken);
         }
         else
         {
+            settings.ConfigureAppearance(dto.StoreTemplate, dto.PanelDensity);
             settings.Update(dto.CompanyName, dto.LogoUrl, dto.PrimaryColor, dto.WhatsAppNumber ?? settings.WhatsAppNumber, dto.TimeZone, dto.Currency, dto.HeroImageUrl, dto.HeroTemplateKey, dto.WelcomeText, dto.HeroTitle);
             _settingRepository.Update(settings);
         }
@@ -159,6 +161,8 @@ public class TenantSettingService : ITenantSettingService
         settings.HeroImageUrl,
         settings.HeroTemplateKey,
         settings.WelcomeText,
-        settings.HeroTitle
+        settings.HeroTitle,
+        settings.StoreTemplate,
+        settings.PanelDensity
     );
 }

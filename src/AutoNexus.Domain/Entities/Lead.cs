@@ -16,6 +16,59 @@ public class Lead : TenantOwnedEntityBase
     public User? AssignedToUser { get; private set; }
     public DateTime? LastContactAt { get; private set; }
 
+    public decimal? OfferValue { get; private set; }
+    public decimal? DownPayment { get; private set; }
+    public string? TradeDescription { get; private set; }
+    public DateTime? NextContactAt { get; private set; }
+    public DateOnly? OfferValidUntil { get; private set; }
+
+    public void UpdateAttendance(decimal? offerValue, decimal? downPayment,
+        string? tradeDescription, DateTime? nextContactAt, DateOnly? offerValidUntil)
+    {
+        OfferValue = offerValue;
+        DownPayment = downPayment;
+        TradeDescription = tradeDescription;
+        NextContactAt = nextContactAt;
+        OfferValidUntil = offerValidUntil;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
+    public decimal? Budget { get; private set; }
+    public int? PreferredTransmission { get; private set; }
+    public string? PreferredModels { get; private set; }
+    public string? ShareTokenHash { get; private set; }
+    public string? ProposalSnapshot { get; private set; }
+    public DateTime? ShareExpiresAt { get; private set; }
+    public string? BuyerResponse { get; private set; }
+    public DateTime? BuyerRespondedAt { get; private set; }
+
+    public void SetBuyerPreferences(decimal? budget, int? transmission, string? models)
+    {
+        if (budget <= 0 || models?.Length > 500 ||
+            (transmission.HasValue && !Enum.IsDefined(typeof(TransmissionType), transmission.Value)))
+            throw new ArgumentException("Preferências de compra inválidas.");
+        Budget = budget;
+        PreferredTransmission = transmission;
+        PreferredModels = string.IsNullOrWhiteSpace(models) ? null : models.Trim();
+        UpdatedAt = DateTime.UtcNow;
+    }
+    public void PublishProposal(string tokenHash, string snapshot, DateTime expiresAt)
+    {
+        ShareTokenHash = tokenHash;
+        ProposalSnapshot = snapshot;
+        ShareExpiresAt = expiresAt;
+        BuyerResponse = null;
+        BuyerRespondedAt = null;
+        UpdatedAt = DateTime.UtcNow;
+    }
+    public void RevokeProposal() { ShareTokenHash = null; ShareExpiresAt = null; UpdatedAt = DateTime.UtcNow; }
+    public void RespondToProposal(string response)
+    {
+        BuyerResponse = response;
+        BuyerRespondedAt = DateTime.UtcNow;
+        UpdatedAt = DateTime.UtcNow;
+    }
+
     private Lead() { }
 
     public Lead(string name, string phone, string? email, string source, string? notes, Guid? vehicleId, Guid? assignedToUserId)

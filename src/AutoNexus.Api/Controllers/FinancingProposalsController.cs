@@ -1,3 +1,5 @@
+using AutoNexus.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -7,13 +9,16 @@ namespace AutoNexus.Api.Controllers;
 
 [ApiController]
 [Route("api/financing/proposals")]
-[Authorize]
+[Authorize(Roles = "Admin,Vendedor")]
 public sealed class FinancingProposalsController : ControllerBase
 {
     private readonly IFinancingProposalService _service;
 
-    public FinancingProposalsController(IFinancingProposalService service)
+    private readonly AutoNexusDbContext _db;
+
+    public FinancingProposalsController(IFinancingProposalService service, AutoNexusDbContext db)
     {
+        _db = db;
         _service = service;
     }
 
@@ -24,6 +29,11 @@ public sealed class FinancingProposalsController : ControllerBase
     {
         try
         {
+            if (!string.IsNullOrWhiteSpace(request.VehicleId) &&
+                (!Guid.TryParse(request.VehicleId, out var vehicleId) ||
+                 !await _db.Vehicles.AnyAsync(x => x.Id == vehicleId)))
+                return BadRequest(new { message = "O veículo informado não pertence a esta empresa ou não existe." });
+
             var result = await _service.CreateAsync(request, cancellationToken);
             return CreatedAtAction(nameof(Get), new { id = result.Id }, result);
         }
