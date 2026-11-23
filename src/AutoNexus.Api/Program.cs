@@ -100,6 +100,7 @@ builder.Services.AddRateLimiter(options =>
 builder.Services.AddHostedService<AutoNexus.Api.Workers.BillingMaintenanceWorker>();
 builder.Services.AddSingleton<MercadoPagoCredentialProtector>();
 builder.Services.AddHttpClient();
+builder.Services.AddHostedService<AutoNexus.Api.Services.ReservationExpiryService>();
 builder.Services.AddControllers();
 builder.Services.AddOpenApi();
 builder.Services.AddHealthChecks();
@@ -220,6 +221,7 @@ if (!app.Environment.IsDevelopment()) app.UseHttpsRedirection();
 app.UseCors("AllowFrontend");
 app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<AutoNexus.Api.Middleware.VehicleConcurrencyMiddleware>();
 app.UseMiddleware<AutoNexus.Api.Middleware.PlanLimitExceptionMiddleware>();
 app.UseMiddleware<AutoNexus.Api.Middleware.SubscriptionAccessMiddleware>();
 app.UseAuthorization();

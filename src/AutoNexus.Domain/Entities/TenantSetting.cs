@@ -12,6 +12,19 @@ public class TenantSetting : TenantOwnedEntityBase
     public string CompanyName { get; private set; } = string.Empty;
     public string? LogoUrl { get; private set; }
     public string? HeroImageUrl { get; private set; }
+    public string StoreTemplate { get; private set; } = "premium";
+    public string PanelDensity { get; private set; } = "comfortable";
+
+    public void ConfigureAppearance(string? template, string? density)
+    {
+        if (template is not null && template is not ("essential" or "premium" or "commercial"))
+            throw new ArgumentException("Modelo de site inválido.");
+        if (density is not null && density is not ("comfortable" or "compact"))
+            throw new ArgumentException("Densidade do painel inválida.");
+        StoreTemplate = template ?? StoreTemplate;
+        PanelDensity = density ?? PanelDensity;
+    }
+
     public string? HeroTemplateKey { get; private set; }
     public string? WelcomeText { get; private set; }
     public string? HeroTitle { get; private set; }
@@ -19,6 +32,21 @@ public class TenantSetting : TenantOwnedEntityBase
     public string? WhatsAppNumber { get; private set; }
     public string TimeZone { get; private set; } = "America/Sao_Paulo";
     public string Currency { get; private set; } = "BRL";
+
+    public string? OpenAiEncryptedKey { get; private set; }
+    public string OpenAiModel { get; private set; } = "gpt-4.1-mini";
+    public bool AiEnabled { get; private set; }
+    public int AiMonthlyLimit { get; private set; }
+    public int AiUsed { get; private set; }
+    public string AiUsageMonth { get; private set; } = "";
+
+    public void ConfigureAi(string? encryptedKey, string model, bool enabled, int monthlyLimit)
+    {
+        OpenAiEncryptedKey = encryptedKey;
+        OpenAiModel = model;
+        AiEnabled = enabled;
+        AiMonthlyLimit = monthlyLimit;
+    }
 
     protected TenantSetting() { }
 

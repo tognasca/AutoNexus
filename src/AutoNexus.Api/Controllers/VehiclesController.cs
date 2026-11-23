@@ -129,8 +129,14 @@ public class VehiclesController : ControllerBase
         if (validationError != null)
             return BadRequest(new { message = validationError });
 
+        var tenant = HttpContext.RequestServices.GetRequiredService<AutoNexus.Domain.Interfaces.ITenantContext>();
+        if (!tenant.HasTenant) return Forbid();
+        await using var createTransaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM tenants WHERE id = {tenant.TenantId} FOR UPDATE", cancellationToken);
         var vehicleId = await _vehicleService.CreateAsync(dto, cancellationToken);
         await RegisterVehicleHistoryAsync(vehicleId, "Cadastro", $"Veículo {dto.Brand} {dto.Model} cadastrado no estoque.", cancellationToken);
+        await createTransaction.CommitAsync(cancellationToken);
         return CreatedAtAction(nameof(GetById), new { id = vehicleId }, new { id = vehicleId });
     }
 
@@ -185,8 +191,19 @@ public class VehiclesController : ControllerBase
 
         var updatedDto = new SellVehicleDto(dto.SaleValue, sellerId, dto.SoldAt);
 
+        var tenant = HttpContext.RequestServices.GetRequiredService<AutoNexus.Domain.Interfaces.ITenantContext>();
+        if (!tenant.HasTenant) return Forbid();
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(cancellationToken);
+        await _dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT 1 FROM vehicles WHERE id = {id} AND \"tenantId\" = {tenant.TenantId} FOR UPDATE", cancellationToken);
+        var saleVehicle = await _dbContext.Vehicles.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (saleVehicle is null) return NotFound();
+        if (saleVehicle.Status == VehicleStatus.Vendido ||
+            (saleVehicle.ReservationExpiresAt > DateTime.UtcNow && saleVehicle.ReservedByUserId != sellerId))
+            return Conflict(new { message = "Veículo vendido ou reservado por outro vendedor." });
         await _vehicleService.SellVehicleAsync(id, updatedDto, cancellationToken);
         await RegisterVehicleHistoryAsync(id, "Venda registrada", $"Veículo vendido por {dto.SaleValue:C}.", cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
         return Ok(new { message = "Venda registrada com sucesso." });
     }
 

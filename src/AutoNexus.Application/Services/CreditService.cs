@@ -94,6 +94,8 @@ public class CreditService : IBankCreditService
                             result = adapter.ParseHttpResponse(responseBody, (int)httpResponse.StatusCode);
                         }
 
+                        if (string.IsNullOrWhiteSpace(result.ProposalNumber))
+                            result = result with { ProposalNumber = $"AUTO-{record.Id:N}" };
                         record.SetResult(result);
                         if (_proposalRepository != null)
                             await _proposalRepository.UpdateAsync(record);

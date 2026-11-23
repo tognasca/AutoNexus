@@ -10,7 +10,15 @@ export const LeadStatus = {
 } as const;
 export type LeadStatus = (typeof LeadStatus)[keyof typeof LeadStatus];
 
-export interface LeadItem {
+export interface AttendanceInput {
+  offerValue: number | null;
+  downPayment: number | null;
+  tradeDescription: string | null;
+  nextContactAt: string | null;
+  offerValidUntil: string | null;
+}
+
+export interface LeadItem extends Partial<AttendanceInput> {
   id: string;
   name: string;
   phone: string;
@@ -19,6 +27,8 @@ export interface LeadItem {
   notes?: string | null;
   status: LeadStatus;
   statusName: string;
+  externalId?: string | null;
+  missingFields?: string[];
   vehicleId?: string | null;
   vehicleName?: string | null;
   assignedToUserId?: string | null;
@@ -33,12 +43,16 @@ export interface LeadInput {
   phone: string;
   email?: string | null;
   source?: string;
+  externalId?: string | null;
   notes?: string | null;
   vehicleId?: string | null;
   assignedToUserId?: string | null;
 }
 
 export const leadService = {
+  saveAttendance: (id: string, input: AttendanceInput) => request<LeadItem>(`/leads/${id}/attendance`, {
+    method: 'PUT', body: JSON.stringify(input),
+  }),
   getAll: (search?: string) => {
     const params = new URLSearchParams();
     if (search?.trim()) params.set('search', search.trim());

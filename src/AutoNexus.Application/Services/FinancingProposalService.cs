@@ -227,9 +227,9 @@ public sealed class FinancingProposalService : IFinancingProposalService
         var values = new[]
         {
             Csv(record.ProposalNumber), Csv(record.Status), Csv(record.CustomerName), Csv(record.CustomerCpf), Csv(record.VehicleName),
-            Csv(payload.GetProperty("vehicle").GetProperty("VehiclePrice").ToString()),
-            Csv(payload.GetProperty("financial").GetProperty("EntryValue").ToString()),
-            Csv(payload.GetProperty("financial").GetProperty("TradeValue").ToString()),
+            Csv(record.RequestDataJson.TryGetDecimal("vehiclePrice").ToString(CultureInfo.InvariantCulture)),
+            Csv(record.RequestDataJson.TryGetDecimal("entryValue").ToString(CultureInfo.InvariantCulture)),
+            Csv(record.RequestDataJson.TryGetDecimal("tradeValue").ToString(CultureInfo.InvariantCulture)),
             Csv(record.FinancedAmount.ToString(CultureInfo.InvariantCulture)), Csv(record.Months.ToString(CultureInfo.InvariantCulture)),
             Csv(record.InstallmentValue.ToString(CultureInfo.InvariantCulture)), Csv(JsonSerializer.Serialize(payload))
         };
@@ -245,12 +245,28 @@ internal static class FinancingJsonExtensions
     {
         try
         {
-            var root = JsonSerializer.Deserialize<JsonElement>(json);
-            if (root.TryGetProperty("vehicle", out var vehicle) && vehicle.TryGetProperty("VehiclePrice", out var vehiclePrice) && propertyName == "vehiclePrice") return vehiclePrice.GetDecimal();
-            if (root.TryGetProperty("financial", out var financial) && financial.TryGetProperty("EntryValue", out var entry) && propertyName == "entryValue") return entry.GetDecimal();
-            if (root.TryGetProperty("financial", out financial) && financial.TryGetProperty("TradeValue", out var trade) && propertyName == "tradeValue") return trade.GetDecimal();
+            using var document = JsonDocument.Parse(json);
+            var root = document.RootElement;
+            var direct = Find(root, propertyName);
+            if (direct.HasValue) return direct.Value;
+            foreach (var group in new[] { "vehicle", "financial" })
+                if (root.TryGetProperty(group, out var nested))
+                {
+                    var value = Find(nested, propertyName);
+                    if (value.HasValue) return value.Value;
+                }
         }
-        catch { }
+        catch (JsonException) { }
         return 0m;
+    }
+
+    private static decimal? Find(JsonElement element, string name)
+    {
+        if (element.ValueKind != JsonValueKind.Object) return null;
+        foreach (var property in element.EnumerateObject())
+            if (property.Name.Equals(name, StringComparison.OrdinalIgnoreCase) &&
+                property.Value.ValueKind == JsonValueKind.Number && property.Value.TryGetDecimal(out var value))
+                return value;
+        return null;
     }
 }

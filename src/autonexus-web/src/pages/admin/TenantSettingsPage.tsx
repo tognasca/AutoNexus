@@ -1,3 +1,7 @@
+import { createPortal } from 'react-dom';
+import previewHero from '../../public/hero/atmotors-hero/hero-atmotor.png';
+import { StoreHero } from '../../components/catalog/StoreHero';
+import { storeTemplates } from '../../components/catalog/storeTemplates';
 import React, { useEffect, useState } from 'react';
 import { tenantSettingsService, TenantSettings, WhatsAppContact } from '../../services/tenantSettingsService';
 import { MainLayout } from '../../components/layout/MainLayout';
@@ -24,33 +28,33 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
   const [form, setForm] = useState<TenantSettings>(emptySettings);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [previewBody, setPreviewBody] = useState<HTMLElement | null>(null);
+  const [previewWidth, setPreviewWidth] = useState('desktop');
   const [saved, setSaved] = useState(false);
   const [whatsappContacts, setWhatsappContacts] = useState<WhatsAppContact[]>([]);
   const [contactName, setContactName] = useState('');
   const [contactPhone, setContactPhone] = useState('');
   const [contactSaving, setContactSaving] = useState(false);
   const [catalogSlug, setCatalogSlug] = useState<string | null>(null);
+  const previewStyles = Array.from(document.querySelectorAll('style, link[rel="stylesheet"]')).map(node => node.outerHTML).join('');
+  const previewMarkup = <StoreHero template={form.storeTemplate || 'premium'}
+    name={form.companyName || 'Sua loja'} title={form.heroTitle} welcome={form.welcomeText}
+    color={form.primaryColor || '#16324f'} image={form.heroImageUrl || previewHero}
+    onContact={() => {}} featured={form.storeTemplate === 'commercial' ? { name: 'Veículo de exemplo', price: 'Preço de exemplo', image: form.heroImageUrl || previewHero } : undefined} />;
+  const previewDocument = `<!doctype html><html lang="pt-BR"><head><meta name="viewport" content="width=device-width, initial-scale=1"><base href="${window.location.origin}/">${previewStyles}</head><body style="margin:0"></body></html>`;
   const catalogUrl = catalogSlug ? `${window.location.origin}/loja/${encodeURIComponent(catalogSlug)}` : null;
 
-  const load = async () => {
-    setLoading(true);
-    try {
-      const data = await tenantSettingsService.get();
-      setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
-      try {
-        const catalog = await catalogService.getPublicCatalog('current');
-        setCatalogSlug(catalog.store?.slug ?? null);
-      } catch {
-        setCatalogSlug(null);
-      }
-      const contacts = await tenantSettingsService.getWhatsAppContacts();
-      setWhatsappContacts(contacts);
-    } catch (err) {
-      console.error('Erro ao carregar configurações da empresa:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const load = () => Promise.all([
+    tenantSettingsService.get(),
+    catalogService.getPublicCatalog('current').catch(() => null),
+    tenantSettingsService.getWhatsAppContacts(),
+  ]).then(([data, catalog, contacts]) => {
+    setForm({ ...data, whatsappNumber: data.whatsappNumber ?? '' });
+    setCatalogSlug(catalog?.store?.slug ?? null);
+    setWhatsappContacts(contacts);
+  }).catch(err => {
+    console.error('Erro ao carregar configurações da empresa:', err);
+  }).finally(() => setLoading(false));
 
   useEffect(() => {
     load();
@@ -67,6 +71,7 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
       });
       setForm({ ...updated, whatsappNumber: updated.whatsappNumber ?? '' });
       setSaved(true);
+      window.dispatchEvent(new Event('atmotors:appearance-updated'));
       setTimeout(() => setSaved(false), 2500);
     } catch (err: any) {
       alert(err.message || 'Erro ao salvar configurações.');
@@ -118,6 +123,42 @@ export function TenantSettingsPage({ currentView, onNavigate }: TenantSettingsPa
             <div className="text-center text-slate-400 py-8">Carregando...</div>
           ) : (
             <form onSubmit={handleSave} className="space-y-4 text-xs">
+              <section className="space-y-4 rounded-xl border border-slate-700 bg-slate-950/50 p-4">
+                <h2 className="text-base font-semibold text-white">Aparência da loja</h2>
+                <div className="grid gap-2 sm:grid-cols-3">
+                  {storeTemplates.map(template => <button key={template.key} type="button"
+                    aria-pressed={(form.storeTemplate || 'premium') === template.key}
+                    onClick={() => setForm(v => ({ ...v, storeTemplate: template.key }))}
+                    className={`rounded-xl border p-3 text-left ${(form.storeTemplate || 'premium') === template.key ? 'border-blue-400 bg-blue-500/15' : 'border-slate-700 bg-slate-900'}`}>
+                    <span className="block text-sm font-bold text-white">{template.name}</span>
+                    <span className="mt-1 block text-xs text-slate-400">{template.description}</span>
+                  </button>)}
+                </div>
+                <label className="block text-slate-300">Densidade do painel interno
+                  <select value={form.panelDensity || 'comfortable'} onChange={event => setForm(v => ({ ...v, panelDensity: event.target.value }))}
+                    className="mt-1 w-full rounded-lg border border-slate-700 bg-slate-900 p-3 text-white">
+                    <option value="comfortable">Confortável · mais espaço</option>
+                    <option value="compact">Compacto · mais informações</option>
+                  </select>
+                </label>
+                <div className="flex flex-wrap items-center gap-2 text-white">
+                  <span>Prévia da apresentação</span>
+                  {['desktop', 'tablet', 'mobile'].map(size => <button key={size} type="button" aria-pressed={previewWidth === size}
+                    onClick={() => setPreviewWidth(size)} className={`rounded px-3 py-2 ${previewWidth === size ? 'bg-blue-600' : 'bg-slate-800'}`}>
+                    {size === 'desktop' ? 'Computador' : size === 'tablet' ? 'Tablet' : 'Celular'}
+                  </button>)}
+                </div>
+                <p className="text-xs text-slate-400">A prévia usa as alterações do formulário. Salve para publicar. No modelo Comercial, o primeiro veículo do estoque será destacado.</p>
+                <div className="overflow-x-auto rounded-xl border border-slate-700">
+                  <iframe title="Prévia do modelo da loja" srcDoc={previewDocument} sandbox="allow-same-origin" onLoad={event => setPreviewBody(event.currentTarget.contentDocument?.body ?? null)}
+                    style={{ width: previewWidth === 'mobile' ? 375 : previewWidth === 'tablet' ? 768 : 1100, height: 430, border: 0 }}
+                    className="bg-white" />
+                  {previewBody && createPortal(previewMarkup, previewBody)}
+                </div>
+                <button type="button" onClick={() => setForm(v => ({ ...v, storeTemplate: 'premium', panelDensity: 'comfortable' }))}
+                  className="rounded-lg border border-slate-700 px-3 py-2 text-slate-300">Restaurar modelo e densidade padrão</button>
+              </section>
+
               <div>
                 <label className="text-slate-400 block mb-1">Nome da Empresa *</label>
                 <input
