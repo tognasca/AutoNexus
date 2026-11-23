@@ -30,6 +30,10 @@ export function TransferTracking({ vehicleId }: { vehicleId: string }) {
 
   return <section className="space-y-3 rounded-xl border border-slate-700 p-4">
     <h3 className="font-semibold">Acompanhamento da transferência</h3>
+    <details className="text-sm text-slate-300">
+      <summary className="cursor-pointer">Conferir disponibilidade do Renave na loja</summary>
+      <p className="mt-2">Confirme com a integradora, para o CNPJ e a UF da loja, quais etapas estão habilitadas e quais comprovantes são emitidos. Ao registrar uma consulta externa, informe o sistema consultado e a referência do comprovante.</p>
+    </details>
     {error && <p role="alert" className="text-sm text-rose-300">{error}</p>}
     {!entries && !error && <p role="status">Carregando etapas…</p>}
     {entries && steps.map(([id, label]) => {

@@ -50,6 +50,7 @@ export function FipeValueCard({ quote, loading = false, error = null }: FipeValu
           <div className="mt-1 text-xs text-slate-400">
             Referência: {String(quote.referenceMonth).padStart(2, '0')}/{quote.referenceYear}
           </div>
+          <p className="text-xs text-slate-400">Fonte da consulta: {quote.source || "não registrada"}</p>
         </div>
         <span className="rounded-full border border-blue-400/20 bg-blue-400/10 px-2 py-1 text-[10px] font-semibold text-blue-300">
           Apenas interno

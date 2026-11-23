@@ -1,3 +1,4 @@
+import { MercadoLivrePreflight } from './MercadoLivrePreflight';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { TransferTracking } from './TransferTracking';
@@ -107,6 +108,7 @@ export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummar
       </section>
     </div>
     {vehicle.status === VehicleStatus.Vendido && <div className="mt-5"><TransferTracking vehicleId={vehicle.id} /></div>}
+    {vehicle.status === VehicleStatus.AVenda && <div className="mt-5"><MercadoLivrePreflight /></div>}
     <VehicleCostsModal isOpen={costsOpen} vehicle={vehicle} onClose={() => setCostsOpen(false)} onCostsUpdated={() => void refreshMargin(offer).catch(() => setError('Reabra o resultado para atualizar despesas.'))} />
     {lead && <AttendancePanel key={lead.id} lead={lead} onClose={() => setLead(null)} onUpdated={setLead} />}
   </dialog>;
