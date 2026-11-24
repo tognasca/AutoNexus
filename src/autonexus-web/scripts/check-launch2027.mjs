@@ -17,3 +17,17 @@ for (const invalid of [[-1, 12, 1], [1000, 0, 1], [1000, 12, -1], [1000, 12, NaN
   assert.throws(() => calculateInstallment(...invalid));
 }
 console.log('PASS: CSV, moeda brasileira, aspas, erros de arquivo, Tabela Price e entradas inválidas.');
+
+const { buildMercadoLivrePriceUpdate } = await import('../src/utils/mercadoLivreDealerContact.ts');
+const existingListing = Object.freeze({
+  price: 95000,
+  seller_contact: Object.freeze({
+    country_code2: '55', phone2: '11999991234', contact: 'Equipe de vendas',
+  }),
+});
+const update = JSON.parse(JSON.stringify(buildMercadoLivrePriceUpdate(92000, existingListing.seller_contact)));
+assert.deepEqual(update, { price: 92000, seller_contact: existingListing.seller_contact });
+assert.equal(existingListing.price, 95000);
+assert.throws(() => buildMercadoLivrePriceUpdate(92000, { country_code2: '55' }), /segundo telefone/);
+assert.throws(() => buildMercadoLivrePriceUpdate(0, existingListing.seller_contact), /preço/);
+console.log('PASS: edição de preço preserva o segundo telefone e os demais dados de contato.');

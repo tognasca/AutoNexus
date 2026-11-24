@@ -7,3 +7,18 @@ export function buildMercadoLivreDealerContact(input: string) {
   if (!/^[1-9]\d(?:[2-5]\d{7}|9\d{8})$/.test(national)) throw new Error(invalid);
   return { country_code2: '55', area_code2: national.slice(0, 2), phone2: national.slice(2) };
 }
+
+export function buildMercadoLivrePriceUpdate<T extends {
+  country_code2?: string | null;
+  phone2?: string | null;
+}>(price: number, savedContact: T) {
+  if (!Number.isFinite(price) || price <= 0) {
+    throw new Error('Informe um preço maior que zero.');
+  }
+  if (!savedContact.country_code2?.trim() || !savedContact.phone2?.trim()) {
+    throw new Error('O anúncio da concessionária precisa ter o segundo telefone cadastrado.');
+  }
+
+  // Preserve o contato como retornado pelo portal, inclusive campos opcionais.
+  return { price, seller_contact: { ...savedContact } };
+}
