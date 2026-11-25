@@ -4,11 +4,12 @@ import { MainLayout } from '../../components/layout/MainLayout';
 import { Building2, Plus, Edit2, CheckCircle2, XCircle, ShieldAlert, Key, RefreshCw, X, Save } from 'lucide-react';
 
 interface BankConfigPageProps {
+  embedded?: boolean;
   currentView?: string;
   onNavigate?: (view: string) => void;
 }
 
-export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps) {
+export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfigPageProps) {
   const [configs, setConfigs] = useState<BankConfig[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -127,8 +128,7 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
     }
   };
 
-  return (
-    <MainLayout currentView={currentView} onNavigate={onNavigate}>
+  const content = (
       <div className="space-y-6 p-4 sm:p-6 w-full">
         
         {/* Cabeçalho */}
@@ -395,6 +395,7 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
           </div>
         </div>
       )}
-    </MainLayout>
   );
+
+  return embedded ? content : <MainLayout currentView={currentView} onNavigate={onNavigate}>{content}</MainLayout>;
 }

@@ -1,8 +1,9 @@
 import { MainLayout } from '../../components/layout/MainLayout';
-import { Building2, CreditCard, FileText, Globe2, ShieldCheck, ArrowRight } from 'lucide-react';
+import { Building2, CreditCard, FileText, Globe2, ShieldCheck, ArrowRight, Plug } from 'lucide-react';
 interface Props { currentView?: string; onNavigate?: (view: string) => void; }
 export function SettingsCenterPage({ currentView, onNavigate }: Props) {
   const items = [
+    { title: 'Integrações', text: 'Gerencie as APIs externas disponíveis para sua empresa.', icon: Plug, view: 'integrations' },
     { title: 'Minha Empresa', text: 'Nome, logo, cor, WhatsApp e dados operacionais.', icon: Building2, view: 'tenant-settings' },
     { title: 'Usuários e perfis', text: 'Controle quem acessa cada área do AutoNexus.', icon: ShieldCheck, view: 'users' },
     { title: 'Documentos da empresa', text: 'Centralize os documentos usados na operação.', icon: FileText, view: 'company-documents' },
