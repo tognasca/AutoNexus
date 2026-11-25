@@ -65,8 +65,8 @@ export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfig
     setName(config.name);
     setRate(config.defaultMonthlyRate);
     setApiUrl(config.apiUrl);
-    setApiKey(config.apiKey);
-    setApiSecret(config.apiSecret || '');
+    setApiKey('');
+    setApiSecret('');
     setMerchantId(config.merchantId || '');
     setIsSandbox(config.isSandbox);
     setIsActive(config.isActive);
@@ -97,8 +97,8 @@ export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfig
           name,
           defaultMonthlyRate: Number(rate),
           apiUrl,
-          apiKey,
-          apiSecret,
+          apiKey: apiKey || undefined,
+          apiSecret: apiSecret || undefined,
           merchantId,
           isActive,
           isSandbox,
@@ -328,7 +328,7 @@ export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfig
                   </label>
                   <input
                     type="password"
-                    placeholder="••••••••••••••••"
+                    placeholder={selectedConfig ? "Deixe vazio para manter a credencial" : ""}
                     value={apiKey}
                     onChange={e => setApiKey(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white outline-none focus:border-amber-500 font-mono"
@@ -341,7 +341,7 @@ export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfig
                   </label>
                   <input
                     type="password"
-                    placeholder="••••••••••••••••"
+                    placeholder={selectedConfig ? "Deixe vazio para manter a credencial" : ""}
                     value={apiSecret}
                     onChange={e => setApiSecret(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white outline-none focus:border-amber-500 font-mono"
