@@ -129,6 +129,7 @@ export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfig
   };
 
   const content = (
+    <>
       <div className="space-y-6 p-4 sm:p-6 w-full">
         
         {/* Cabeçalho */}
@@ -395,6 +396,7 @@ export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfig
           </div>
         </div>
       )}
+    </>
   );
 
   return embedded ? content : <MainLayout currentView={currentView} onNavigate={onNavigate}>{content}</MainLayout>;
