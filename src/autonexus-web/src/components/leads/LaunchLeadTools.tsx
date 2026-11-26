@@ -66,7 +66,7 @@ export function LaunchLeadTools({ leadId, vehicleId, vehicleStatus, phone, onVeh
           {phone && <a href={`https://wa.me/${phone}?text=${encodeURIComponent(`Olá! Veja sua proposta e responda pelo link: ${link}`)}`}
             target="_blank" rel="noreferrer" className="rounded-lg bg-emerald-700 px-4 py-2">Enviar link pelo WhatsApp</a>}
         </div>
-      </div>
+      </div>}
       {data?.shareExpiresAt && <p className="text-xs text-slate-400">Validade do último link: {new Date(data.shareExpiresAt).toLocaleString('pt-BR')}</p>}
       {data?.buyerResponse && <div className="rounded-lg bg-emerald-950 p-3 text-sm">
         <p>{data.buyerResponse}</p><p className="text-xs text-slate-400">{data.buyerRespondedAt && new Date(data.buyerRespondedAt).toLocaleString('pt-BR')}</p>
