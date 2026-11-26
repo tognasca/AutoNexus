@@ -4,11 +4,12 @@ import { MainLayout } from '../../components/layout/MainLayout';
 import { Building2, Plus, Edit2, CheckCircle2, XCircle, ShieldAlert, Key, RefreshCw, X, Save } from 'lucide-react';
 
 interface BankConfigPageProps {
+  embedded?: boolean;
   currentView?: string;
   onNavigate?: (view: string) => void;
 }
 
-export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps) {
+export function BankConfigPage({ currentView, onNavigate, embedded }: BankConfigPageProps) {
   const [configs, setConfigs] = useState<BankConfig[]>([]);
   const [loading, setLoading] = useState(true);
   
@@ -64,8 +65,8 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
     setName(config.name);
     setRate(config.defaultMonthlyRate);
     setApiUrl(config.apiUrl);
-    setApiKey(config.apiKey);
-    setApiSecret(config.apiSecret || '');
+    setApiKey('');
+    setApiSecret('');
     setMerchantId(config.merchantId || '');
     setIsSandbox(config.isSandbox);
     setIsActive(config.isActive);
@@ -96,8 +97,8 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
           name,
           defaultMonthlyRate: Number(rate),
           apiUrl,
-          apiKey,
-          apiSecret,
+          apiKey: apiKey || undefined,
+          apiSecret: apiSecret || undefined,
           merchantId,
           isActive,
           isSandbox,
@@ -127,8 +128,8 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
     }
   };
 
-  return (
-    <MainLayout currentView={currentView} onNavigate={onNavigate}>
+  const content = (
+    <>
       <div className="space-y-6 p-4 sm:p-6 w-full">
         
         {/* Cabeçalho */}
@@ -328,7 +329,7 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
                   </label>
                   <input
                     type="password"
-                    placeholder="••••••••••••••••"
+                    placeholder={selectedConfig ? "Deixe vazio para manter a credencial" : ""}
                     value={apiKey}
                     onChange={e => setApiKey(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white outline-none focus:border-amber-500 font-mono"
@@ -341,7 +342,7 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
                   </label>
                   <input
                     type="password"
-                    placeholder="••••••••••••••••"
+                    placeholder={selectedConfig ? "Deixe vazio para manter a credencial" : ""}
                     value={apiSecret}
                     onChange={e => setApiSecret(e.target.value)}
                     className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white outline-none focus:border-amber-500 font-mono"
@@ -395,6 +396,8 @@ export function BankConfigPage({ currentView, onNavigate }: BankConfigPageProps)
           </div>
         </div>
       )}
-    </MainLayout>
+    </>
   );
+
+  return embedded ? content : <MainLayout currentView={currentView} onNavigate={onNavigate}>{content}</MainLayout>;
 }

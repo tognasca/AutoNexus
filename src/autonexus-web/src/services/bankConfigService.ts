@@ -30,7 +30,7 @@ export interface UpdateBankConfig {
   name: string;
   defaultMonthlyRate: number;
   apiUrl: string;
-  apiKey: string;
+  apiKey?: string;
   apiSecret?: string;
   merchantId?: string;
   isActive: boolean;

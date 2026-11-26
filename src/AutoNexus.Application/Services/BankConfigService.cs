@@ -65,8 +65,8 @@ public class BankConfigService : IBankConfigService
 
         config.UpdateCredentials(
             apiUrl: dto.ApiUrl,
-            apiKey: dto.ApiKey,
-            apiSecret: dto.ApiSecret,
+            apiKey: dto.ApiKey ?? config.ApiKey,
+            apiSecret: dto.ApiSecret ?? config.ApiSecret,
             merchantId: dto.MerchantId,
             rate: dto.DefaultMonthlyRate,
             isSandbox: dto.IsSandbox
@@ -98,8 +98,8 @@ public class BankConfigService : IBankConfigService
         Name: b.Name,
         DefaultMonthlyRate: b.DefaultMonthlyRate,
         ApiUrl: b.ApiUrl,
-        ApiKey: b.ApiKey,
-        ApiSecret: b.ApiSecret,
+        ApiKey: string.IsNullOrEmpty(b.ApiKey) ? string.Empty : "••••••••",
+        ApiSecret: string.IsNullOrEmpty(b.ApiSecret) ? null : "••••••••",
         MerchantId: b.MerchantId,
         IsActive: b.IsActive,
         IsSandbox: b.IsSandbox,
