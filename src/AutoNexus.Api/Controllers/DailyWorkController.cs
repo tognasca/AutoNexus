@@ -46,7 +46,7 @@ public sealed class DailyWorkController(AutoNexusDbContext db, ITenantContext te
             var margin = vehicle == null ? null : VehicleFinancials.Calculate(vehicle.MarginBasis(),
                 vehicle.Costs.Sum(x => x.Value), vehicle.ListedValue).MarginPercentage;
             var rank = DailyPriority.ForLead(now, end, lead.CreatedAt, lead.LastContactAt,
-                lead.NextContactAt, false, days, margin);
+                lead.NextContactAt, false, days, margin, lead.BuyerRespondedAt);
             var missing = lead.MissingContactFields();
             if (rank.Score == 0 && (missing.Length == 0 || lead.NextContactAt > end)) continue;
             var reasons = missing.Length == 0 ? rank.Reasons : rank.Reasons.Append("Completar " + string.Join(", ", missing)).ToArray();
