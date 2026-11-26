@@ -4,12 +4,22 @@ namespace AutoNexus.Domain.Entities;
 public sealed record DailyPriority(int Score, IReadOnlyList<string> Reasons)
 {
     public static DailyPriority ForLead(DateTime now, DateTime endOfDay, DateTime createdAt,
-        DateTime? lastContact, DateTime? nextContact, bool closed, int stockDays, decimal? margin)
+        DateTime? lastContact, DateTime? nextContact, bool closed, int stockDays, decimal? margin,
+        DateTime? buyerRespondedAt = null)
     {
-        if (closed || nextContact > endOfDay) return new(0, []);
+        if (closed) return new(0, []);
+        var awaitingReply = buyerRespondedAt is { } responseAt &&
+            (!lastContact.HasValue || responseAt > lastContact.Value);
+        if (!awaitingReply && nextContact > endOfDay) return new(0, []);
+
         var reasons = new List<string>();
         var score = 0;
-        if (nextContact <= endOfDay) { score = nextContact < now ? 100 : 90; reasons.Add(nextContact < now ? "Retorno vencido" : "Retorno hoje"); }
+        if (awaitingReply)
+        {
+            score = 110;
+            reasons.Add("Comprador respondeu à proposta");
+        }
+        if (nextContact <= endOfDay) { score = Math.Max(score, nextContact < now ? 100 : 90); reasons.Add(nextContact < now ? "Retorno vencido" : "Retorno hoje"); }
         var idle = Math.Max(0, (int)(now - (lastContact ?? createdAt)).TotalDays);
         if (lastContact == null) { score = Math.Max(score, 85); reasons.Add("Primeiro contato pendente"); }
         else if (idle >= 3) { score = Math.Max(score, 60 + Math.Min(idle, 20)); reasons.Add($"Sem contato há {idle} dias"); }

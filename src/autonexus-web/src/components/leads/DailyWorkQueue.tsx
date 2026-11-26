@@ -70,7 +70,7 @@ export function DailyWorkQueue({ isAdmin, onUpdated }: { isAdmin: boolean; onUpd
     </header>
     {error && <p role="alert" className="text-sm text-rose-300">{error} Use Atualizar prioridades para tentar novamente.</p>}
     {loading ? <p role="status" className="text-sm text-slate-400">Atualizando prioridades...</p> : !error && <>
-      <details className="text-xs text-slate-400"><summary className="cursor-pointer">{queue?.total ?? 0} ações encontradas · Como priorizamos</summary><p className="mt-2">Retornos de hoje no horário de Brasília, primeiro contato, 3 dias sem contato, 30 dias desde o cadastro do veículo ou margem estimada abaixo de 5%. Após um retorno vencido, registre a próxima data no atendimento.</p></details>
+      <details className="text-xs text-slate-400"><summary className="cursor-pointer">{queue?.total ?? 0} ações encontradas · Como priorizamos</summary><p className="mt-2">Respostas de propostas, retornos no horário de Brasília, primeiro contato, 3 dias sem contato, 30 dias desde o cadastro do veículo ou margem estimada abaixo de 5%. Após um retorno vencido, registre a próxima data no atendimento.</p></details>
       <ol className="grid gap-3 lg:grid-cols-3">
         {queue?.items.slice(0, expanded ? 10 : 3).map((item, index) => <li key={item.id} className="min-w-0 space-y-2 rounded-lg border border-slate-700 p-3">
           <h3 className="break-words font-semibold text-white">{index + 1}. {item.title}</h3>

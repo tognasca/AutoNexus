@@ -7,6 +7,7 @@ import { vehicleService } from '../../services/vehicleService';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { getFullPhotoUrl } from '../vehicles/VehiclePhotosModal';
 import { OpenAiAssistant } from './OpenAiAssistant';
+import { AttendanceFinancing } from './AttendanceFinancing';
 import { AttendanceTools } from './AttendanceTools';
 import { VehicleSaleModal } from '../vehicles/VehicleSaleModal';
 
@@ -136,6 +137,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
           <label className="block text-sm">Veículo de troca e condições
             <textarea maxLength={500} value={form.tradeDescription ?? ''} onChange={e => setForm({ ...form, tradeDescription: e.target.value })} className="mt-1 w-full rounded-lg bg-slate-950 p-3" />
           </label>
+          <AttendanceFinancing price={form.offerValue ?? vehicle?.listedValue ?? null} downPayment={form.downPayment ?? 0} />
           <label className="block text-sm">Proposta válida até
             <input type="date" value={form.offerValidUntil ?? ''} onChange={e => setForm({ ...form, offerValidUntil: e.target.value || null })} className="mt-1 w-full rounded-lg bg-slate-950 p-3" />
           </label>
@@ -171,7 +173,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
         }}>Registrar venda</button>}
       </form>
     </div>
-    <LaunchLeadTools leadId={current.id} vehicleId={current.vehicleId} vehicleStatus={vehicle?.status}
+    <LaunchLeadTools leadId={current.id} vehicleId={current.vehicleId} vehicleStatus={vehicle?.status} phone={current.missingFields?.includes("telefone") ? undefined : phone}
       onVehicleChanged={() => {
         if (current.vehicleId) vehicleService.getById(current.vehicleId).then(data => setVehicle(previous => ({ ...data, mainPhotoUrl: previous?.mainPhotoUrl }))).catch(() => setError('Reabra o atendimento para atualizar o veículo.'));
       }} />

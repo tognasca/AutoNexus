@@ -21,6 +21,22 @@ public class DailyPriorityTests
     {
         Assert.Equal(0, DailyPriority.ForLead(Now, Now.Date.AddDays(1), Now.AddDays(-60), Now, null, false, 60, 2).Score);
     }
+    [Fact]
+    public void BuyerResponseIsUrgentUntilTheSellerRegistersContact()
+    {
+        var next = Now.AddDays(2);
+        var reply = Now.AddMinutes(-10);
+        var beforeReply = Now.AddHours(-1);
+        var pending = DailyPriority.ForLead(Now, Now.Date.AddDays(1), beforeReply, beforeReply,
+            next, false, 0, null, reply);
+        Assert.True(pending.Score > 100);
+        Assert.Contains("Comprador respondeu à proposta", pending.Reasons);
+        Assert.Equal(0, DailyPriority.ForLead(Now, Now.Date.AddDays(1), beforeReply, Now,
+            next, false, 0, null, reply).Score);
+        Assert.Equal(0, DailyPriority.ForLead(Now, Now.Date.AddDays(1), beforeReply, null,
+            next, true, 0, null, reply).Score);
+    }
+
     [Fact] public void MissingMarginDoesNotCreateFalseAlert()
     {
         Assert.Equal(0, DailyPriority.ForStock(2, null, false).Score);

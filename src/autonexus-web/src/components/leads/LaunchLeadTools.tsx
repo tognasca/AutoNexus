@@ -7,8 +7,8 @@ interface LeadLaunch {
   buyerResponse: string | null; buyerRespondedAt: string | null; shareExpiresAt: string | null; shareActive: boolean;
   reservation: { reservedForLeadId: string | null; reservedByUserId: string | null; reservationExpiresAt: string | null; active: boolean } | null;
 }
-export function LaunchLeadTools({ leadId, vehicleId, vehicleStatus, onVehicleChanged }: {
-  leadId: string; vehicleId?: string | null; vehicleStatus?: number; onVehicleChanged: () => void;
+export function LaunchLeadTools({ leadId, vehicleId, vehicleStatus, phone, onVehicleChanged }: {
+  leadId: string; vehicleId?: string | null; vehicleStatus?: number; phone?: string; onVehicleChanged: () => void;
 }) {
   const [data, setData] = useState<LeadLaunch | null>(null);
   const [budget, setBudget] = useState('');
@@ -57,10 +57,16 @@ export function LaunchLeadTools({ leadId, vehicleId, vehicleStatus, onVehicleCha
           })}>Revogar link</button>}
         <button type="button" className="rounded-lg border border-slate-600 px-4 py-2" onClick={() => void run(async () => { await load(); setNotice('Retorno do comprador atualizado.'); })}>Consultar retorno</button>
       </div>
-      {link && <label className="block text-sm">Link da proposta
-        <input readOnly value={link} onFocus={e => e.target.select()} className="mt-1 w-full rounded-lg bg-slate-950 p-3" />
-        <a href={link} target="_blank" rel="noreferrer" className="mt-2 inline-block underline">Conferir proposta</a>
-      </label>}
+      {link && <div className="space-y-2">
+        <label className="block text-sm">Link da proposta
+          <input readOnly value={link} onFocus={e => e.target.select()} className="mt-1 w-full rounded-lg bg-slate-950 p-3" />
+        </label>
+        <div className="flex flex-wrap items-center gap-3 text-sm">
+          <a href={link} target="_blank" rel="noreferrer" className="underline">Conferir proposta</a>
+          {phone && <a href={`https://wa.me/${phone}?text=${encodeURIComponent(`Olá! Veja sua proposta e responda pelo link: ${link}`)}`}
+            target="_blank" rel="noreferrer" className="rounded-lg bg-emerald-700 px-4 py-2">Enviar link pelo WhatsApp</a>}
+        </div>
+      </div>
       {data?.shareExpiresAt && <p className="text-xs text-slate-400">Validade do último link: {new Date(data.shareExpiresAt).toLocaleString('pt-BR')}</p>}
       {data?.buyerResponse && <div className="rounded-lg bg-emerald-950 p-3 text-sm">
         <p>{data.buyerResponse}</p><p className="text-xs text-slate-400">{data.buyerRespondedAt && new Date(data.buyerRespondedAt).toLocaleString('pt-BR')}</p>
