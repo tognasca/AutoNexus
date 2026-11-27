@@ -1,4 +1,4 @@
-﻿namespace AutoNexus.Application.DTOs;
+namespace AutoNexus.Application.DTOs;
 
 public record DocumentDto(
     Guid Id,
@@ -17,7 +17,8 @@ public record DocumentDto(
 
 public record CreateBuyerLinkDto(
     int ExpirationDays = 30,
-    string? BuyerName = null
+    string? BuyerName = null,
+    Guid[]? DocumentIds = null
 );
 
 public record BuyerLinkDto(
@@ -31,6 +32,8 @@ public record BuyerLinkDto(
     DateTime CreatedAt
 );
 
+public record PortalDocumentDto(Guid Id, string Name, string DocumentCategoryName, string FileName, long FileSize);
+
 public record PortalVehicleDto(
     Guid VehicleId,
     string Brand,
@@ -40,7 +43,7 @@ public record PortalVehicleDto(
     string? Plate,
     decimal Price,
     IEnumerable<VehiclePhotoDto> Photos,
-    IEnumerable<DocumentDto> Documents,
+    IEnumerable<PortalDocumentDto> Documents,
     bool HasElectronicAcceptance,
     DateTime? AcceptedAt,
     string? AcceptedByBuyerName

@@ -74,6 +74,42 @@ public sealed class DailyWorkController(AutoNexusDbContext db, ITenantContext te
         return Ok(new { generatedAt = now, timeZone = zone.Id, total = ordered.Length, items = ordered.Take(10) });
     }
 
+    [HttpGet("after-sales")]
+    public async Task<IActionResult> AfterSales([FromQuery] int page = 1, [FromQuery] bool includeCompleted = false,
+        CancellationToken ct = default)
+    {
+        if (!tenant.HasTenant || tenant.UserId == null) return Forbid();
+        const int pageSize = 25;
+        page = Math.Clamp(page, 1, 100_000);
+        var admin = User.IsInRole("Admin");
+        var sales = await db.Vehicles.AsNoTracking()
+            .Where(x => x.Status == VehicleStatus.Vendido && (admin || x.SoldByUserId == tenant.UserId))
+            .OrderBy(x => x.SoldAt).ThenBy(x => x.Id)
+            .Select(x => new { x.Id, x.Brand, x.Model, x.Plate, x.SoldAt, x.DeliveryChecklist,
+                x.TransferTracking, Responsible = x.SoldByUser == null ? null : x.SoldByUser.Name })
+            .ToListAsync(ct);
+
+        var pending = sales.Select(x => new { x.Id, x.Brand, x.Model, x.Plate, x.SoldAt, x.Responsible,
+                Delivered = Delivered(x.DeliveryChecklist), Transferred = Transferred(x.TransferTracking) })
+            .Where(x => includeCompleted || !x.Delivered || !x.Transferred).ToArray();
+        return Ok(new { total = pending.Length, items = pending.Skip((page - 1) * pageSize).Take(pageSize), pageSize });
+    }
+
+    private static bool Transferred(string? json)
+    {
+        if (string.IsNullOrWhiteSpace(json)) return false;
+        try
+        {
+            using var document = JsonDocument.Parse(json);
+            return document.RootElement.ValueKind == JsonValueKind.Object &&
+                document.RootElement.TryGetProperty("confirmation", out var confirmation) &&
+                confirmation.ValueKind == JsonValueKind.Object &&
+                confirmation.TryGetProperty("Status", out var status) && status.ValueKind == JsonValueKind.String &&
+                status.GetString() == "completed";
+        }
+        catch (JsonException) { return false; }
+    }
+
     private static bool Delivered(string? json)
     {
         if (string.IsNullOrWhiteSpace(json)) return false;

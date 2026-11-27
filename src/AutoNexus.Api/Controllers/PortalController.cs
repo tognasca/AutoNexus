@@ -1,5 +1,8 @@
 ﻿using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
+using AutoNexus.Domain.Interfaces;
+using AutoNexus.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -8,13 +11,18 @@ namespace AutoNexus.Api.Controllers;
 [ApiController]
 [Route("api/portal/{token}")]
 [AllowAnonymous]
+[ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
 public class PortalController : ControllerBase
 {
     private readonly IPortalService _portalService;
+    private readonly IBuyerLinkRepository _links;
+    private readonly AutoNexusDbContext _db;
 
-    public PortalController(IPortalService portalService)
+    public PortalController(IPortalService portalService, IBuyerLinkRepository links, AutoNexusDbContext db)
     {
         _portalService = portalService;
+        _links = links;
+        _db = db;
     }
 
     [HttpGet]
@@ -29,7 +37,19 @@ public class PortalController : ControllerBase
         {
             return Unauthorized(new { message = ex.Message });
         }
-        catch (Exception ex)
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Recurso indisponível no portal." });
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "Arquivo indisponível no portal." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -47,7 +67,19 @@ public class PortalController : ControllerBase
         {
             return Unauthorized(new { message = ex.Message });
         }
-        catch (Exception ex)
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Recurso indisponível no portal." });
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "Arquivo indisponível no portal." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -65,7 +97,19 @@ public class PortalController : ControllerBase
         {
             return Unauthorized(new { message = ex.Message });
         }
-        catch (Exception ex)
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Recurso indisponível no portal." });
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "Arquivo indisponível no portal." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
         }
@@ -76,15 +120,35 @@ public class PortalController : ControllerBase
     {
         try
         {
+            var link = await _links.GetByTokenAsync(token, cancellationToken);
+            if (link is null || !link.IsValid()) return Unauthorized(new { message = "Link inválido, expirado ou revogado." });
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM vehicles WHERE id = {link.VehicleId} AND \"tenantId\" = {link.TenantId} FOR UPDATE", cancellationToken);
+            await _db.Entry(link).ReloadAsync(cancellationToken);
+            if (!link.IsValid()) return Unauthorized(new { message = "Link expirado ou revogado." });
             var remoteIp = HttpContext.Connection.RemoteIpAddress?.ToString() ?? "0.0.0.0";
             var result = await _portalService.SubmitAcceptanceAsync(token, dto, remoteIp, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return Ok(result);
         }
         catch (UnauthorizedAccessException ex)
         {
             return Unauthorized(new { message = ex.Message });
         }
-        catch (Exception ex)
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { message = "Recurso indisponível no portal." });
+        }
+        catch (FileNotFoundException)
+        {
+            return NotFound(new { message = "Arquivo indisponível no portal." });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
         {
             return BadRequest(new { message = ex.Message });
         }

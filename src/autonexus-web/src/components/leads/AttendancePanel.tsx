@@ -1,8 +1,12 @@
+import { SimulatorPage } from '../../pages/SimulatorPage';
+import { TradeNegotiationModal } from '../vehicles/TradeNegotiationModal';
+import { lookupService } from '../../services/lookupService';
+import type { LookupItem } from '../../types/lookup';
 import { request } from '../../services/api';
 import { VehicleOperations } from '../vehicles/VehicleOperations';
 import { LaunchLeadTools } from './LaunchLeadTools';
 import { useEffect, useRef, useState } from 'react';
-import { leadService, LeadStatus, type LeadItem, type AttendanceInput } from '../../services/leadService';
+import { leadService, type LeadItem, type AttendanceInput } from '../../services/leadService';
 import { vehicleService } from '../../services/vehicleService';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
 import { getFullPhotoUrl } from '../vehicles/VehiclePhotosModal';
@@ -23,6 +27,8 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
   const dialog = useRef<HTMLDialogElement>(null);
   const [current, setCurrent] = useState(lead);
   const [contact, setContact] = useState({ name: lead.name, phone: lead.phone, externalId: lead.externalId ?? '' });
+  const [stock, setStock] = useState<VehicleSummary[] | null>(null);
+  const [stockSearch, setStockSearch] = useState('');
   const [vehicle, setVehicle] = useState<VehicleSummary | null>(null);
   const [form, setForm] = useState<AttendanceInput>({
     offerValue: lead.offerValue ?? null, downPayment: lead.downPayment ?? null,
@@ -34,11 +40,21 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
   const [busy, setBusy] = useState(false);
   const [notice, setNotice] = useState('');
   const [operationsOpen, setOperationsOpen] = useState(false);
+  const [financing, setFinancing] = useState(false);
+  const [tradeTypes, setTradeTypes] = useState<LookupItem[] | null>(null);
+  const [tradeAmount, setTradeAmount] = useState(0);
+  const [tradeLoaded, setTradeLoaded] = useState(false);
   const [selling, setSelling] = useState(false);
   useEffect(() => {
-    dialog.current?.showModal();
+    if (!dialog.current?.open) dialog.current?.showModal();
     let active = true;
-    if (lead.vehicleId) vehicleService.getById(lead.vehicleId)
+    request<{ tradeValue?: number }>(`/launch/leads/${lead.id}`).then(data => {
+      if (active) {
+        setTradeAmount(data.tradeValue ?? 0);
+        setTradeLoaded(true);
+      }
+    }).catch(() => { if (active) setError('Não foi possível recuperar o valor da troca.'); });
+    if (current.vehicleId) vehicleService.getById(current.vehicleId)
       .then(data => {
         if (!active) return;
         const photos = data.photos as { storagePath: string; isMain: boolean }[] | undefined;
@@ -47,7 +63,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
       })
       .catch(() => { if (active) setError('Não foi possível carregar o veículo. Feche e reabra o atendimento para tentar novamente.'); });
     return () => { active = false; };
-  }, [lead.vehicleId]);
+  }, [lead.id, current.vehicleId]);
 
   async function save() {
     setBusy(true); setError(''); setNotice('');
@@ -95,7 +111,38 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
           <p className={vehicle.status === VehicleStatus.AVenda ? 'text-emerald-300' : 'text-amber-300'}>
             {vehicle.status === VehicleStatus.Vendido ? 'Vendido' : vehicle.status === VehicleStatus.Reservado ? 'Reservado' : vehicle.status === VehicleStatus.AVenda ? 'À venda' : 'Em troca'}
           </p>
-        </> : <p className="text-slate-400">{lead.vehicleId ? 'Carregando veículo…' : 'Vincule um veículo em Editar atendimento.'}</p>}
+        </> : current.vehicleId ? <p className="text-slate-400">Carregando veículo…</p> : <>
+          <form className="flex flex-wrap items-end gap-2" onSubmit={async event => {
+            event.preventDefault();
+            setBusy(true); setError('');
+            try {
+              const result = await vehicleService.getAll({ status: VehicleStatus.AVenda, search: stockSearch, pageSize: 25 });
+              setStock(result.items);
+            } catch { setError('Não foi possível carregar o estoque.'); }
+            finally { setBusy(false); }
+          }}>
+            <label className="flex-1 text-sm">Buscar no estoque
+              <input value={stockSearch} onChange={event => setStockSearch(event.target.value)}
+                placeholder="Marca, modelo ou placa" className="mt-1 w-full rounded bg-slate-950 p-2" />
+            </label>
+            <button disabled={busy} className="rounded bg-blue-600 px-3 py-2 text-sm">Buscar</button>
+          </form>
+          {stock?.length === 0 && <p className="text-sm text-slate-400">Nenhum veículo disponível para esta busca.</p>}
+          {stock?.map(item => <button key={item.id} type="button" disabled={busy}
+            className="block w-full rounded bg-slate-800 px-3 py-2 text-left text-sm"
+            onClick={async () => {
+              setBusy(true); setError('');
+              try {
+                const updated = await leadService.update(current.id, { name: current.name, phone: current.phone,
+                  email: current.email, source: current.source, notes: current.notes, externalId: current.externalId,
+                  assignedToUserId: current.assignedToUserId, vehicleId: item.id });
+                setCurrent(updated);
+                onUpdated(updated);
+                setNotice('Veículo vinculado ao atendimento.');
+              } catch (err) { setError(err instanceof Error ? err.message : 'Falha ao vincular o veículo.'); }
+              finally { setBusy(false); }
+            }}>{item.brand} {item.model} {item.modelYear}{item.plate && ` · ${item.plate}`}</button>)}
+        </>}
         {!!current.missingFields?.length && <form className="space-y-2 rounded-lg border border-amber-500/40 p-3" onSubmit={async event => {
           event.preventDefault(); setBusy(true); setError(''); setNotice('');
           try {
@@ -166,27 +213,63 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
               else setError('Permita a abertura de uma nova aba para compartilhar a proposta.');
             } else popup?.close();
           }}>Compartilhar proposta no WhatsApp</button>
-        {vehicle && vehicle.status !== VehicleStatus.Vendido && <button type="button" disabled={busy} className="w-full rounded-lg border border-emerald-600 p-3" onClick={async () => {
-          if (await save()) setSelling(true);
-        }}>Registrar venda</button>}
+
       </form>
     </div>
+    {vehicle && vehicle.status !== VehicleStatus.Vendido && <section className="mt-5 space-y-3 rounded-xl border border-slate-700 p-4">
+      <h3 className="font-semibold">Troca e financiamento</h3>
+      <div className="flex flex-wrap gap-3">
+        <button type="button" disabled={busy || vehicle.status === VehicleStatus.EmTroca || vehicle.status === VehicleStatus.Reservado} className="rounded bg-slate-800 px-4 py-2" onClick={async () => {
+          setBusy(true);
+          try { setTradeTypes(await lookupService.getVehicleTypes()); }
+          catch { setError('Não foi possível carregar os tipos de veículo.'); }
+          finally { setBusy(false); }
+        }}>Avaliar e registrar troca</button>
+        <button type="button" aria-expanded={financing} className="rounded bg-slate-800 px-4 py-2 disabled:opacity-50" disabled={!tradeLoaded}
+          onClick={() => setFinancing(value => !value)}>{financing ? 'Fechar simulação' : 'Simular financiamento'}</button>
+      </div>
+      {vehicle.status === VehicleStatus.Reservado && <p className="text-sm text-slate-400">Para registrar uma troca, libere a reserva do veículo.</p>}
+      {financing && <SimulatorPage key={`${vehicle.id}:${tradeAmount}`} context={{
+        vehicle: { ...vehicle, plate: vehicle.plate ?? '', ListedValue: vehicle.listedValue ?? 0, PurchaseValue: vehicle.purchaseValue },
+        price: form.offerValue ?? vehicle.listedValue ?? 0,
+        entry: form.downPayment ?? 0,
+        trade: tradeAmount,
+        customer: { name: current.name, phone: current.phone, email: current.email ?? undefined },
+      }} />}
+      {tradeTypes && <TradeNegotiationModal isOpen leadId={current.id} vehicle={{ ...vehicle, listedValue: form.offerValue ?? vehicle.listedValue }}
+        vehicleTypes={tradeTypes} onClose={() => setTradeTypes(null)} onTradeCompleted={async amount => {
+          setTradeAmount(amount);
+          setNotice('Troca registrada. O crédito do veículo recebido foi aplicado à próxima simulação.');
+          try {
+            const data = await vehicleService.getById(vehicle.id);
+            setVehicle(previous => ({ ...data, mainPhotoUrl: previous?.mainPhotoUrl }));
+          } catch { setError('Troca registrada. Reabra o atendimento para atualizar o estoque.'); }
+        }} />}
+    </section>}
     <LaunchLeadTools leadId={current.id} vehicleId={current.vehicleId} vehicleStatus={vehicle?.status}
       onVehicleChanged={() => {
         if (current.vehicleId) vehicleService.getById(current.vehicleId).then(data => setVehicle(previous => ({ ...data, mainPhotoUrl: previous?.mainPhotoUrl }))).catch(() => setError('Reabra o atendimento para atualizar o veículo.'));
       }} />
+    {vehicle && vehicle.status !== VehicleStatus.Vendido && <button type="button" disabled={busy}
+      className="mt-4 w-full rounded-lg bg-emerald-700 p-3 font-semibold" onClick={async () => {
+        if (await save()) setSelling(true);
+      }}>Fechar venda</button>}
     <AttendanceTools lead={current} />
     <OpenAiAssistant lead={current} onUpdated={updated => { setCurrent(updated); onUpdated(updated); }} />
     {vehicle && <button type="button" onClick={() => setOperationsOpen(true)} className="mt-4 rounded-lg border border-slate-700 px-4 py-3 text-sm">Conferir margem, despesas e entrega</button>}
     {operationsOpen && vehicle && <VehicleOperations vehicle={vehicle} onClose={() => setOperationsOpen(false)} />}
-    {selling && vehicle && <VehicleSaleModal isOpen vehicle={{ ...vehicle, saleValue: form.offerValue ?? vehicle.saleValue }}
+    {selling && vehicle && <VehicleSaleModal isOpen leadId={current.id} vehicle={{ ...vehicle, saleValue: form.offerValue ?? vehicle.saleValue }}
       onClose={() => setSelling(false)} onSaleCompleted={() => {
         setVehicle({ ...vehicle, status: VehicleStatus.Vendido });
         setSelling(false);
-        setNotice('Venda registrada. Atualizando a etapa do atendimento…');
-        leadService.changeStatus(current.id, LeadStatus.Venda).then(updated => {
-          setCurrent(updated); onUpdated(updated); setNotice('Venda registrada e atendimento atualizado.');
-        }).catch(() => setError('Venda registrada. Atualize a etapa para Venda no CRM.'));
+        setNotice('Venda registrada. Confira a entrega e a transferência no pós-venda.');
+        Promise.all([request<LeadItem>(`/leads/${current.id}`), vehicleService.getById(vehicle.id)])
+          .then(([updated, sold]) => {
+            setVehicle(sold);
+            setCurrent(updated);
+            onUpdated(updated);
+          })
+          .catch(() => setError('Venda registrada. Reabra o atendimento para atualizar os dados.'));
       }} />}
   </dialog>;
 }

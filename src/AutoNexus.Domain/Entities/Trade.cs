@@ -6,6 +6,7 @@ public class Trade : TenantOwnedEntityBase
 {
     public Guid ReceivedVehicleId { get; private set; }
     public Guid DeliveredVehicleId { get; private set; }
+    public Guid? LeadId { get; private set; }
     public decimal ReceivedVehicleFipe { get; private set; }
     public decimal DeliveredVehicleFipe { get; private set; }
     public decimal ReceivedVehicleNegotiatedValue { get; private set; }
@@ -32,10 +33,12 @@ public class Trade : TenantOwnedEntityBase
         decimal differenceValue,
         bool differencePaidByUs,
         DateTime tradeDate,
-        Guid responsibleUserId)
+        Guid responsibleUserId,
+        Guid? leadId = null)
     {
         ReceivedVehicleId = receivedVehicleId;
         DeliveredVehicleId = deliveredVehicleId;
+        LeadId = leadId;
         ReceivedVehicleFipe = receivedVehicleFipe;
         DeliveredVehicleFipe = deliveredVehicleFipe;
         ReceivedVehicleNegotiatedValue = receivedVehicleNegotiatedValue;

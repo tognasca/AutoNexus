@@ -1,6 +1,10 @@
-﻿using System.Security.Claims;
+using System.Security.Claims;
 using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
+using AutoNexus.Domain.Enums;
+using AutoNexus.Domain.Interfaces;
+using AutoNexus.Infrastructure.Data;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,10 +16,14 @@ namespace AutoNexus.Api.Controllers;
 public class TradesController : ControllerBase
 {
     private readonly ITradeService _tradeService;
+    private readonly AutoNexusDbContext _db;
+    private readonly ITenantContext _tenant;
 
-    public TradesController(ITradeService tradeService)
+    public TradesController(ITradeService tradeService, AutoNexusDbContext db, ITenantContext tenant)
     {
         _tradeService = tradeService;
+        _db = db;
+        _tenant = tenant;
     }
 
     [HttpGet]
@@ -37,6 +45,7 @@ public class TradesController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Roles = "Admin,Vendedor")]
     [ProducesResponseType(typeof(TradeDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> Create([FromBody] CreateTradeDto dto, CancellationToken cancellationToken)
@@ -47,7 +56,20 @@ public class TradesController : ControllerBase
             if (!Guid.TryParse(userIdClaim, out var responsibleUserId))
                 return Unauthorized();
 
+            if (!_tenant.HasTenant) return Forbid();
+            await using var transaction = await _db.Database.BeginTransactionAsync(cancellationToken);
+            await _db.Database.ExecuteSqlInterpolatedAsync(
+                $"SELECT 1 FROM vehicles WHERE id = {dto.DeliveredVehicleId} AND \"tenantId\" = {_tenant.TenantId} FOR UPDATE",
+                cancellationToken);
+            var isAdmin = User.IsInRole("Admin");
+            if (dto.LeadId is Guid leadId && !await _db.Leads.AnyAsync(x => x.Id == leadId &&
+                x.VehicleId == dto.DeliveredVehicleId && x.Status != LeadStatus.Venda && x.Status != LeadStatus.Perdido &&
+                (x.AssignedToUserId == null || x.AssignedToUserId == responsibleUserId || isAdmin),
+                cancellationToken))
+                return BadRequest(new { message = "Vincule a troca a um atendimento ativo deste veículo." });
+
             var result = await _tradeService.CreateTradeAsync(responsibleUserId, dto, cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
             return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
         }
         catch (Exception ex)

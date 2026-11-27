@@ -1,4 +1,4 @@
-﻿using AutoNexus.Application.DTOs;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
@@ -43,8 +43,11 @@ public class TradeService : ITradeService
         if (deliveredVehicle == null)
             throw new KeyNotFoundException("Veículo entregue não encontrado no estoque.");
 
-        if (deliveredVehicle.Status == VehicleStatus.Vendido)
-            throw new InvalidOperationException("Não é possível dar em troca um veículo já vendido.");
+        if (deliveredVehicle.Status is VehicleStatus.Vendido or VehicleStatus.EmTroca)
+            throw new InvalidOperationException("O veículo já foi vendido ou tem uma troca registrada.");
+        if (deliveredVehicle.ReservationExpiresAt > DateTime.UtcNow &&
+            deliveredVehicle.ReservedByUserId != responsibleUserId)
+            throw new InvalidOperationException("O veículo está reservado por outro vendedor.");
 
         // 1. Cadastra o novo veículo recebido no estoque
         var receivedVehicle = new Vehicle(
@@ -76,7 +79,7 @@ public class TradeService : ITradeService
             dto.DifferenceValue,
             dto.DifferencePaidByUs,
             dto.TradeDate.ToUniversalTime(),
-            responsibleUserId
+            responsibleUserId, dto.LeadId
         );
 
         trade.Evaluate();

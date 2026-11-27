@@ -1,6 +1,5 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { tenantSettingsService } from '../../services/tenantSettingsService';
-import { WorkspacePreferences } from './WorkspacePreferences';
 import { Sidebar } from './Sidebar';
 import { Header } from './Header';
 import { BottomNav } from './BottomNav';
@@ -37,7 +36,6 @@ export function MainLayout({ children, currentView = 'dashboard', onNavigate }: 
       <div className="flex-1 flex flex-col min-w-0">
         <PwaInstallPrompt />
         <Header />
-        <WorkspacePreferences key={`${user?.tenantId}:${user?.userId}`} onNavigate={onNavigate} />
         {user && user.profile !== 0 && <SubscriptionBanner onNavigate={onNavigate} />}
         <main className={appearance.density === 'compact' ? "flex-1 p-3 md:p-4 overflow-x-hidden [&_input]:py-1.5 [&_select]:py-1.5" : "flex-1 p-4 md:p-6 overflow-x-hidden"}>
           {children}

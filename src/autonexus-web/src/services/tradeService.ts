@@ -1,4 +1,4 @@
-﻿import { request } from './api';
+import { request } from './api';
 import type { CreateVehicleInput } from '../types/vehicle';
 
 export interface CompleteSaleInput {
@@ -10,6 +10,7 @@ export interface CompleteSaleInput {
 
 export interface CreateTradeInput {
   deliveredVehicleId: string;
+  leadId?: string;
   receivedVehicle: CreateVehicleInput;
   receivedVehicleFipe: number;
   deliveredVehicleFipe: number;

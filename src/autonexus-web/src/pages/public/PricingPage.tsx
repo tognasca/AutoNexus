@@ -1,28 +1,21 @@
 import { useEffect, useState } from 'react';
 import atMotorsHero from '../../public/hero/atmotors-hero/hero-atmotor.png';
 import atMotorsLogo from '../../public/ATlogo.png';
-import atMotorsDemoVideo from '../../public/FinalAtMotorVideo.mp4';
+import { commercialTour } from './commercialTour';
+import { CommercialDemoContact } from './CommercialDemoContact';
 import { billingService, formatBRL } from '../../services/billingService';
 import type { Plan } from '../../services/subscriptionService';
-import { ArrowRight, BarChart3, Car, Check, Crown, FileText, ShieldCheck, Sparkles, Users } from 'lucide-react';
+import { ArrowRight, BarChart3, Car, Check, Crown, ShieldCheck, Sparkles, Users } from 'lucide-react';
 
 /** Landing + página de planos. Preços/trial vêm do banco (API), nunca hardcoded aqui. */
 export function PricingPage() {
   const [plans, setPlans] = useState<Plan[]>([]);
   const [annual, setAnnual] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const demoVideoUrl = (import.meta.env.VITE_DEMO_VIDEO_URL || '').trim() || atMotorsDemoVideo;
 
   useEffect(() => {
     billingService.publicPlans().then(setPlans).catch(() => setError('Não foi possível carregar os planos agora. Tente novamente em instantes.'));
   }, []);
-
-  const features = [
-    { icon: Car, title: 'Estoque e vendas', text: 'Cadastro de veículos, fotos, custos, compras, vendas e trocas em um só lugar.' },
-    { icon: BarChart3, title: 'Gestão financeira', text: 'Acompanhe margem, comissões, resultados e indicadores da operação.' },
-    { icon: FileText, title: 'Documentos e portal', text: 'Organize documentos do veículo e facilite o atendimento ao comprador.' },
-    { icon: ShieldCheck, title: 'Estrutura SaaS segura', text: 'Cada empresa trabalha com seus próprios dados, usuários e permissões.' },
-  ];
 
   const getPlanPresentation = (name: string) => {
     const normalized = name.toLowerCase();
@@ -39,7 +32,7 @@ export function PricingPage() {
 
     if (normalized.includes('profissional') || normalized.includes('professional')) {
       return {
-        label: 'Mais escolhido',
+        label: 'Para equipes',
         description: 'Para lojas que já vendem e precisam de mais controle sobre estoque, negócios e resultados.',
         icon: Crown,
         accent: 'border-blue-500/60 ring-1 ring-blue-500/20',
@@ -106,86 +99,50 @@ export function PricingPage() {
         </nav>
       </header>
 
-      <section className="relative isolate min-h-[720px] overflow-hidden border-y border-white/10 bg-[#020817] lg:min-h-[780px]">
-        <img
-          src={atMotorsHero}
-          alt="Veículo premium em destaque ao entardecer"
-          className="absolute inset-0 h-full w-full object-cover object-center"
-          loading="eager"
-          fetchPriority="high"
-        />
-        <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(90deg,rgba(2,8,23,.98)_0%,rgba(2,8,23,.91)_30%,rgba(2,8,23,.55)_56%,rgba(2,8,23,.08)_100%)]" />
-        <div aria-hidden="true" className="absolute inset-0 bg-[linear-gradient(0deg,rgba(2,8,23,.96)_0%,transparent_34%,rgba(2,8,23,.12)_100%)]" />
-        <div aria-hidden="true" className="pointer-events-none absolute -right-28 top-20 h-[34rem] w-[34rem] rounded-full border border-cyan-300/20 shadow-[0_0_90px_rgba(0,174,255,.14)]" />
-        <div className="relative mx-auto flex min-h-[720px] max-w-[1440px] flex-col justify-center px-5 pb-28 pt-16 sm:px-8 lg:min-h-[780px] lg:px-12 lg:pb-32">
-          <div className="relative z-10 max-w-[680px]">
-            <div className="inline-flex items-center gap-3 text-xs font-bold uppercase tracking-[0.38em] text-sky-300 sm:text-sm">
-              <span className="h-px w-9 bg-cyan-300" />
-              Plataforma completa para o setor automotivo
-            </div>
-            <h1 className="mt-7 max-w-[680px] text-[clamp(2.7rem,5.6vw,5.8rem)] font-black leading-[.98] tracking-[-.055em] text-white">
-              Compre, venda, troque e gerencie
-              <span className="mt-2 block bg-gradient-to-r from-cyan-300 via-sky-400 to-blue-500 bg-clip-text pb-2 text-transparent">veículos com inteligência.</span>
-            </h1>
-            <p className="mt-6 max-w-[590px] text-base leading-7 text-slate-200/90 sm:text-lg sm:leading-8">
-              Mais que um marketplace: uma plataforma inteligente com estoque, gestão, avaliação, financiamento e indicadores para o seu negócio automotivo.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <a href="#planos" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl bg-gradient-to-r from-cyan-400 to-blue-600 px-7 py-4 text-sm font-black text-white shadow-[0_12px_42px_rgba(0,130,255,.38)] transition-all hover:-translate-y-1 hover:brightness-110">
-                <Car className="h-5 w-5" /> Conhecer a plataforma <ArrowRight className="h-5 w-5" />
-              </a>
-              <a href="/cadastro" className="inline-flex min-h-14 items-center justify-center gap-3 rounded-xl border border-white/35 bg-slate-950/35 px-7 py-4 text-sm font-bold text-white backdrop-blur-md transition-all hover:border-cyan-300 hover:bg-cyan-300/10">
-                Anunciar agora
-              </a>
-            </div>
-            <div className="mt-10 grid max-w-[620px] grid-cols-2 gap-3 sm:grid-cols-4">
-              <div className="rounded-xl border border-cyan-300/25 bg-[#06162a]/70 p-3 backdrop-blur-md"><Car className="h-6 w-6 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white">Compra e venda</p></div>
-              <div className="rounded-xl border border-cyan-300/25 bg-[#06162a]/70 p-3 backdrop-blur-md"><Users className="h-6 w-6 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white">Troca inteligente</p></div>
-              <div className="rounded-xl border border-cyan-300/25 bg-[#06162a]/70 p-3 backdrop-blur-md"><BarChart3 className="h-6 w-6 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white">Gestão completa</p></div>
-              <div className="rounded-xl border border-cyan-300/25 bg-[#06162a]/70 p-3 backdrop-blur-md"><Sparkles className="h-6 w-6 text-cyan-300" /><p className="mt-2 text-xs font-bold text-white">Avaliação por IA</p></div>
-            </div>
-          </div>
-
-          <div className="absolute bottom-7 right-8 z-10 hidden items-center gap-3 rounded-2xl border border-white/20 bg-[#06162a]/75 px-5 py-4 text-white shadow-2xl backdrop-blur-xl lg:flex">
-            <ShieldCheck className="h-7 w-7 text-cyan-300" />
-            <div><p className="text-xs font-extrabold">Sua operação conectada</p><p className="mt-1 text-[10px] text-slate-300">Estoque • Comercial • Financeiro</p></div>
+      <section className="relative isolate overflow-hidden border-y border-white/10 bg-[#020817]">
+        <img src={atMotorsHero} alt="" className="absolute inset-0 -z-20 h-full w-full object-cover object-center" fetchPriority="high" />
+        <div aria-hidden="true" className="absolute inset-0 -z-10 bg-gradient-to-r from-slate-950 via-slate-950/90 to-slate-950/40" />
+        <div className="mx-auto max-w-7xl px-5 py-20 sm:px-9 lg:py-28">
+          <p className="text-sm font-bold text-cyan-300">Gestão para revendas de veículos</p>
+          <h1 className="mt-4 max-w-3xl text-4xl font-black leading-tight tracking-tight sm:text-6xl">
+            Organize suas vendas do primeiro contato à entrega.
+          </h1>
+          <p className="mt-5 max-w-xl text-lg leading-8 text-slate-200">
+            Controle o estoque, acompanhe os atendimentos e envie propostas pelo WhatsApp. Depois da venda, acompanhe a transferência e compartilhe os documentos com o comprador.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-3">
+            <a href="#agendar" className="rounded-xl bg-cyan-400 px-5 py-3 font-bold text-slate-950">Agendar demonstração</a>
+            <a href="/demo" className="rounded-xl border border-slate-300 bg-slate-950/60 px-5 py-3 font-semibold text-white">Testar com dados de exemplo</a>
           </div>
         </div>
       </section>
-
-      <section id="como-funciona" className="max-w-6xl mx-auto px-4 pt-14 pb-14 sm:pt-20">
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center rounded-3xl border border-nexus-border bg-nexus-card p-6 sm:p-8 shadow-xl shadow-black/10">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-400">Conheça o AT MOTORS</p>
-            <h2 className="mt-3 text-2xl sm:text-3xl font-bold text-white">Sua loja organizada em um só lugar</h2>
-            <p className="mt-4 text-sm leading-6 text-slate-400">Veja como centralizar estoque, compras, vendas, trocas, documentos e resultados financeiros em uma plataforma feita para lojas de veículos.</p>
-            <a href="#planos" className="inline-flex items-center gap-2 mt-6 px-5 py-3 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-sm transition-colors">Ver planos e começar <ArrowRight className="h-4 w-4" /></a>
-          </div>
-          <div className="aspect-video overflow-hidden rounded-2xl border border-nexus-border bg-slate-950 flex items-center justify-center">
-            <video
-              className="w-full h-full object-contain"
-              aria-label="Vídeo demonstrativo do AT MOTORS"
-              controls
-              playsInline
-              preload="none"
-              poster={atMotorsHero}
-              src={demoVideoUrl}
-            >
-              Seu navegador não conseguiu reproduzir o vídeo demonstrativo.
-            </video>
+      <section id="como-funciona" className="mx-auto max-w-6xl px-4 py-14">
+        <h2 className="mb-6 text-3xl font-bold">Veja uma venda do início ao fim</h2>
+        <div className="grid gap-4 md:grid-cols-3">
+          {commercialTour.map(stage => <a key={stage.id} href={`/demo#${stage.id}`}
+            className="overflow-hidden rounded-xl border border-slate-700 bg-nexus-card hover:border-cyan-300 focus-visible:outline-2 focus-visible:outline-cyan-300">
+            <img src={stage.image} alt={stage.alt} loading="lazy" className="aspect-video w-full border-b border-slate-700 bg-slate-950 object-cover object-top" />
+            <div className="p-4"><h3 className="font-bold text-white">{stage.title}</h3><p className="mt-2 text-sm text-slate-300">{stage.description}</p></div>
+          </a>)}
+        </div>
+        <p className="mt-3 text-sm text-slate-400">Telas do produto com dados fictícios.</p>
+      </section>
+      <section className="mx-auto max-w-6xl px-4 pb-14">
+        <div className="rounded-2xl border border-slate-700 bg-nexus-card p-6 sm:p-8">
+          <h2 className="text-2xl font-bold">Implantação assistida para sua loja</h2>
+          <ul className="mt-4 grid gap-3 text-slate-200 sm:grid-cols-3">
+            <li>Revisão e importação da sua planilha de estoque</li>
+            <li>Configuração da vitrine e do WhatsApp comercial</li>
+            <li>Treinamento inicial de um vendedor</li>
+          </ul>
+          <p className="mt-4 text-sm text-slate-400">Escopo e valor da implantação combinados com a loja.</p>
+          <div className="mt-4 flex flex-wrap gap-4">
+            <a href="/?interesse=implantacao#agendar" className="font-semibold text-cyan-300 underline">Consultar implantação</a>
+            <a href="/?interesse=piloto#agendar" className="font-semibold text-cyan-300 underline">Tenho interesse no piloto</a>
           </div>
         </div>
       </section>
-
-      <section className="max-w-6xl mx-auto px-4 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pb-14">
-        {features.map(({ icon: Icon, title, text }) => (
-          <div key={title} className="bg-nexus-card border border-nexus-border rounded-xl p-5 transition-transform hover:-translate-y-0.5">
-            <Icon className="w-6 h-6 text-blue-400" />
-            <h3 className="mt-3 font-bold text-white text-sm">{title}</h3>
-            <p className="mt-1 text-xs leading-5 text-slate-400">{text}</p>
-          </div>
-        ))}
-      </section>
+      <CommercialDemoContact />
 
       <section id="planos" className="max-w-6xl mx-auto px-4 pb-20">
         <div className="text-center">
@@ -211,12 +168,12 @@ export function PricingPage() {
             const hasAnnual = Boolean(plan.annualPrice && plan.price > 0);
             const annualSaving = hasAnnual ? Math.round((1 - (plan.annualPrice! / (plan.price * 12))) * 100) : 0;
             const monthlyEquivalent = annual && plan.annualPrice ? plan.annualPrice / 12 : plan.price;
-            const isProfessional = presentation.label === 'Mais escolhido';
+            const isProfessional = presentation.label === 'Para equipes';
 
             return (
               <article key={plan.id} className={`relative bg-nexus-card border rounded-2xl p-6 flex flex-col shadow-xl shadow-black/10 ${presentation.accent}`}>
                 {isProfessional && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg shadow-blue-600/20">Mais escolhido</div>
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-blue-600 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white shadow-lg shadow-blue-600/20">Para equipes</div>
                 )}
 
                 <div className="flex items-start justify-between gap-4">

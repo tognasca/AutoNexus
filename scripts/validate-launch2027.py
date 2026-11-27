@@ -6,6 +6,8 @@ Creates test stock, customers, a seller, reservations and a sale in that instanc
 import concurrent.futures
 import datetime
 import json
+import io
+import zipfile
 import os
 import urllib.error
 import urllib.request
@@ -37,6 +39,28 @@ def call(path, method="GET", data=None, token=None, expected=200):
         return raw
 
 
+def upload_portal_document(vehicle_id, category_id, name, token):
+    boundary = "document-" + uuid.uuid4().hex
+    fields = b"".join(
+        f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode()
+        for key, value in {"categoryId": category_id, "name": name}.items()
+    )
+    pdf = b"%PDF-1.7\nDocumento de teste\n%%EOF"
+    data = fields + (
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="teste.pdf"\r\n'
+        'Content-Type: application/pdf\r\n\r\n'
+    ).encode() + pdf + f"\r\n--{boundary}--\r\n".encode()
+    req = urllib.request.Request(BASE + f"/api/vehicles/{vehicle_id}/documents", data=data,
+        headers={"Authorization": "Bearer " + token, "Content-Type": "multipart/form-data; boundary=" + boundary})
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return json.load(response)["id"], pdf
+
+
+def download(path):
+    with urllib.request.urlopen(BASE + "/api" + path, timeout=30) as response:
+        return response.read()
+
+
 def check(name):
     results.append(name)
     print("PASS:", name, flush=True)
@@ -57,11 +81,14 @@ def run():
     assert call("/store-setup/import", "POST", {"rows": [row], "commit": True}, token)["accepted"] == 0
     vehicle = next(v for v in call("/vehicles?search=" + row["plate"], token=token)["items"] if v["plate"] == row["plate"])
     vid = vehicle["id"]
+    setup = call("/store-setup", token=token)
+    assert setup["vehiclesCount"] >= 1 and setup["publishedCount"] >= 1
     check("prévia, validação e reenvio idempotente de importação")
 
     lead = call("/leads", "POST", {"name": "Cliente " + SUFFIX, "phone": "11999999999",
         "source": "Manual", "vehicleId": vid}, token, expected=201)
     lid = lead["id"]
+    assert call("/store-setup", token=token)["hasAttendance"]
     call("/leads/" + lid + "/attendance", "PUT",
         {"offerValue": 95000, "downPayment": 20000, "tradeDescription": "Troca a avaliar",
          "completedOn": None, "offerValidUntil": (datetime.date.today() + datetime.timedelta(days=1)).isoformat()}, token, expected=200)
@@ -72,6 +99,7 @@ def run():
 
     shared = call("/launch/leads/" + lid + "/proposal", "POST", {}, token)
     secret = shared["path"].split("/")[-1]
+    assert call("/store-setup", token=token)["hasProposal"]
     snapshot = call("/launch/proposals/" + secret)
     assert snapshot["value"] == 95000 and snapshot["store"]
     assert "purchaseValue" not in snapshot and "phone" not in snapshot
@@ -110,7 +138,14 @@ def run():
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, seller, expected=409)
     check("reserva concorrente e bloqueio de fechamento por outro vendedor")
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "payment", "done": True}, token, expected=409)
-    call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, token)
+    buyer_links = "/vehicles/" + vid + "/buyer-links"
+    call(buyer_links, "POST", {}, token, expected=404)
+    call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000, "leadId": lid}, token)
+    assert call("/leads/" + lid, token=token)["statusName"] == "Venda"
+    assert call("/store-setup", token=token)["hasSale"]
+    assert any(x["id"] == vid and not x["delivered"] and not x["transferred"]
+        for x in call("/daily-work/after-sales", token=token)["items"])
+    assert not any(x["id"] == vid for x in call("/daily-work/after-sales", token=seller)["items"])
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, token, expected=409)
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "handover", "done": True}, token, expected=409)
     assert any(x["kind"] == "delivery" and x["vehicleId"] == vid for x in call("/daily-work", token=token)["items"])
@@ -131,6 +166,31 @@ def run():
     assert call(transfer, token=token)["confirmation"]["evidence"] == "PROTOCOLO-01"
     call(transfer, "PUT", dict(complete, step="inspection", status="pending"), token, expected=409)
     check("transferência: evidência obrigatória, ordem, origem e responsável persistidos")
+
+    assert not any(x["id"] == vid for x in call("/daily-work/after-sales", token=token)["items"])
+    assert any(x["id"] == vid and x["delivered"] and x["transferred"]
+        for x in call("/daily-work/after-sales?includeCompleted=true", token=token)["items"])
+
+    category = call("/lookup/document-categories", token=token)[0]["id"]
+    shared_doc, pdf = upload_portal_document(vid, category, "Laudo autorizado", token)
+    private_doc, _ = upload_portal_document(vid, category, "Arquivo interno", token)
+    call(buyer_links, "POST", {"expirationDays": 31}, token, expected=400)
+    call(buyer_links, token=seller, expected=404)
+    buyer_link = call(buyer_links, "POST", {"expirationDays": 7, "documentIds": [shared_doc]}, token)
+    portal = buyer_link["shareUrl"]
+    details = call(portal)
+    assert details["price"] == 95000 and [x["id"] for x in details["documents"]] == [shared_doc]
+    assert "storagePath" not in details["documents"][0]
+    assert download(f"{portal}/documents/{shared_doc}/download") == pdf
+    call(f"{portal}/documents/{private_doc}/download", expected=404)
+    with zipfile.ZipFile(io.BytesIO(download(portal + "/documents/download-all"))) as archive:
+        assert len(archive.namelist()) == 1 and archive.read(archive.namelist()[0]) == pdf
+    accept = {"buyerName": "Comprador de teste", "buyerDocument": "529.982.247-25"}
+    call(portal + "/accept", "POST", accept)
+    assert call(portal)["hasElectronicAcceptance"]
+    call(buyer_links + "/" + buyer_link["id"], "DELETE", token=token, expected=204)
+    call(portal, expected=401)
+    check("portal: documentos selecionados, download, ZIP, aceite e revogação")
 
     partial = call("/leads", "POST", {"source": "Mercado Livre"}, token, expected=201)
     assert len(partial["missingFields"]) == 3
@@ -193,6 +253,9 @@ def run():
         "adminPassword": PASSWORD, "planId": plan["id"], "cycle": 1,
         "acceptTermsOfUse": True, "acceptPrivacyPolicy": True, "acceptCookiePolicy": True})
     other_token = other["login"]["token"]
+    other_setup = call("/store-setup", token=other_token)
+    assert not any(other_setup[key] for key in ("hasAttendance", "hasProposal", "hasSale"))
+    call("/store-setup", token=seller, expected=403)
     assert call("/daily-work?mine=false", token=other_token)["total"] == 0
     call(transfer, token=other_token, expected=404)
     call(transfer, "PUT", complete, other_token, expected=404)
@@ -203,6 +266,26 @@ def run():
     call("/launch/vehicles/" + vid + "/reserve", "POST", {"leadId": lid, "expiresAt": expires}, other_token, expected=404)
     call("/financing/proposals/" + manual["id"], token=other_token, expected=404)
     check("isolamento entre duas empresas reais, inclusive propostas e financiamento")
+
+    trade_vehicle = call("/vehicles", "POST", dict(row, plate=None), token, expected=201)["id"]
+    trade_lead = call("/leads", "POST", {"name": "Cliente troca", "phone": "11999999999",
+        "vehicleId": trade_vehicle}, token, expected=201)["id"]
+    other_lead = call("/leads", "POST", {"name": "Outro cliente", "phone": "11999999998",
+        "vehicleId": trade_vehicle}, token, expected=201)["id"]
+    trade_input = {"deliveredVehicleId": trade_vehicle, "leadId": trade_lead,
+        "receivedVehicle": dict(row, plate=None, model="Yaris", purchaseValue=40000, listedValue=45000),
+        "receivedVehicleFipe": 45000, "deliveredVehicleFipe": 95000,
+        "receivedVehicleNegotiatedValue": 42000, "deliveredVehicleNegotiatedValue": 95000,
+        "estimatedResaleCost": 2000, "differenceValue": 53000, "differencePaidByUs": False,
+        "tradeDate": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    call("/trades", "POST", trade_input, token, expected=201)
+    assert call("/launch/leads/" + trade_lead, token=token)["tradeValue"] == 42000
+    assert call("/launch/leads/" + other_lead, token=token).get("tradeValue") is None
+    call(f"/vehicles/{trade_vehicle}/sell", "POST", {"saleValue": 95000, "leadId": other_lead},
+        token, expected=409)
+    call(f"/vehicles/{trade_vehicle}/sell", "POST", {"saleValue": 95000, "leadId": trade_lead}, token)
+    assert call("/leads/" + trade_lead, token=token)["statusName"] == "Venda"
+    check("troca vinculada ao atendimento, retomada do crédito e fechamento com o comprador correto")
 
     return {"token": token, "leadId": lid, "vehicleId": vid, "auth": auth, "results": results}
 

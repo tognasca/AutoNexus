@@ -1,30 +1,30 @@
-﻿import { useAuth } from '../../contexts/AuthContext';
+import { useAuth } from '../../contexts/AuthContext';
 import { canAccessView } from '../../utils/permissions';
 import atMotorsLogo from '../../public/ATlogo.png';
-import { LayoutDashboard, Car, ArrowLeftRight, Calculator, BarChart3, Building2, Users, Award, FolderOpen, Settings, CreditCard, ShieldCheck, FileDown, Globe2, Rocket, MessageCircle, SlidersHorizontal, FileText } from 'lucide-react';
-interface SidebarProps { currentView?: string; onNavigate?: (view: string) => void; }
+import { navigationGroups, primaryNavigation } from './navigation';
+
+interface SidebarProps { currentView?: string; onNavigate?: (view: string) => void }
+
 export function Sidebar({ currentView = 'dashboard', onNavigate }: SidebarProps) {
-  const { user } = useAuth(); const profile = user?.profile;
-  return <aside className="hidden md:flex flex-col w-64 bg-nexus-card border-r border-nexus-border min-h-screen p-4"><div className="flex items-center gap-3 mb-8 px-2"><img src={atMotorsLogo} alt="AT MOTORS" className="h-11 w-16 rounded-lg object-contain"/><div><span className="text-lg font-black text-white tracking-wide block">AT MOTORS</span><span className="text-[10px] text-slate-500 uppercase tracking-wider font-semibold">Tecnologia que movimenta negócios</span></div></div><nav className="flex flex-col gap-1.5">
-    {canAccessView(profile,'dashboard')&&<button onClick={()=>onNavigate?.('dashboard')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='dashboard'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><LayoutDashboard size={18}/>Dashboard</button>}
-    {canAccessView(profile,'onboarding')&&<button onClick={()=>onNavigate?.('onboarding')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='onboarding'?'bg-blue-500/15 text-blue-400 border border-blue-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Rocket size={18}/>Primeiros Passos</button>}
-    {canAccessView(profile,'commercial')&&<button onClick={()=>onNavigate?.('commercial')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='commercial'?'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><MessageCircle size={18}/>Central Comercial</button>}
-    {canAccessView(profile,'vehicles')&&<button onClick={()=>onNavigate?.('vehicles')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='vehicles'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Car size={18}/>Estoque</button>}
-    {canAccessView(profile,'leads')&&<button onClick={()=>onNavigate?.('leads')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='leads'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Users size={18}/>CRM de Leads</button>}
-    {canAccessView(profile,'trades')&&<button onClick={()=>onNavigate?.('trades')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='trades'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><ArrowLeftRight size={18}/>Trocas & Histórico</button>}
-    {canAccessView(profile,'simulator')&&<button onClick={()=>onNavigate?.('simulator')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='simulator'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Calculator size={18}/>Simulador</button>}
-    {canAccessView(profile,'financing')&&<button onClick={()=>onNavigate?.('financing')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='financing'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><FileDown size={18}/>Financiamento</button>}
-    {canAccessView(profile,'reports')&&<button onClick={()=>onNavigate?.('reports')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='reports'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><BarChart3 size={18}/>Relatório DRE</button>}
-    {canAccessView(profile,'commissions')&&<button onClick={()=>onNavigate?.('commissions')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='commissions'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Award size={18}/>Comissões</button>}
-    {canAccessView(profile,'bank-configs')&&<button onClick={()=>onNavigate?.('bank-configs')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='bank-configs'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Building2 size={18}/>Financeiras (Admin)</button>}
-    {canAccessView(profile,'users')&&<button onClick={()=>onNavigate?.('users')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='users'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Users size={18}/>Usuários & Perfis</button>}
-    {canAccessView(profile,'company-documents')&&<button onClick={()=>onNavigate?.('company-documents')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='company-documents'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><FolderOpen size={18}/>Docs Empresa (Admin)</button>}
-    {canAccessView(profile,'tenant-settings')&&<button onClick={()=>onNavigate?.('tenant-settings')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='tenant-settings'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Settings size={18}/>Minha Empresa</button>}
-    {canAccessView(profile,'settings-center')&&<button onClick={()=>onNavigate?.('settings-center')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='settings-center'?'bg-slate-500/15 text-slate-200 border border-slate-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><SlidersHorizontal size={18}/>Central de Configurações</button>}
-    {canAccessView(profile,'premium-catalog')&&<button onClick={()=>onNavigate?.('premium-catalog')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='premium-catalog'?'bg-amber-500/15 text-amber-400 border border-amber-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Globe2 size={18}/>Catálogo Premium</button>}
-    {canAccessView(profile,'subscription')&&<button onClick={()=>onNavigate?.('subscription')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='subscription'?'bg-nexus-accent/15 text-blue-400 border border-nexus-accent/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><CreditCard size={18}/>Minha Assinatura</button>}
-    {canAccessView(profile,'superadmin')&&<button onClick={()=>onNavigate?.('superadmin')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='superadmin'?'bg-amber-500/15 text-amber-400 border border-amber-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><ShieldCheck size={18}/>Painel SuperAdmin</button>}
-    {canAccessView(profile,'legal-documents')&&<button onClick={()=>onNavigate?.('legal-documents')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='legal-documents'?'bg-blue-500/15 text-blue-300 border border-blue-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><FileText size={18}/>Documentos Legais</button>}
-    {canAccessView(profile,'production-readiness')&&<button onClick={()=>onNavigate?.('production-readiness')} className={`flex items-center gap-3 px-3.5 py-2.5 rounded-lg text-sm font-medium text-left ${currentView==='production-readiness'?'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30':'text-slate-400 hover:bg-nexus-border/60 hover:text-white'}`}><Rocket size={18}/>Prontidão para Produção</button>}
-  </nav></aside>;
+  const { user } = useAuth();
+  const allowed = (item: { id: string }) => canAccessView(user?.profile, item.id);
+  const link = ({ id, label, icon: Icon }: typeof primaryNavigation[number]) =>
+    <button key={id} type="button" aria-current={currentView === id ? 'page' : undefined} onClick={() => onNavigate?.(id)}
+      className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm text-slate-300 hover:bg-slate-800 aria-[current=page]:bg-blue-500/15 aria-[current=page]:text-blue-300">
+      <Icon size={18} />{label}
+    </button>;
+
+  return <aside className="hidden min-h-screen w-56 shrink-0 border-r border-nexus-border bg-nexus-card p-4 md:block">
+    <img src={atMotorsLogo} alt="AT Motors" className="mb-6 h-14 w-28 object-contain" />
+    <nav aria-label="Menu principal" className="space-y-4">
+      <div className="space-y-1">{primaryNavigation.filter(allowed).map(link)}</div>
+      {navigationGroups.map(group => {
+        const items = group.items.filter(allowed);
+        return items.length > 0 && <details key={group.label} open={items.some(item => item.id === currentView) || undefined}>
+          <summary className="cursor-pointer rounded px-3 py-2 text-sm font-semibold text-slate-400">{group.label}</summary>
+          <div className="space-y-1">{items.map(link)}</div>
+        </details>;
+      })}
+    </nav>
+  </aside>;
 }

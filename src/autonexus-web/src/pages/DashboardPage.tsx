@@ -1,10 +1,26 @@
-﻿import { useState, useEffect } from 'react';
+import { firstSaleSteps, getStoreSetup } from '../services/storeSetupService';
+import { useAuth } from '../contexts/AuthContext';
+import { useState, useEffect } from 'react';
 import { MainLayout } from '../components/layout/MainLayout';
 import { dashboardService, type DashboardSummary } from '../services/dashboardService';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { LayoutDashboard, Car, ArrowLeftRight, CheckCircle2, Loader2 } from 'lucide-react';
 
 export function DashboardPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
+  const { user } = useAuth();
+  const [setupAction, setSetupAction] = useState<string>();
+  useEffect(() => {
+    if (user?.profile !== 1) return;
+    const controller = new AbortController();
+    getStoreSetup(controller.signal)
+      .then(setup => {
+        if (controller.signal.aborted) return;
+        const next = !setup.hasSale ? firstSaleSteps(setup).find(step => !step.done) : undefined;
+        setSetupAction(next?.label ?? (!setup.identityReady || !setup.contactReady ? 'Configurar identidade visual e WhatsApp' : undefined));
+      })
+      .catch(() => {});
+    return () => controller.abort();
+  }, [user?.profile, user?.tenantId]);
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -36,6 +52,11 @@ export function DashboardPage({ currentView, onNavigate }: { currentView?: strin
         </div>
       </div>
 
+      {setupAction && <button type="button" onClick={() => onNavigate?.('onboarding')}
+        className="mb-5 w-full rounded-xl border border-blue-500/30 bg-blue-950/50 p-4 text-left text-sm text-blue-200">
+        <strong className="block text-white">Minha primeira venda</strong>
+        Próxima etapa: {setupAction}
+      </button>}
       {loading ? (
         <div className="flex flex-col items-center justify-center h-64 text-slate-500 gap-3">
           <Loader2 className="animate-spin text-nexus-accent" size={32} />

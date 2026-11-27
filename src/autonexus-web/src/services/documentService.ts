@@ -1,4 +1,5 @@
-﻿const API_BASE_URL = '/api';
+import { request } from './api';
+const API_BASE_URL = '/api';
 
 export interface DocumentItem {
   id: string;
@@ -68,17 +69,12 @@ export const documentService = {
     return `${API_BASE_URL}/vehicles/${vehicleId}/documents/download-zip`;
   },
 
-  createBuyerLink: async (vehicleId: string, buyerName?: string): Promise<BuyerLink> => {
-    const token = localStorage.getItem('autonexus_token');
-    const res = await fetch(`${API_BASE_URL}/vehicles/${vehicleId}/documents/share-link`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify({ buyerName, expirationDays: 30 }),
-    });
-    if (!res.ok) throw new Error('Erro ao gerar link do comprador.');
-    return res.json();
-  },
+  listBuyerLinks: (vehicleId: string) =>
+    request<BuyerLink[]>(`/vehicles/${vehicleId}/buyer-links`),
+
+  createBuyerLink: (vehicleId: string, input: { buyerName: string; expirationDays: number; documentIds: string[] }) =>
+    request<BuyerLink>(`/vehicles/${vehicleId}/buyer-links`, { method: 'POST', body: JSON.stringify(input) }),
+
+  revokeBuyerLink: (vehicleId: string, linkId: string) =>
+    request<void>(`/vehicles/${vehicleId}/buyer-links/${linkId}`, { method: 'DELETE' }),
 };

@@ -159,6 +159,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid[]>("SharedDocumentIds")
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("sharedDocumentIds");
+
                     b.Property<string>("BuyerName")
                         .HasColumnType("text")
                         .HasColumnName("buyerName");
@@ -1569,6 +1573,10 @@ namespace AutoNexus.Infrastructure.Migrations
                     b.Property<DateTime?>("UpdatedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
+
+                    b.Property<Guid?>("LeadId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("leadId");
 
                     b.HasKey("Id");
 

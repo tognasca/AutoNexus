@@ -124,7 +124,7 @@ public class VehicleService : IVehicleService
             v.Photos.Select(p => new VehiclePhotoDto(p.Id, p.FileName, p.StoragePath, p.IsMain, p.Order)),
             v.Costs.Select(c => new VehicleCostDto(c.Id, c.CostCategoryId, c.CostCategory?.Name ?? string.Empty, c.Description, c.Value, c.CostDate)),
             v.Documents?.Select(d => new VehicleDocumentDto(d.Id, d.DocumentCategoryId, d.DocumentCategory?.Name ?? "Laudo", d.Name, d.FileName, d.StoragePath, d.ShowInCatalog, d.CreatedAt)),
-            latestFipeValue
+            latestFipeValue, v.SoldByUserId
         );
     }
 

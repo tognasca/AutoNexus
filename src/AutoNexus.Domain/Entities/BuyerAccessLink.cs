@@ -1,4 +1,4 @@
-﻿namespace AutoNexus.Domain.Entities;
+namespace AutoNexus.Domain.Entities;
 
 public class BuyerAccessLink : TenantOwnedEntityBase
 {
@@ -7,19 +7,21 @@ public class BuyerAccessLink : TenantOwnedEntityBase
     public DateTime ExpiresAt { get; private set; }
     public bool IsRevoked { get; private set; }
     public Guid CreatedByUserId { get; private set; }
+    public Guid[]? SharedDocumentIds { get; private set; }
     public string? BuyerName { get; private set; }
 
     public Vehicle Vehicle { get; private set; } = null!;
 
     protected BuyerAccessLink() { }
 
-    public BuyerAccessLink(Guid vehicleId, Guid createdByUserId, int expirationDays = 30, string? buyerName = null)
+    public BuyerAccessLink(Guid vehicleId, Guid createdByUserId, int expirationDays = 30, string? buyerName = null, Guid[]? sharedDocumentIds = null)
     {
         VehicleId = vehicleId;
         Token = Convert.ToHexString(Guid.NewGuid().ToByteArray()) + Convert.ToHexString(Guid.NewGuid().ToByteArray());
         ExpiresAt = DateTime.UtcNow.AddDays(expirationDays);
         IsRevoked = false;
         CreatedByUserId = createdByUserId;
+        SharedDocumentIds = sharedDocumentIds;
         BuyerName = buyerName?.Trim();
     }
 
