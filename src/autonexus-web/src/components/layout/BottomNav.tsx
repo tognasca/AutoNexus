@@ -1,31 +1,36 @@
-﻿import { useAuth } from '../../contexts/AuthContext';
+import { useState } from 'react';
+import { Ellipsis } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 import { canAccessView } from '../../utils/permissions';
-import { LayoutDashboard, Car, ArrowLeftRight, Calculator, BarChart3, Building2, Users, FileDown, Rocket, MessageCircle, SlidersHorizontal, FileText } from 'lucide-react';
+import { navigationGroups, primaryNavigation } from './navigation';
 
-interface BottomNavProps { currentView: string; onNavigate?: (view: string) => void; }
+interface BottomNavProps { currentView: string; onNavigate?: (view: string) => void }
 
 export function BottomNav({ currentView, onNavigate }: BottomNavProps) {
   const { user } = useAuth();
-  const profile = user?.profile;
-  const button = (view: string, label: string, Icon: typeof LayoutDashboard) => canAccessView(profile, view) && (
-    <button onClick={() => onNavigate?.(view)} className={`shrink-0 flex flex-col items-center gap-1 px-2 py-1 transition-colors cursor-pointer ${currentView === view ? 'text-blue-400' : 'text-slate-400 hover:text-white'}`}>
-      <Icon size={18} /><span className="text-[9px] font-bold">{label}</span>
-    </button>
-  );
-
-  return <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-nexus-card/95 backdrop-blur-lg border-t border-nexus-border z-40 px-2 py-2 flex items-center gap-1 overflow-x-auto">
-    {button('dashboard', 'Dashboard', LayoutDashboard)}
-    {button('onboarding', 'Primeiros', Rocket)}
-    {button('commercial', 'Comercial', MessageCircle)}
-    {button('vehicles', 'Estoque', Car)}
-    {button('leads', 'Leads', Users)}
-    {button('trades', 'Trocas', ArrowLeftRight)}
-    {button('simulator', 'Simulador', Calculator)}
-    {button('financing', 'Financ.', FileDown)}
-    {button('reports', 'DRE', BarChart3)}
-    {button('bank-configs', 'Bancos', Building2)}
-    {button('users', 'Usuários', Users)}
-    {button('settings-center', 'Config.', SlidersHorizontal)}
-    {button('legal-documents', 'Docs Legais', FileText)}
+  const [more, setMore] = useState(false);
+  const allowed = (item: { id: string }) => canAccessView(user?.profile, item.id);
+  const primary = primaryNavigation.slice(0, 3).filter(allowed);
+  const secondary = [...primaryNavigation.slice(3), ...navigationGroups.flatMap(group => group.items)].filter(allowed);
+  function navigate(view: string) {
+    setMore(false);
+    onNavigate?.(view);
+  }
+  return <nav aria-label="Menu móvel" className="fixed inset-x-0 bottom-0 z-40 border-t border-nexus-border bg-nexus-card md:hidden">
+    {more && <div id="mobile-more" className="grid max-h-[60dvh] grid-cols-2 gap-2 overflow-y-auto border-b border-nexus-border p-3">
+      {secondary.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigate(id)}
+        aria-current={currentView === id ? 'page' : undefined}
+        className="flex items-center gap-2 rounded-lg bg-slate-800 p-3 text-left text-sm text-slate-100 aria-[current=page]:text-blue-300">
+        <Icon className="shrink-0" size={17} />{label}
+      </button>)}
+    </div>}
+    <div className="flex justify-around px-1 py-1 pb-[max(0.25rem,env(safe-area-inset-bottom))]">
+      {primary.map(({ id, label, icon: Icon }) => <button key={id} type="button" onClick={() => navigate(id)}
+        aria-current={currentView === id ? 'page' : undefined} className="flex min-h-11 flex-col items-center justify-center gap-1 px-2 text-xs text-slate-300 aria-[current=page]:text-blue-300">
+        <Icon size={18} />{id === 'dashboard' ? 'Hoje' : label}
+      </button>)}
+      {secondary.length > 0 && <button type="button" aria-expanded={more} aria-controls={more ? 'mobile-more' : undefined} onClick={() => setMore(value => !value)}
+        className="flex min-h-11 flex-col items-center justify-center gap-1 px-2 text-xs text-slate-300"><Ellipsis size={18} />Mais</button>}
+    </div>
   </nav>;
 }

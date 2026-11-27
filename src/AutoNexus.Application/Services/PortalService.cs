@@ -1,6 +1,7 @@
-﻿using AutoNexus.Application.DTOs;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
+using AutoNexus.Domain.Enums;
 using AutoNexus.Domain.Interfaces;
 
 namespace AutoNexus.Application.Services;
@@ -38,7 +39,16 @@ public class PortalService : IPortalService
         var vehicle = await _vehicleRepository.GetByIdAsync(vehicleId, false, cancellationToken)
             ?? throw new KeyNotFoundException("Veículo não encontrado.");
 
-        var link = new BuyerAccessLink(vehicleId, createdByUserId, dto.ExpirationDays, dto.BuyerName);
+        if (vehicle.Status != VehicleStatus.Vendido)
+            throw new InvalidOperationException("Registre a venda antes de compartilhar o portal.");
+        if (dto.ExpirationDays is < 1 or > 30 || dto.BuyerName?.Length > 160)
+            throw new ArgumentException("Informe uma validade de 1 a 30 dias e um nome com até 160 caracteres.");
+        var documentIds = dto.DocumentIds?.Distinct().ToArray() ?? [];
+        var available = await _documentRepository.GetByVehicleIdAsync(vehicleId, cancellationToken);
+        if (documentIds.Except(available.Select(doc => doc.Id)).Any())
+            throw new ArgumentException("Selecione apenas documentos deste veículo.");
+
+        var link = new BuyerAccessLink(vehicleId, createdByUserId, dto.ExpirationDays, dto.BuyerName, documentIds);
         await _buyerLinkRepository.AddAsync(link, cancellationToken);
         await _unitOfWork.CommitAsync(cancellationToken);
 
@@ -61,8 +71,8 @@ public class PortalService : IPortalService
             .OrderByDescending(p => p.IsMain)
             .Select(p => new VehiclePhotoDto(p.Id, p.FileName, p.StoragePath, p.IsMain, p.Order));
 
-        var docDtos = docs.Select(d => new DocumentDto(
-            d.Id, d.VehicleId, d.DocumentCategoryId, d.DocumentCategory?.Name ?? "", d.Name, d.FileName, d.StoragePath, d.FileSize, d.MimeType, d.UploadedByUserId, d.Notes, d.CreatedAt
+        var docDtos = docs.Where(d => IsShared(link, d.Id)).Select(d => new PortalDocumentDto(
+            d.Id, d.Name, d.DocumentCategory?.Name ?? "", d.FileName, d.FileSize
         ));
 
         var acceptance = await _acceptanceRepository.GetByVehicleIdAsync(vehicle.Id, cancellationToken);
@@ -74,12 +84,12 @@ public class PortalService : IPortalService
             vehicle.Version,
             vehicle.ModelYear,
             vehicle.Plate,
-            vehicle.ListedValue ?? vehicle.PurchaseValue,
+            vehicle.SaleValue ?? vehicle.ListedValue ?? 0,
             photos,
             docDtos,
             acceptance != null,
             acceptance?.AcceptedAt,
-            acceptance?.BuyerName
+            acceptance?.BuyerAccessLinkId == link.Id ? acceptance?.BuyerName : null
         );
     }
 
@@ -88,7 +98,7 @@ public class PortalService : IPortalService
         var link = await ValidateTokenAsync(token, cancellationToken);
 
         var doc = await _documentRepository.GetByIdAsync(documentId, cancellationToken);
-        if (doc == null || doc.VehicleId != link.VehicleId)
+        if (doc == null || doc.VehicleId != link.VehicleId || !IsShared(link, documentId))
             throw new KeyNotFoundException("Documento não encontrado ou não pertence a este veículo.");
 
         var bytes = await _storageService.GetFileBytesAsync(doc.StoragePath, cancellationToken);
@@ -102,10 +112,11 @@ public class PortalService : IPortalService
         if (vehicle == null) throw new KeyNotFoundException("Veículo não encontrado.");
 
         var docs = await _documentRepository.GetByVehicleIdAsync(link.VehicleId, cancellationToken);
-        var list = docs.ToList();
+        var list = docs.Where(doc => IsShared(link, doc.Id)).ToList();
         if (!list.Any()) throw new InvalidOperationException("Este veículo não possui documentos cadastrados.");
 
-        var filesToZip = list.Select(d => (d.StoragePath, $"{d.Name}_{d.FileName}"));
+        var filesToZip = list.Select((d, index) =>
+            (d.StoragePath, $"{index + 1}_{Path.GetFileName(d.FileName.Replace('\\', '/'))}"));
         var zipBytes = await _storageService.CreateZipAsync(filesToZip, cancellationToken);
 
         var zipFileName = $"Documentos_{vehicle.Brand}_{vehicle.Model}_{vehicle.Plate ?? "Veiculo"}.zip";
@@ -116,15 +127,20 @@ public class PortalService : IPortalService
     {
         var link = await ValidateTokenAsync(token, cancellationToken);
 
+        var document = new string((dto.BuyerDocument ?? "").Where(char.IsAsciiDigit).ToArray());
+        if (string.IsNullOrWhiteSpace(dto.BuyerName) || dto.BuyerName.Length > 160 ||
+            document.Length is not (11 or 14) || document.Distinct().Count() == 1)
+            throw new ArgumentException("Informe o nome completo e um CPF ou CNPJ válido.");
+
         var existing = await _acceptanceRepository.GetByVehicleIdAsync(link.VehicleId, cancellationToken);
         if (existing != null)
-            throw new InvalidOperationException($"Este veículo já possui um aceite eletrônico registrado por '{existing.BuyerName}' em {existing.AcceptedAt:dd/MM/yyyy HH:mm}.");
+            throw new InvalidOperationException("Este veículo já possui um aceite eletrônico registrado.");
 
         var acceptance = new ElectronicAcceptance(
             link.VehicleId,
             link.Id,
             dto.BuyerName,
-            dto.BuyerDocument,
+            document,
             ipAddress,
             "v1.0 - Termo de Recebimento de Veículo e Documentos"
         );
@@ -136,6 +152,9 @@ public class PortalService : IPortalService
             acceptance.Id, acceptance.BuyerName, acceptance.AcceptedAt, acceptance.IpAddress, acceptance.TermVersion
         );
     }
+
+    private static bool IsShared(BuyerAccessLink link, Guid documentId) =>
+        link.SharedDocumentIds?.Contains(documentId) == true;
 
     private async Task<BuyerAccessLink> ValidateTokenAsync(string token, CancellationToken cancellationToken)
     {

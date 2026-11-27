@@ -159,6 +159,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<Guid[]>("SharedDocumentIds")
+                        .HasColumnType("uuid[]")
+                        .HasColumnName("sharedDocumentIds");
+
                     b.Property<string>("BuyerName")
                         .HasColumnType("text")
                         .HasColumnName("buyerName");

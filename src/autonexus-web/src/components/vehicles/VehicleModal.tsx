@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { LookupItem } from '../../types/lookup';
 import { FuelType, TransmissionType, type CreateVehicleInput } from '../../types/vehicle';
 import { CurrencyInput } from '../ui/CurrencyInput';
@@ -19,6 +19,7 @@ interface VehicleModalProps {
 }
 
 export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreate }: VehicleModalProps) {
+  const [manual, setManual] = useState(false);
   const [loading, setLoading] = useState(false);
   const [isGeneratingAi, setIsGeneratingAi] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -226,7 +227,7 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
     setLoading(true);
 
     try {
-      if (!form.brand || !form.model || !form.vehicleTypeId || !selectedYearCode || form.PurchaseValue <= 0) {
+      if (!form.brand || !form.model || !form.vehicleTypeId || (!manual && !selectedYearCode) || form.PurchaseValue <= 0) {
         throw new Error('Preencha Tipo, Marca, Modelo, Ano/Modelo e Valor de Compra.');
       }
 
@@ -260,6 +261,15 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
             </div>
           )}
 
+          <label className="flex items-center gap-2 text-sm text-slate-300">
+            <input type="checkbox" checked={manual} onChange={event => {
+              setManual(event.target.checked);
+              setSelectedBrandCode('');
+              setSelectedModelCode('');
+              setSelectedYearCode('');
+              setForm(previous => ({ ...previous, brand: '', model: '', version: '' }));
+            }} /> Preencher marca e modelo manualmente
+          </label>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Tipo *</label>
@@ -273,6 +283,18 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
               </select>
             </div>
 
+            {manual ? <>
+              <label className="text-sm text-slate-300">Marca
+                <input required maxLength={100} value={form.brand}
+                  onChange={event => setForm(previous => ({ ...previous, brand: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-nexus-border bg-nexus-dark p-2.5 text-white" />
+              </label>
+              <label className="text-sm text-slate-300">Modelo
+                <input required maxLength={100} value={form.model}
+                  onChange={event => setForm(previous => ({ ...previous, model: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-nexus-border bg-nexus-dark p-2.5 text-white" />
+              </label>
+            </> : <>
             <div>
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Marca FIPE {loadingBrands && '⌛'} *</label>
               <select
@@ -300,11 +322,24 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
                 {models.map((m) => <option key={m.code} value={m.code}>{m.name}</option>)}
               </select>
             </div>
+            </>}
           </div>
 
-          <FipeValueCard quote={fipeQuote} loading={loadingFipeQuote} error={fipeQuoteError} />
+          {!manual && <FipeValueCard quote={fipeQuote} loading={loadingFipeQuote} error={fipeQuoteError} />}
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {manual ? <>
+              <label className="text-sm text-slate-300 md:col-span-2">Ano modelo
+                <select value={form.modelYear} onChange={event => setForm(previous => ({ ...previous, modelYear: Number(event.target.value) }))}
+                  className="mt-1 w-full rounded-lg border border-nexus-border bg-nexus-dark p-2.5 text-white">
+                  {FALLBACK_YEARS.map(year => <option key={year}>{year}</option>)}
+                </select>
+              </label>
+              <label className="text-sm text-slate-300 md:col-span-2">Versão
+                <input maxLength={100} value={form.version} onChange={event => setForm(previous => ({ ...previous, version: event.target.value }))}
+                  className="mt-1 w-full rounded-lg border border-nexus-border bg-nexus-dark p-2.5 text-white" />
+              </label>
+            </> : <>
             <div className="md:col-span-2">
               <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Ano / Modelo FIPE {loadingYears && '⌛'} *</label>
               <select
@@ -329,6 +364,7 @@ export function VehicleModal({ isOpen, onClose, onSuccess, vehicleTypes, onCreat
                 className="w-full bg-nexus-dark/70 border border-nexus-border rounded-lg p-2.5 text-sm text-slate-300 focus:outline-none"
               />
             </div>
+            </>}
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">

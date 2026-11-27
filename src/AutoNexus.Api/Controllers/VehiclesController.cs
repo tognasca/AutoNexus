@@ -1,4 +1,4 @@
-﻿using AutoNexus.Application.DTOs;
+using AutoNexus.Application.DTOs;
 using AutoNexus.Application.Interfaces;
 using AutoNexus.Domain.Entities;
 using AutoNexus.Domain.Enums;
@@ -201,7 +201,25 @@ public class VehiclesController : ControllerBase
         if (saleVehicle.Status == VehicleStatus.Vendido ||
             (saleVehicle.ReservationExpiresAt > DateTime.UtcNow && saleVehicle.ReservedByUserId != sellerId))
             return Conflict(new { message = "Veículo vendido ou reservado por outro vendedor." });
+        var leadId = dto.LeadId;
+        if (saleVehicle.ReservationExpiresAt > DateTime.UtcNow && saleVehicle.ReservedForLeadId is Guid reservedLead)
+        {
+            if (leadId.HasValue && leadId.Value != reservedLead)
+                return Conflict(new { message = "O veículo está reservado para outro atendimento." });
+            leadId = reservedLead;
+        }
+
+        if (leadId.HasValue)
+        {
+            var lead = await _dbContext.Leads.SingleOrDefaultAsync(x => x.Id == leadId && x.VehicleId == id, cancellationToken);
+            if (lead is null || lead.Status is LeadStatus.Perdido or LeadStatus.Venda ||
+                (lead.AssignedToUserId.HasValue && lead.AssignedToUserId != sellerId && !User.IsInRole("Admin")))
+                return Conflict(new { message = "O atendimento não está disponível para fechar esta venda." });
+            lead.ChangeStatus(LeadStatus.Venda);
+        }
+
         await _vehicleService.SellVehicleAsync(id, updatedDto, cancellationToken);
+        await _dbContext.SaveChangesAsync(cancellationToken);
         await RegisterVehicleHistoryAsync(id, "Venda registrada", $"Veículo vendido por {dto.SaleValue:C}.", cancellationToken);
         await transaction.CommitAsync(cancellationToken);
         return Ok(new { message = "Venda registrada com sucesso." });

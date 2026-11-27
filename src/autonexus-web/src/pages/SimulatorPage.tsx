@@ -26,15 +26,27 @@ const DEFAULT_BANKS = [
   { id: 'custom', name: 'Taxa Personalizada', defaultRate: 2.00 },
 ];
 
-export function SimulatorPage({ currentView, onNavigate }: { currentView?: string; onNavigate?: (view: string) => void }) {
-  const [vehicles, setVehicles] = useState<VehicleOption[]>([]);
-  const [loading, setLoading] = useState(true);
+interface SimulationContext {
+  vehicle: VehicleOption;
+  price: number;
+  entry: number;
+  trade: number;
+  customer: { name: string; phone: string; email?: string };
+}
+
+export function SimulatorPage({ currentView, onNavigate, context }: {
+  currentView?: string;
+  onNavigate?: (view: string) => void;
+  context?: SimulationContext;
+}) {
+  const [vehicles, setVehicles] = useState<VehicleOption[]>(() => context ? [context.vehicle] : []);
+  const [loading, setLoading] = useState(!context);
 
   // Estados do Formulário
-  const [selectedVehicleId, setSelectedVehicleId] = useState<string>('');
-  const [vehiclePrice, setVehiclePrice] = useState<number>(0);
-  const [entryValue, setEntryValue] = useState<number>(0);
-  const [tradeValue, setTradeValue] = useState<number>(0);
+  const [selectedVehicleId, setSelectedVehicleId] = useState<string>(context?.vehicle.id ?? '');
+  const [vehiclePrice, setVehiclePrice] = useState<number>(context?.price ?? 0);
+  const [entryValue, setEntryValue] = useState<number>(context?.entry ?? 0);
+  const [tradeValue, setTradeValue] = useState<number>(context?.trade ?? 0);
 
   const [selectedBank, setSelectedBank] = useState(DEFAULT_BANKS[0].id);
   const [interestRate, setInterestRate] = useState<string>(String(DEFAULT_BANKS[0].defaultRate));
@@ -65,6 +77,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
 
   // Busca o estoque disponível tratando camelCase e PascalCase vindo da API
   useEffect(() => {
+    if (context) return;
     const fetchStock = async () => {
       try {
         const response = await request<any>('/vehicles?status=1&pageSize=100');
@@ -87,11 +100,12 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
         setLoading(false);
       }
     };
-    fetchStock();
-  }, []);
+    void fetchStock();
+  }, [context]);
 
   // Atualiza o preço automaticamente ao trocar de carro (Prioriza Valor Anunciado > Valor de Compra)
   useEffect(() => {
+    if (context) return;
     const vehicle = vehicles.find(v => v.id === selectedVehicleId);
     if (vehicle) {
       const price = vehicle.ListedValue > 0 ? vehicle.ListedValue : vehicle.PurchaseValue;
@@ -99,7 +113,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
     } else {
       setVehiclePrice(0);
     }
-  }, [selectedVehicleId, vehicles]);
+  }, [selectedVehicleId, vehicles, context]);
 
   // Atualiza a taxa automaticamente ao trocar de banco
   useEffect(() => {
@@ -125,8 +139,8 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
 
   const currentVehicle = vehicles.find(v => v.id === selectedVehicleId);
 
-  return (
-    <MainLayout currentView={currentView} onNavigate={onNavigate}>
+  const content = (
+    <>
       {/* Container Full Width */}
       <div className="space-y-6 p-4 sm:p-6 w-full">
 
@@ -309,6 +323,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
           bankId={selectedBank}
           vehicleName={currentVehicle ? `${currentVehicle.brand} ${currentVehicle.model}` : 'Veículo Selecionado'}
           vehicleId={selectedVehicleId}
+          customer={context?.customer}
           vehiclePrice={vehiclePrice}
           entryValue={entryValue}
           tradeValue={tradeValue}
@@ -318,6 +333,7 @@ export function SimulatorPage({ currentView, onNavigate }: { currentView?: strin
           onClose={() => setShowCreditModal(false)}
         />
       )}
-    </MainLayout>
+    </>
   );
+  return context ? content : <MainLayout currentView={currentView} onNavigate={onNavigate}>{content}</MainLayout>;
 }

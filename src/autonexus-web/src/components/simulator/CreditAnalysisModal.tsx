@@ -27,6 +27,7 @@ interface CreditAnalysisModalProps {
   vehiclePrice: number;
   entryValue: number;
   tradeValue: number;
+  customer?: { name: string; phone: string; email?: string };
   onClose: () => void;
 }
 
@@ -43,15 +44,16 @@ export function CreditAnalysisModal({
   vehiclePrice,
   entryValue,
   tradeValue,
+  customer,
   onClose,
 }: CreditAnalysisModalProps) {
-  const [customerName, setCustomerName] = useState('');
+  const [customerName, setCustomerName] = useState(customer?.name ?? '');
   const [cpf, setCpf] = useState('');
   const [birthDate, setBirthDate] = useState('');
   const [monthlyIncome, setMonthlyIncome] = useState<number>(5000);
   const [hasDriverLicense, setHasDriverLicense] = useState(true);
-  const [phone, setPhone] = useState('');
-  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState(customer?.phone ?? '');
+  const [email, setEmail] = useState(customer?.email ?? '');
   const [maritalStatus, setMaritalStatus] = useState('');
   const [nationality, setNationality] = useState('Brasileira');
   const [cep, setCep] = useState('');

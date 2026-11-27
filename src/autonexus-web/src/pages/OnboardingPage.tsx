@@ -55,7 +55,7 @@ export function OnboardingPage({ currentView, onNavigate }: OnboardingPageProps)
 
         <section className="rounded-2xl border border-nexus-border bg-nexus-card p-5 md:p-6 space-y-4"><h2 className="text-base font-bold text-white">Próximos passos</h2>
           <button onClick={() => onNavigate?.('catalog')} className="w-full rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40"><Globe2 className="w-5 h-5 text-blue-400 mb-2" /><span className="block text-sm font-bold text-white">Abrir catálogo</span><span className="text-xs text-slate-500">Veja exatamente o que seu cliente encontra.</span></button>
-          <button onClick={() => onNavigate?.('commercial')} className="w-full rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40"><MessageCircle className="w-5 h-5 text-emerald-400 mb-2" /><span className="block text-sm font-bold text-white">Central comercial</span><span className="text-xs text-slate-500">Atalhos para estoque, catálogo e atendimento.</span></button>
+          <button onClick={() => onNavigate?.('leads')} className="w-full rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40"><MessageCircle className="w-5 h-5 text-emerald-400 mb-2" /><span className="block text-sm font-bold text-white">Mesa de atendimento</span><span className="text-xs text-slate-500">Fila de prioridades e negociações.</span></button>
           <a href="/demo" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 text-sm font-bold text-white">Ver demonstração <ExternalLink className="w-4 h-4" /></a>
         </section>
       </div>}

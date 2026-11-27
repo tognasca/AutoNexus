@@ -69,7 +69,8 @@ public record VehicleDetailDto(
     IEnumerable<VehiclePhotoDto> Photos,
     IEnumerable<VehicleCostDto> Costs,
     IEnumerable<VehicleDocumentDto>? Documents = null,
-    decimal? LatestFipeValue = null
+    decimal? LatestFipeValue = null,
+    Guid? SoldByUserId = null
 );
 
 public record CreateVehicleDto(

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { CurrencyInput } from '../ui/CurrencyInput';
 import { X, CheckCircle2, Loader2 } from 'lucide-react';
 import { request } from '../../services/api';
@@ -7,11 +7,12 @@ import type { VehicleSummary } from '../../types/vehicle';
 interface VehicleSaleModalProps {
   isOpen: boolean;
   vehicle: VehicleSummary | null;
+  leadId?: string;
   onClose: () => void;
   onSaleCompleted: () => void;
 }
 
-export function VehicleSaleModal({ isOpen, vehicle, onClose, onSaleCompleted }: VehicleSaleModalProps) {
+export function VehicleSaleModal({ isOpen, vehicle, leadId, onClose, onSaleCompleted }: VehicleSaleModalProps) {
   const [saleValue, setSaleValue] = useState<number>(0);
   const [soldAt, setSoldAt] = useState<string>(new Date().toISOString().split('T')[0]);
   const [loading, setLoading] = useState(false);
@@ -45,7 +46,7 @@ export function VehicleSaleModal({ isOpen, vehicle, onClose, onSaleCompleted }: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           saleValue: val,
-          SaleValue: val,
+          leadId,
           soldAt: soldAt ? new Date(soldAt).toISOString() : new Date().toISOString()
         }),
       });

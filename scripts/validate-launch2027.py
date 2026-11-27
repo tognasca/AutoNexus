@@ -6,6 +6,8 @@ Creates test stock, customers, a seller, reservations and a sale in that instanc
 import concurrent.futures
 import datetime
 import json
+import io
+import zipfile
 import os
 import urllib.error
 import urllib.request
@@ -35,6 +37,28 @@ def call(path, method="GET", data=None, token=None, expected=200):
         return json.loads(raw) if raw else None
     except json.JSONDecodeError:
         return raw
+
+
+def upload_portal_document(vehicle_id, category_id, name, token):
+    boundary = "document-" + uuid.uuid4().hex
+    fields = b"".join(
+        f'--{boundary}\r\nContent-Disposition: form-data; name="{key}"\r\n\r\n{value}\r\n'.encode()
+        for key, value in {"categoryId": category_id, "name": name}.items()
+    )
+    pdf = b"%PDF-1.7\nDocumento de teste\n%%EOF"
+    data = fields + (
+        f'--{boundary}\r\nContent-Disposition: form-data; name="file"; filename="teste.pdf"\r\n'
+        'Content-Type: application/pdf\r\n\r\n'
+    ).encode() + pdf + f"\r\n--{boundary}--\r\n".encode()
+    req = urllib.request.Request(BASE + f"/api/vehicles/{vehicle_id}/documents", data=data,
+        headers={"Authorization": "Bearer " + token, "Content-Type": "multipart/form-data; boundary=" + boundary})
+    with urllib.request.urlopen(req, timeout=30) as response:
+        return json.load(response)["id"], pdf
+
+
+def download(path):
+    with urllib.request.urlopen(BASE + "/api" + path, timeout=30) as response:
+        return response.read()
 
 
 def check(name):
@@ -110,7 +134,13 @@ def run():
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, seller, expected=409)
     check("reserva concorrente e bloqueio de fechamento por outro vendedor")
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "payment", "done": True}, token, expected=409)
-    call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, token)
+    buyer_links = "/vehicles/" + vid + "/buyer-links"
+    call(buyer_links, "POST", {}, token, expected=404)
+    call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000, "leadId": lid}, token)
+    assert call("/leads/" + lid, token=token)["statusName"] == "Venda"
+    assert any(x["id"] == vid and not x["delivered"] and not x["transferred"]
+        for x in call("/daily-work/after-sales", token=token)["items"])
+    assert not any(x["id"] == vid for x in call("/daily-work/after-sales", token=seller)["items"])
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000}, token, expected=409)
     call("/launch/vehicles/" + vid + "/delivery", "PUT", {"step": "handover", "done": True}, token, expected=409)
     assert any(x["kind"] == "delivery" and x["vehicleId"] == vid for x in call("/daily-work", token=token)["items"])
@@ -131,6 +161,31 @@ def run():
     assert call(transfer, token=token)["confirmation"]["evidence"] == "PROTOCOLO-01"
     call(transfer, "PUT", dict(complete, step="inspection", status="pending"), token, expected=409)
     check("transferência: evidência obrigatória, ordem, origem e responsável persistidos")
+
+    assert not any(x["id"] == vid for x in call("/daily-work/after-sales", token=token)["items"])
+    assert any(x["id"] == vid and x["delivered"] and x["transferred"]
+        for x in call("/daily-work/after-sales?includeCompleted=true", token=token)["items"])
+
+    category = call("/lookup/document-categories", token=token)[0]["id"]
+    shared_doc, pdf = upload_portal_document(vid, category, "Laudo autorizado", token)
+    private_doc, _ = upload_portal_document(vid, category, "Arquivo interno", token)
+    call(buyer_links, "POST", {"expirationDays": 31}, token, expected=400)
+    call(buyer_links, token=seller, expected=404)
+    buyer_link = call(buyer_links, "POST", {"expirationDays": 7, "documentIds": [shared_doc]}, token)
+    portal = buyer_link["shareUrl"]
+    details = call(portal)
+    assert details["price"] == 95000 and [x["id"] for x in details["documents"]] == [shared_doc]
+    assert "storagePath" not in details["documents"][0]
+    assert download(f"{portal}/documents/{shared_doc}/download") == pdf
+    call(f"{portal}/documents/{private_doc}/download", expected=404)
+    with zipfile.ZipFile(io.BytesIO(download(portal + "/documents/download-all"))) as archive:
+        assert len(archive.namelist()) == 1 and archive.read(archive.namelist()[0]) == pdf
+    accept = {"buyerName": "Comprador de teste", "buyerDocument": "529.982.247-25"}
+    call(portal + "/accept", "POST", accept)
+    assert call(portal)["hasElectronicAcceptance"]
+    call(buyer_links + "/" + buyer_link["id"], "DELETE", token=token, expected=204)
+    call(portal, expected=401)
+    check("portal: documentos selecionados, download, ZIP, aceite e revogação")
 
     partial = call("/leads", "POST", {"source": "Mercado Livre"}, token, expected=201)
     assert len(partial["missingFields"]) == 3

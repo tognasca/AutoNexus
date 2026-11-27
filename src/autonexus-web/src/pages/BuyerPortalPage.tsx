@@ -1,6 +1,7 @@
-﻿import { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { portalService, type PortalVehicle } from '../services/portalService';
 import { formatCurrency, formatDateTime, formatCpfCnpj, isValidCpfCnpj } from '../utils/formatters';
+import { getFullPhotoUrl } from '../components/vehicles/VehiclePhotosModal';
 import { Car, Download, CheckCircle2, ShieldCheck, FileText, Loader2, AlertCircle } from 'lucide-react';
 
 export function BuyerPortalPage({ token }: { token: string }) {
@@ -8,6 +9,7 @@ export function BuyerPortalPage({ token }: { token: string }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [acceptanceError, setAcceptanceError] = useState('');
   const [buyerName, setBuyerName] = useState('');
   const [buyerDoc, setBuyerDoc] = useState('');
   const [submittingAcceptance, setSubmittingAcceptance] = useState(false);
@@ -17,10 +19,11 @@ export function BuyerPortalPage({ token }: { token: string }) {
       try {
         setLoading(true);
         setError(null);
+        if (!token) throw new Error('Link do comprador inválido.');
         const data = await portalService.getDetails(token);
         setPortalData(data);
-      } catch (err: any) {
-        setError(err.message || 'Acesso negado ou link expirado.');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Acesso negado ou link expirado.');
       } finally {
         setLoading(false);
       }
@@ -31,17 +34,17 @@ export function BuyerPortalPage({ token }: { token: string }) {
   const handleAcceptance = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!buyerName.trim() || !isValidCpfCnpj(buyerDoc)) {
-      setError('Informe seu nome completo e um CPF/CNPJ válido para o aceite eletrônico.');
+      setAcceptanceError('Informe seu nome completo e um CPF/CNPJ válido para o aceite eletrônico.');
       return;
     }
 
     try {
       setSubmittingAcceptance(true);
-      setError(null);
+      setAcceptanceError('');
       const res = await portalService.submitAcceptance(token, buyerName, buyerDoc);
       setPortalData((prev) => prev ? { ...prev, hasElectronicAcceptance: true, acceptedByBuyerName: res.buyerName, acceptedAt: res.acceptedAt } : null);
-    } catch (err: any) {
-      setError(err.message || 'Erro ao registrar aceite.');
+    } catch (err) {
+      setAcceptanceError(err instanceof Error ? err.message : 'Erro ao registrar aceite.');
     } finally {
       setSubmittingAcceptance(false);
     }
@@ -80,13 +83,13 @@ export function BuyerPortalPage({ token }: { token: string }) {
           </div>
         </div>
 
-        <a
+        {portalData.documents.length > 0 && <a
           href={portalService.getDownloadZipUrl(token)}
           className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-semibold transition-colors flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-600/20"
         >
           <Download size={16} />
           Baixar Todos os Arquivos em ZIP
-        </a>
+        </a>}
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -113,7 +116,7 @@ export function BuyerPortalPage({ token }: { token: string }) {
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {portalData.photos.map((photo) => (
                 <div key={photo.id} className="rounded-xl overflow-hidden border border-nexus-border aspect-square bg-slate-900">
-                  <img src={photo.storagePath} alt="Foto Veículo" className="w-full h-full object-cover" />
+                  <img src={getFullPhotoUrl(photo.storagePath)} referrerPolicy="no-referrer" alt="Foto Veículo" className="w-full h-full object-cover" />
                 </div>
               ))}
             </div>
@@ -174,7 +177,7 @@ export function BuyerPortalPage({ token }: { token: string }) {
             <div>
               <p className="font-bold">Aceite Eletrônico Confirmado com Sucesso!</p>
               <p className="text-[11px] text-emerald-300/80 mt-0.5">
-                Comprador: {portalData.acceptedByBuyerName} • Confirmado em: {formatDateTime(portalData.acceptedAt)}
+                {portalData.acceptedByBuyerName && `Comprador: ${portalData.acceptedByBuyerName} · `}Confirmado em: {formatDateTime(portalData.acceptedAt)}
               </p>
             </div>
           </div>
@@ -184,6 +187,7 @@ export function BuyerPortalPage({ token }: { token: string }) {
               Ao confirmar abaixo, você registra o aceite eletrônico simples de que recebeu o veículo e teve acesso à documentação disponibilizada.
             </p>
 
+            {acceptanceError && <p role="alert" className="text-sm text-rose-300">{acceptanceError}</p>}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-400 uppercase mb-1">Nome Completo *</label>

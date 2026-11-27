@@ -1,6 +1,7 @@
 import { MercadoLivrePreflight } from './MercadoLivrePreflight';
 import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
+import { BuyerLinkPanel } from './BuyerLinkPanel';
 import { TransferTracking } from './TransferTracking';
 import { request } from '../../services/api';
 import { VehicleStatus, type VehicleSummary } from '../../types/vehicle';
@@ -107,7 +108,9 @@ export function VehicleOperations({ vehicle, onClose }: { vehicle: VehicleSummar
         {!interested.length && <p className="text-sm text-slate-500">Nenhum interessado compatível encontrado.</p>}
       </section>
     </div>
-    {vehicle.status === VehicleStatus.Vendido && <div className="mt-5"><TransferTracking vehicleId={vehicle.id} /></div>}
+    {vehicle.status === VehicleStatus.Vendido && <div className="mt-5"><TransferTracking vehicleId={vehicle.id} />
+      {(user?.profile === 1 || vehicle.soldByUserId === user?.userId) && <BuyerLinkPanel vehicleId={vehicle.id} />}
+    </div>}
     {vehicle.status === VehicleStatus.AVenda && <div className="mt-5"><MercadoLivrePreflight /></div>}
     <VehicleCostsModal isOpen={costsOpen} vehicle={vehicle} onClose={() => setCostsOpen(false)} onCostsUpdated={() => void refreshMargin(offer).catch(() => setError('Reabra o resultado para atualizar despesas.'))} />
     {lead && <AttendancePanel key={lead.id} lead={lead} onClose={() => setLead(null)} onUpdated={setLead} />}
