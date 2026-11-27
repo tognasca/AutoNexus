@@ -1,15 +1,64 @@
-import atMotorsLogo from '../../public/ATlogo.png';
-import { Car, BarChart3, MessageCircle, ShieldCheck, CheckCircle2, ArrowRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react';
+import { commercialTour } from './commercialTour';
+
+function readStage() {
+  return Math.max(0, commercialTour.findIndex(stage => '#' + stage.id === window.location.hash));
+}
+
 export function DemoPage() {
-  const features = [
-    { icon: Car, title: 'Estoque profissional', text: 'Organize seus veículos, preços, imagens e informações de venda em um único lugar.' },
-    { icon: BarChart3, title: 'Gestão da operação', text: 'Acompanhe estoque, indicadores, vendas, trocas, relatórios e comissões.' },
-    { icon: MessageCircle, title: 'Venda com catálogo', text: 'Apresente os veículos em uma vitrine própria e leve o cliente para o atendimento.' },
-    { icon: ShieldCheck, title: 'Dados separados por empresa', text: 'Cada loja trabalha em seu próprio ambiente, com controle de acesso e identidade própria.' },
-  ];
-  return <main className="min-h-screen bg-[#06111f] text-white"><div className="max-w-6xl mx-auto px-5 py-8 md:py-14"><header className="flex items-center justify-between"><a href="/precos" aria-label="AT MOTORS" className="block w-52"><img src={atMotorsLogo} alt="AT MOTORS" className="w-full object-contain" /></a><a href="/cadastro" className="rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-2 text-sm font-bold">Começar grátis</a></header>
-    <section className="py-16 md:py-24 text-center"><span className="inline-flex rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-xs font-bold text-blue-300">DEMONSTRAÇÃO DO PRODUTO</span><h1 className="mt-5 text-4xl md:text-6xl font-black tracking-tight">Sua loja de veículos,<br/><span className="text-blue-400">mais profissional para vender.</span></h1><p className="mx-auto mt-5 max-w-2xl text-base md:text-lg text-slate-400">O AT MOTORS reúne estoque, vendas, financeiro, documentos e catálogo em uma plataforma feita para lojas de veículos.</p><div className="mt-8 flex flex-col sm:flex-row justify-center gap-3"><a href="/cadastro" className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 hover:bg-blue-500 px-6 py-3 font-bold">Testar grátis por 7 dias <ArrowRight className="w-4 h-4"/></a><a href="/precos" className="inline-flex items-center justify-center rounded-xl border border-slate-700 bg-slate-900 px-6 py-3 font-bold text-slate-200">Ver planos</a></div></section>
-    <section className="grid grid-cols-1 sm:grid-cols-2 gap-4">{features.map(item => { const Icon = item.icon; return <article key={item.title} className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6"><Icon className="w-7 h-7 text-blue-400"/><h2 className="mt-4 text-lg font-bold">{item.title}</h2><p className="mt-2 text-sm leading-6 text-slate-400">{item.text}</p></article>; })}</section>
-    <section className="mt-6 rounded-2xl border border-emerald-500/20 bg-emerald-950/20 p-6 md:p-8"><h2 className="text-xl font-black">O que acontece depois?</h2><div className="mt-5 grid grid-cols-1 md:grid-cols-3 gap-4">{['Crie sua conta e configure a loja.','Cadastre seu estoque e publique o catálogo.','Compartilhe os veículos e acompanhe a operação.'].map((text, i) => <div key={text} className="flex gap-3"><CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0"/><div><span className="text-xs font-bold text-emerald-400">0{i + 1}</span><p className="mt-1 text-sm text-slate-300">{text}</p></div></div>)}</div></section>
-    <footer className="pt-12 text-center text-xs text-slate-500"><p className="italic">“Confia ao SENHOR as tuas obras, e teus pensamentos serão estabelecidos.”</p><p className="mt-1 font-semibold text-blue-400/80">Provérbios 16:3</p><p className="mt-4 text-slate-600">AT MOTORS • Tecnologia que movimenta negócios</p></footer></div></main>;
+  const [stage, setStage] = useState(readStage);
+  const [finished, setFinished] = useState(false);
+  const current = commercialTour[stage];
+
+  useEffect(() => {
+    const sync = () => { setStage(readStage()); setFinished(false); };
+    window.addEventListener('hashchange', sync);
+    return () => window.removeEventListener('hashchange', sync);
+  }, []);
+
+  function goTo(index: number) {
+    window.history.replaceState(null, '', '#' + commercialTour[index].id);
+    setStage(index);
+    setFinished(false);
+  }
+
+  return <main className="min-h-screen bg-[#06111f] text-white">
+    <div className="mx-auto max-w-6xl space-y-7 px-4 py-6 sm:p-10">
+      <header className="flex flex-wrap items-center justify-between gap-3 text-sm">
+        <a href="/" className="inline-flex items-center gap-2 text-slate-300"><ArrowLeft size={18} /> AT Motors</a>
+        <a href="/#agendar" className="font-semibold text-cyan-300 underline">Agendar demonstração</a>
+      </header>
+      <div>
+        <h1 className="text-3xl font-bold sm:text-5xl">Do WhatsApp à entrega</h1>
+        <p className="mt-3 text-slate-300">Em cerca de cinco minutos, acompanhe uma venda em uma loja fictícia. As ações alteram somente esta demonstração.</p>
+      </div>
+      <nav aria-label="Etapas da demonstração" className="flex flex-wrap gap-2">
+        {commercialTour.map((item, index) => <button key={item.id} type="button" onClick={() => goTo(index)}
+          aria-current={stage === index ? 'step' : undefined}
+          className="rounded-lg border border-slate-700 px-3 py-2 text-sm aria-[current=step]:border-cyan-300 aria-[current=step]:text-cyan-200">
+          {index + 1}. {item.title}
+        </button>)}
+      </nav>
+      <article className="space-y-4 rounded-2xl border border-slate-700 bg-slate-900 p-4 sm:p-6" aria-labelledby="tour-stage">
+        <div aria-live="polite">
+          <h2 id="tour-stage" className="text-2xl font-bold">{current.title}</h2>
+          <p className="mt-2 text-slate-300">{current.details}</p>
+        </div>
+        <img key={current.id} src={current.image} alt={current.alt} className="w-full rounded-lg border border-slate-700" />
+        {finished ? <div className="space-y-3 rounded-xl bg-emerald-950 p-4">
+          <p role="status" className="flex items-center gap-2 font-semibold"><CheckCircle2 size={20} /> Venda de exemplo concluída.</p>
+          <div className="flex flex-wrap gap-4"><a href="/#agendar" className="font-semibold text-cyan-300 underline">Agendar uma conversa</a>
+            <a href="/cadastro" className="font-semibold text-cyan-300 underline">Cadastrar minha loja</a>
+            <button onClick={() => goTo(0)} className="underline">Recomeçar</button></div>
+        </div> : <div className="flex flex-wrap gap-3">
+          {stage > 0 && <button onClick={() => goTo(stage - 1)} className="rounded-lg border border-slate-600 px-4 py-3">Voltar</button>}
+          <button onClick={() => stage === commercialTour.length - 1 ? setFinished(true) : goTo(stage + 1)}
+            className="inline-flex items-center gap-2 rounded-lg bg-cyan-400 px-4 py-3 font-bold text-slate-950">
+            {current.action} <ArrowRight size={18} />
+          </button>
+        </div>}
+      </article>
+    </div>
+  </main>;
 }
