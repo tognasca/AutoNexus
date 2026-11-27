@@ -81,11 +81,14 @@ def run():
     assert call("/store-setup/import", "POST", {"rows": [row], "commit": True}, token)["accepted"] == 0
     vehicle = next(v for v in call("/vehicles?search=" + row["plate"], token=token)["items"] if v["plate"] == row["plate"])
     vid = vehicle["id"]
+    setup = call("/store-setup", token=token)
+    assert setup["vehiclesCount"] >= 1 and setup["publishedCount"] >= 1
     check("prévia, validação e reenvio idempotente de importação")
 
     lead = call("/leads", "POST", {"name": "Cliente " + SUFFIX, "phone": "11999999999",
         "source": "Manual", "vehicleId": vid}, token, expected=201)
     lid = lead["id"]
+    assert call("/store-setup", token=token)["hasAttendance"]
     call("/leads/" + lid + "/attendance", "PUT",
         {"offerValue": 95000, "downPayment": 20000, "tradeDescription": "Troca a avaliar",
          "completedOn": None, "offerValidUntil": (datetime.date.today() + datetime.timedelta(days=1)).isoformat()}, token, expected=200)
@@ -96,6 +99,7 @@ def run():
 
     shared = call("/launch/leads/" + lid + "/proposal", "POST", {}, token)
     secret = shared["path"].split("/")[-1]
+    assert call("/store-setup", token=token)["hasProposal"]
     snapshot = call("/launch/proposals/" + secret)
     assert snapshot["value"] == 95000 and snapshot["store"]
     assert "purchaseValue" not in snapshot and "phone" not in snapshot
@@ -138,6 +142,7 @@ def run():
     call(buyer_links, "POST", {}, token, expected=404)
     call("/vehicles/" + vid + "/sell", "POST", {"saleValue": 95000, "leadId": lid}, token)
     assert call("/leads/" + lid, token=token)["statusName"] == "Venda"
+    assert call("/store-setup", token=token)["hasSale"]
     assert any(x["id"] == vid and not x["delivered"] and not x["transferred"]
         for x in call("/daily-work/after-sales", token=token)["items"])
     assert not any(x["id"] == vid for x in call("/daily-work/after-sales", token=seller)["items"])
@@ -248,6 +253,9 @@ def run():
         "adminPassword": PASSWORD, "planId": plan["id"], "cycle": 1,
         "acceptTermsOfUse": True, "acceptPrivacyPolicy": True, "acceptCookiePolicy": True})
     other_token = other["login"]["token"]
+    other_setup = call("/store-setup", token=other_token)
+    assert not any(other_setup[key] for key in ("hasAttendance", "hasProposal", "hasSale"))
+    call("/store-setup", token=seller, expected=403)
     assert call("/daily-work?mine=false", token=other_token)["total"] == 0
     call(transfer, token=other_token, expected=404)
     call(transfer, "PUT", complete, other_token, expected=404)

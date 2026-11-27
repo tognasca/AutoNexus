@@ -27,6 +27,9 @@ public sealed class StoreSetupController(AutoNexusDbContext db, ITenantContext t
             teamCount = await db.Users.CountAsync(x => x.IsActive && x.Profile != UserProfile.Cliente, ct),
             vehiclesCount = await db.Vehicles.CountAsync(ct),
             publishedCount = await db.Vehicles.CountAsync(x => x.Status == VehicleStatus.AVenda, ct),
+            hasAttendance = await db.Leads.AnyAsync(ct),
+            hasProposal = await db.Leads.AnyAsync(x => x.ProposalSnapshot != null, ct),
+            hasSale = await db.Vehicles.AnyAsync(x => x.SoldAt != null && x.SaleValue > 0, ct),
             catalogPath = "/loja/" + Uri.EscapeDataString(company.Slug)
         });
     }

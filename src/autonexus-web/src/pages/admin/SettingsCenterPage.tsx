@@ -7,7 +7,7 @@ interface Props { currentView?: string; onNavigate?: (view: string) => void; }
 export function SettingsCenterPage({ currentView, onNavigate }: Props) {
   const { user } = useAuth();
   const items = [
-    { title: 'Primeiros passos', text: 'Checklist da loja, importação de estoque e catálogo.', icon: Building2, view: 'onboarding' },
+    { title: 'Minha primeira venda', text: 'Checklist da loja, importação de estoque e catálogo.', icon: Building2, view: 'onboarding' },
     { title: 'Minha Empresa', text: 'Nome, logo, cor, WhatsApp e dados operacionais.', icon: Building2, view: 'tenant-settings' },
     { title: 'Usuários e perfis', text: 'Controle quem acessa cada área do AT Motors.', icon: ShieldCheck, view: 'users' },
     { title: 'Documentos da empresa', text: 'Centralize os documentos usados na operação.', icon: FileText, view: 'company-documents' },

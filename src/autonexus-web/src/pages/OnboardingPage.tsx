@@ -1,69 +1,80 @@
-import { StockImport } from '../components/onboarding/StockImport';
-import { request } from '../services/api';
 import { useEffect, useState } from 'react';
+import { CheckCircle2, Circle } from 'lucide-react';
+import { StockImport } from '../components/onboarding/StockImport';
 import { MainLayout } from '../components/layout/MainLayout';
-import { dashboardService, type DashboardSummary } from '../services/dashboardService';
-import { tenantSettingsService, type TenantSettings } from '../services/tenantSettingsService';
-import { Building2, CheckCircle2, Circle, ExternalLink, Palette, Car, MessageCircle, Globe2, ArrowRight } from 'lucide-react';
+import { firstSaleSteps, getStoreSetup, type StoreSetup } from '../services/storeSetupService';
 
-interface OnboardingPageProps { currentView?: string; onNavigate?: (view: string) => void; }
+interface OnboardingPageProps { currentView?: string; onNavigate?: (view: string) => void }
 
 export function OnboardingPage({ currentView, onNavigate }: OnboardingPageProps) {
-  const [setup, setSetup] = useState<{ teamCount: number; publishedCount: number; catalogPath: string } | null>(null);
+  const [setup, setSetup] = useState<StoreSetup | null>(null);
   const [error, setError] = useState('');
-  const refreshSetup = () => request<{ teamCount: number; publishedCount: number; catalogPath: string }>('/store-setup').then(setSetup);
-  const [settings, setSettings] = useState<TenantSettings | null>(null);
-  const [summary, setSummary] = useState<DashboardSummary | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [revision, setRevision] = useState(0);
+  const refresh = () => { setError(''); setRevision(value => value + 1); };
 
   useEffect(() => {
-    Promise.all([tenantSettingsService.get(), dashboardService.getSummary(), refreshSetup()])
-      .then(([tenant, dashboard]) => { setSettings(tenant); setSummary(dashboard); })
-      .catch(() => setError('Não foi possível conferir todas as etapas. Recarregue a página para tentar novamente.'))
-      .finally(() => setLoading(false));
-  }, []);
+    const controller = new AbortController();
+    getStoreSetup(controller.signal).then(data => {
+      if (!controller.signal.aborted) setSetup(data);
+    }).catch(() => {
+      if (!controller.signal.aborted) setError('Não foi possível atualizar o progresso da loja.');
+    });
+    return () => controller.abort();
+  }, [revision]);
 
-  const steps = settings ? [
-    { label: 'Nome da empresa configurado', done: Boolean(settings.companyName?.trim()), view: 'tenant-settings', icon: Building2 },
-    { label: 'Logo e identidade visual configurados', done: Boolean(settings.logoUrl?.trim()) && Boolean(settings.primaryColor), view: 'tenant-settings', icon: Palette },
-    { label: 'WhatsApp comercial configurado', done: Boolean(settings.whatsappNumber?.trim()), view: 'tenant-settings', icon: MessageCircle },
-    { label: 'Equipe ativa revisada', done: Boolean(setup && setup.teamCount > 0), view: 'users', icon: Building2 },
-    { label: 'Catálogo com veículos disponíveis', done: Boolean(setup && setup.publishedCount > 0), view: 'catalog', icon: Globe2 },
-    { label: 'Primeiros veículos cadastrados', done: Boolean(summary && summary.kpis.vehiclesForSale > 0), view: 'vehicles', icon: Car },
-  ] : [];
-
-  const completed = steps.filter(x => x.done).length;
-  const progress = steps.length ? Math.round((completed / steps.length) * 100) : 0;
+  const steps = setup ? firstSaleSteps(setup) : [];
+  const completed = steps.filter(step => step.done).length;
+  const next = steps.find(step => !step.done);
 
   return <MainLayout currentView={currentView} onNavigate={onNavigate}>
-    <div className="max-w-5xl mx-auto space-y-6">
-      <div className="rounded-2xl border border-blue-500/20 bg-gradient-to-br from-blue-950/60 to-slate-900 p-6 md:p-8">
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-6">
-          <div><p className="text-xs uppercase tracking-[0.2em] text-blue-400 font-bold">Primeiros passos</p><h1 className="mt-2 text-2xl md:text-3xl font-black text-white">Deixe sua loja pronta para vender.</h1><p className="mt-2 text-sm text-slate-400 max-w-2xl">Configure a identidade da empresa, publique o estoque e coloque o catálogo para trabalhar por você.</p></div>
-          <div className="text-left md:text-right"><div className="text-3xl font-black text-white">{progress}%</div><div className="text-xs text-slate-500">configuração concluída</div></div>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <header className="rounded-2xl border border-blue-500/30 bg-blue-950/40 p-5 sm:p-8">
+        <h1 className="text-3xl font-bold text-white">Minha primeira venda</h1>
+        <p className="mt-2 text-sm text-slate-300">Do primeiro veículo no estoque ao fechamento da venda.</p>
+        {setup && <>
+          <p className="mt-4 text-sm text-slate-200" aria-live="polite">{completed} de {steps.length} etapas concluídas</p>
+          <progress aria-label="Progresso da primeira venda" value={completed} max={steps.length}
+            className="mt-2 h-2 w-full accent-blue-500" />
+          {setup.hasSale && <p className="mt-3 font-semibold text-emerald-300">Primeira venda registrada!</p>}
+          {next && <p className="mt-3 text-sm text-blue-200">Próxima etapa: {next.label}</p>}
+        </>}
+      </header>
+
+      {error && <p role="alert" className="text-rose-300">{error} <button onClick={refresh} className="underline">Tentar novamente</button></p>}
+      {!setup && !error && <p role="status" className="text-slate-300">Verificando o progresso da loja…</p>}
+      {setup && <>
+        <ol className="space-y-3">
+          {steps.map(step => <li key={step.label}
+            className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-nexus-border bg-nexus-card p-4">
+            <span className="flex items-center gap-3 text-white">
+              {step.done ? <CheckCircle2 aria-hidden="true" className="text-emerald-400" /> : <Circle aria-hidden="true" className="text-slate-400" />}
+              <span>{step.label}<span className="ml-2 text-xs text-slate-400">{step.done ? 'Concluída' : 'Pendente'}</span></span>
+            </span>
+            {!step.done && (step.href
+              ? <a href={step.href} className="text-sm font-semibold text-blue-300 underline">{step.action}</a>
+              : <button onClick={() => onNavigate?.(step.view!)} className="text-sm font-semibold text-blue-300 underline">{step.action}</button>)}
+          </li>)}
+        </ol>
+
+        <div className="flex flex-wrap gap-4 text-sm">
+          <a href={setup.catalogPath} target="_blank" rel="noreferrer" className="text-blue-300 underline">Conferir vitrine da loja</a>
+          <button onClick={() => onNavigate?.('vehicles')} className="text-blue-300 underline">Cadastrar veículo manualmente</button>
+          <a href="/demo" target="_blank" rel="noreferrer" className="text-blue-300 underline">Ver demonstração</a>
         </div>
-        <div className="mt-6 h-2 rounded-full bg-slate-800 overflow-hidden"><div className="h-full rounded-full bg-blue-500 transition-all" style={{ width: `${progress}%` }} /></div>
-      </div>
-
-      {error && <p role="alert" className="text-rose-300">{error}</p>}
-      {loading ? <div className="rounded-2xl border border-nexus-border bg-nexus-card p-10 text-center text-slate-400">Verificando sua configuração...</div> : <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <section className="lg:col-span-2 rounded-2xl border border-nexus-border bg-nexus-card p-5 md:p-6"><h2 className="text-base font-bold text-white">Checklist da sua loja</h2><div className="mt-5 space-y-3">
-          {steps.map(step => { const Icon = step.icon; return <button key={step.label} onClick={() => onNavigate?.(step.view)} className="w-full flex items-center gap-4 rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40 transition-colors">
-            {step.done ? <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" /> : <Circle className="w-5 h-5 text-slate-600 shrink-0" />}<Icon className="w-5 h-5 text-slate-400 shrink-0" /><span className={`flex-1 text-sm font-medium ${step.done ? 'text-slate-300' : 'text-white'}`}>{step.label}</span><ArrowRight className="w-4 h-4 text-slate-600" />
-          </button>; })}
-        </div></section>
-
-        <section className="rounded-2xl border border-nexus-border bg-nexus-card p-5 md:p-6 space-y-4"><h2 className="text-base font-bold text-white">Próximos passos</h2>
-          <button onClick={() => onNavigate?.('catalog')} className="w-full rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40"><Globe2 className="w-5 h-5 text-blue-400 mb-2" /><span className="block text-sm font-bold text-white">Abrir catálogo</span><span className="text-xs text-slate-500">Veja exatamente o que seu cliente encontra.</span></button>
-          <button onClick={() => onNavigate?.('leads')} className="w-full rounded-xl border border-slate-800 bg-slate-950/40 p-4 text-left hover:border-blue-500/40"><MessageCircle className="w-5 h-5 text-emerald-400 mb-2" /><span className="block text-sm font-bold text-white">Mesa de atendimento</span><span className="text-xs text-slate-500">Fila de prioridades e negociações.</span></button>
-          <a href="/demo" target="_blank" rel="noreferrer" className="w-full flex items-center justify-between rounded-xl bg-blue-600 hover:bg-blue-500 px-4 py-3 text-sm font-bold text-white">Ver demonstração <ExternalLink className="w-4 h-4" /></a>
-        </section>
-      </div>}
-      {!loading && <StockImport onImported={() => {
-        void refreshSetup().catch(() => setError('Recarregue para atualizar a conferência.'));
-        void dashboardService.getSummary().then(setSummary).catch(() => {});
-      }} />}
-      {setup?.catalogPath && <a href={setup.catalogPath} target="_blank" rel="noreferrer" className="inline-flex rounded-lg bg-blue-600 px-5 py-3 text-sm font-semibold text-white">Conferir catálogo publicado</a>}
+        <details className="space-y-3 rounded-xl border border-nexus-border bg-nexus-card p-4 text-slate-200">
+          <summary className="cursor-pointer font-semibold">Configuração da loja</summary>
+          <p className="text-sm">{setup.companyName}</p>
+          <ul className="space-y-2 text-sm">
+            <li><button onClick={() => onNavigate?.('tenant-settings')} className="text-blue-300 underline">Identidade visual e WhatsApp</button>
+              {' · '}{setup.identityReady && setup.contactReady ? 'Configurados' : 'Pendentes'}</li>
+            <li><button onClick={() => onNavigate?.('users')} className="text-blue-300 underline">Equipe</button>
+              {' · '}{setup.teamCount} usuários ativos</li>
+          </ul>
+        </details>
+      </>}
+      <section id="importar-estoque" className="scroll-mt-6" aria-label="Importação do estoque">
+        <StockImport onImported={refresh} />
+      </section>
     </div>
   </MainLayout>;
 }
