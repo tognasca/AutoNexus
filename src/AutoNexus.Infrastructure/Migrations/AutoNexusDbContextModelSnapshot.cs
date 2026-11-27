@@ -1574,6 +1574,10 @@ namespace AutoNexus.Infrastructure.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updatedAt");
 
+                    b.Property<Guid?>("LeadId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("leadId");
+
                     b.HasKey("Id");
 
                     b.HasIndex("DeliveredVehicleId");

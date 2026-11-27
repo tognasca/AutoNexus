@@ -209,6 +209,15 @@ public class VehiclesController : ControllerBase
             leadId = reservedLead;
         }
 
+        if (saleVehicle.Status == VehicleStatus.EmTroca)
+        {
+            var tradeLead = await _dbContext.Trades.AsNoTracking().Where(x => x.DeliveredVehicleId == id)
+                .OrderByDescending(x => x.CreatedAt).Select(x => x.LeadId).FirstOrDefaultAsync(cancellationToken);
+            if (tradeLead.HasValue && leadId.HasValue && tradeLead != leadId)
+                return Conflict(new { message = "O veículo tem uma troca vinculada a outro atendimento." });
+            leadId ??= tradeLead;
+        }
+
         if (leadId.HasValue)
         {
             var lead = await _dbContext.Leads.SingleOrDefaultAsync(x => x.Id == leadId && x.VehicleId == id, cancellationToken);

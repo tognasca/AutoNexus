@@ -259,6 +259,26 @@ def run():
     call("/financing/proposals/" + manual["id"], token=other_token, expected=404)
     check("isolamento entre duas empresas reais, inclusive propostas e financiamento")
 
+    trade_vehicle = call("/vehicles", "POST", dict(row, plate=None), token, expected=201)["id"]
+    trade_lead = call("/leads", "POST", {"name": "Cliente troca", "phone": "11999999999",
+        "vehicleId": trade_vehicle}, token, expected=201)["id"]
+    other_lead = call("/leads", "POST", {"name": "Outro cliente", "phone": "11999999998",
+        "vehicleId": trade_vehicle}, token, expected=201)["id"]
+    trade_input = {"deliveredVehicleId": trade_vehicle, "leadId": trade_lead,
+        "receivedVehicle": dict(row, plate=None, model="Yaris", purchaseValue=40000, listedValue=45000),
+        "receivedVehicleFipe": 45000, "deliveredVehicleFipe": 95000,
+        "receivedVehicleNegotiatedValue": 42000, "deliveredVehicleNegotiatedValue": 95000,
+        "estimatedResaleCost": 2000, "differenceValue": 53000, "differencePaidByUs": False,
+        "tradeDate": datetime.datetime.now(datetime.timezone.utc).isoformat()}
+    call("/trades", "POST", trade_input, token, expected=201)
+    assert call("/launch/leads/" + trade_lead, token=token)["tradeValue"] == 42000
+    assert call("/launch/leads/" + other_lead, token=token).get("tradeValue") is None
+    call(f"/vehicles/{trade_vehicle}/sell", "POST", {"saleValue": 95000, "leadId": other_lead},
+        token, expected=409)
+    call(f"/vehicles/{trade_vehicle}/sell", "POST", {"saleValue": 95000, "leadId": trade_lead}, token)
+    assert call("/leads/" + trade_lead, token=token)["statusName"] == "Venda"
+    check("troca vinculada ao atendimento, retomada do crédito e fechamento com o comprador correto")
+
     return {"token": token, "leadId": lid, "vehicleId": vid, "auth": auth, "results": results}
 
 

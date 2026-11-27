@@ -1,4 +1,4 @@
-﻿using AutoNexus.Domain.Enums;
+using AutoNexus.Domain.Enums;
 
 namespace AutoNexus.Application.DTOs;
 
@@ -20,7 +20,8 @@ public record CreateTradeDto(
     decimal DifferenceValue,
     bool DifferencePaidByUs,
     DateTime TradeDate,
-    string? Notes
+    string? Notes,
+    Guid? LeadId = null
 );
 
 public record TradeEvaluationDto(

@@ -79,7 +79,7 @@ public class TradeService : ITradeService
             dto.DifferenceValue,
             dto.DifferencePaidByUs,
             dto.TradeDate.ToUniversalTime(),
-            responsibleUserId
+            responsibleUserId, dto.LeadId
         );
 
         trade.Evaluate();

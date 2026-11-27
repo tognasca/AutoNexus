@@ -39,7 +39,7 @@ public sealed class LaunchController(AutoNexusDbContext db, ITenantContext tenan
         var vehicle = lead.VehicleId.HasValue ? await db.Vehicles.AsNoTracking()
             .SingleOrDefaultAsync(x => x.Id == lead.VehicleId, ct) : null;
         var trade = vehicle?.Status == VehicleStatus.EmTroca
-            ? await db.Trades.AsNoTracking().Where(x => x.DeliveredVehicleId == vehicle.Id)
+            ? await db.Trades.AsNoTracking().Where(x => x.DeliveredVehicleId == vehicle!.Id && x.LeadId == lead.Id)
                 .OrderByDescending(x => x.CreatedAt).Select(x => (decimal?)x.ReceivedVehicleNegotiatedValue).FirstOrDefaultAsync(ct)
             : null;
         return Ok(new {

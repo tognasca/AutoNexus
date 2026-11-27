@@ -9,13 +9,14 @@ import { X, ArrowLeftRight, Calculator, Loader2 } from 'lucide-react';
 
 interface TradeNegotiationModalProps {
   isOpen: boolean;
+  leadId?: string;
   vehicle: VehicleSummary | null;
   vehicleTypes: LookupItem[];
   onClose: () => void;
   onTradeCompleted: (receivedValue: number) => void;
 }
 
-export function TradeNegotiationModal({ isOpen, vehicle, vehicleTypes, onClose, onTradeCompleted }: TradeNegotiationModalProps) {
+export function TradeNegotiationModal({ isOpen, leadId, vehicle, vehicleTypes, onClose, onTradeCompleted }: TradeNegotiationModalProps) {
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -54,6 +55,7 @@ export function TradeNegotiationModal({ isOpen, vehicle, vehicleTypes, onClose, 
 
       const input: CreateTradeInput = {
         deliveredVehicleId: vehicle.id,
+        leadId,
         receivedVehicle: {
           vehicleTypeId: recTypeId,
           brand: recBrand,

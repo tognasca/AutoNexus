@@ -236,7 +236,7 @@ export function AttendancePanel({ lead, onClose, onUpdated }: {
         trade: tradeAmount,
         customer: { name: current.name, phone: current.phone, email: current.email ?? undefined },
       }} />}
-      {tradeTypes && <TradeNegotiationModal isOpen vehicle={{ ...vehicle, listedValue: form.offerValue ?? vehicle.listedValue }}
+      {tradeTypes && <TradeNegotiationModal isOpen leadId={current.id} vehicle={{ ...vehicle, listedValue: form.offerValue ?? vehicle.listedValue }}
         vehicleTypes={tradeTypes} onClose={() => setTradeTypes(null)} onTradeCompleted={async amount => {
           setTradeAmount(amount);
           setNotice('Troca registrada. O crédito do veículo recebido foi aplicado à próxima simulação.');
